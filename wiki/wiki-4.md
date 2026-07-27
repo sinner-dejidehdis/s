@@ -59,8 +59,8 @@ Want any of these expanded, or reformatted as blog posts?
 
 ## See also
 
-- [Gaming](/wiki/gaming/) — esports and the PVP tradition
-- [Cars](/wiki/cars/) — motorsport and Formula 1
-- [Myths Around the World](/wiki/myths/) — the Olympic Games began as rites for Zeus
+- [Gaming]({{ '/wiki/gaming/' | url }}) — esports and the PVP tradition
+- [Cars]({{ '/wiki/cars/' | url }}) — motorsport and Formula 1
+- [Myths Around the World]({{ '/wiki/myths/' | url }}) — the Olympic Games began as rites for Zeus
 
-[← Back to the Wiki index](/wiki/)
+[← Back to the Wiki index]({{ '/wiki/' | url }})

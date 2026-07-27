@@ -17,8 +17,8 @@ Third, Chemistry. The topic is a reality version of magic. On the contrust to ph
 
 ## See also
 
-- [Gaming](/wiki/gaming/) — game design leans on math and physics
-- [Cars](/wiki/cars/) — applied physics and chemistry in metal
-- [Myths Around the World](/wiki/myths/) — how cultures explained things before science
+- [Gaming]({{ '/wiki/gaming/' | url }}) — game design leans on math and physics
+- [Cars]({{ '/wiki/cars/' | url }}) — applied physics and chemistry in metal
+- [Myths Around the World]({{ '/wiki/myths/' | url }}) — how cultures explained things before science
 
-[← Back to the Wiki index](/wiki/)
+[← Back to the Wiki index]({{ '/wiki/' | url }})

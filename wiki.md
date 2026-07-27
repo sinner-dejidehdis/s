@@ -11,7 +11,7 @@ All entries, listed alphabetically.
 <ul>
 {% assign entries = collections.wikis | sort: "data.title" %}
 {% for entry in entries %}
-  <li><a href="{{ entry.url }}">{{ entry.data.title }}</a></li>
+  <li><a href="{{ entry.url | url }}">{{ entry.data.title }}</a></li>
 {% endfor %}
 </ul>
 

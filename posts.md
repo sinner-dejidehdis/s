@@ -7,5 +7,5 @@ permalink: /posts/
 # All Posts
 
 {% for post in collections.posts %}
-- [{{ post.data.title }}]({{ post.url }}) - {{ post.date | date: "%b %d, %Y" }}
+- [{{ post.data.title }}]({{ post.url | url }}) - {{ post.date | date: "%b %d, %Y" }}
 {% endfor %}

@@ -17,8 +17,8 @@ Third : Pending, come back later to check, the writer is too lazy.
 
 ## See also
 
-- [Sports](/wiki/sports/) — the original competitive multiplayer
-- [Myths Around the World](/wiki/myths/) — the source of most fantasy game lore
-- [Academic](/wiki/academic/) — the math and physics behind game engines
+- [Sports]({{ '/wiki/sports/' | url }}) — the original competitive multiplayer
+- [Myths Around the World]({{ '/wiki/myths/' | url }}) — the source of most fantasy game lore
+- [Academic]({{ '/wiki/academic/' | url }}) — the math and physics behind game engines
 
-[← Back to the Wiki index](/wiki/)
+[← Back to the Wiki index]({{ '/wiki/' | url }})

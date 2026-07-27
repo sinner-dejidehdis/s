@@ -69,8 +69,8 @@ No bureaucracy. European pantheons are family dramas — succession, jealousy, i
 
 ## See also
 
-- [Gaming](/wiki/gaming/) — myth as the raw material of game worlds
-- [Academic](/wiki/academic/) — history and comparative literature
-- [Sports](/wiki/sports/) — the ancient Olympics were a religious festival
+- [Gaming]({{ '/wiki/gaming/' | url }}) — myth as the raw material of game worlds
+- [Academic]({{ '/wiki/academic/' | url }}) — history and comparative literature
+- [Sports]({{ '/wiki/sports/' | url }}) — the ancient Olympics were a religious festival
 
-[← Back to the Wiki index](/wiki/)
+[← Back to the Wiki index]({{ '/wiki/' | url }})

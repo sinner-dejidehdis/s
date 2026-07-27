@@ -10,5 +10,5 @@ title: My Blog Home
 Here are my recent posts:
 
 {% for post in collections.posts %}
-- [{{ post.data.title }}]({{ post.url }}) - {{ post.date | date: "%b %d, %Y" }}
+- [{{ post.data.title }}]({{ post.url | url }}) - {{ post.date | date: "%b %d, %Y" }}
 {% endfor %}

@@ -66,8 +66,8 @@ Electrification is accelerating but unevenly — Norway is near-total, much of t
 
 ## See also
 
-- [Academic](/wiki/academic/) — the physics and chemistry that make engines work
-- [Sports](/wiki/sports/) — Formula 1 and motorsport
-- [Gaming](/wiki/gaming/) — racing sims and driving games
+- [Academic]({{ '/wiki/academic/' | url }}) — the physics and chemistry that make engines work
+- [Sports]({{ '/wiki/sports/' | url }}) — Formula 1 and motorsport
+- [Gaming]({{ '/wiki/gaming/' | url }}) — racing sims and driving games
 
-[← Back to the Wiki index](/wiki/)
+[← Back to the Wiki index]({{ '/wiki/' | url }})
