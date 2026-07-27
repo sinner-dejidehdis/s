@@ -1,7 +1,10 @@
-module.exports = function(eleventyConfig) {
+module.exports = function (eleventyConfig) {
   return {
     dir: {
-      output: "docs"
-    }
+      input: ".",
+      output: "_site",
+      includes: "_includes"
+    },
+    pathPrefix: process.env.PATH_PREFIX || "/"
   };
 };

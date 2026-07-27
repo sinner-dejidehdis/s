@@ -26,3 +26,6 @@ desktop.ini
 .idea/
 *.swp
 *~
+
+# Old build output
+docs/
