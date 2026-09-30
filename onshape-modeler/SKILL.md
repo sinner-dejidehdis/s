@@ -48,8 +48,12 @@ python scripts/build.py plan.json --url "<Part Studio URL>" --replace
 - 一个草图 = 一次拉伸，草图里所有闭合轮廓都会被拉伸。**孔不要和外轮廓画在同一个草图里**（会被当成实心填上）：先拉外形，再在同平面单独画孔草图，用 `"op": "remove"` 切除。
 - 新零件用 `op: new`，要并入已有零件用 `add`。
 
-## 已知限制
-特征 JSON（btType 版本、平面/草图区域的 query 写法）是按 Onshape REST 文档写的，已用本地 mock 验证流程，**但未在真实 Onshape 上验证过**。第一次真实运行若某个特征报错，把脚本打印的错误贴出来，优先检查 `scripts/features.py` 里的 `_q()` / `plane_query()`。
+## 已知限制与 API 要点
+roller intake 模板已在真实 Onshape（v6 API）上建成（30 个特征全部 OK），特征 JSON 的写法已经按真实报错修正过。以后改 `scripts/features.py` 时注意这几点：
+- 草图直线的 geometry 字段是 `pntX/pntY/dirX/dirY`。写成 `pointVector/direction` 会被静默忽略，草图显示 OK，但里面没有区域，后面的拉伸会报 ERROR。
+- 平面的 `offset` 不接受负值：取绝对值，再用 `oppositeDirection` 表示方向。
+- extrude 的 `defaultScope` 默认是 false，add/remove 必须设成 true，否则找不到要合并或切除的零件。对称拉伸用布尔参数 `symmetric`，不要用 `endBound`。
+- 遇到 "does not match its feature spec" 时，用 `GET .../featurespecs` 查参数定义；遇到 ERROR 时，用 `POST .../featurescript` 执行 `evaluateQuery` 数一下 query 命中了几个实体。
 
 ## 修改已建模型
 保留上次的 plan.json（或重新用模板+新参数生成），改参数后 `--replace` 重建。不要在用户手动改过的特征上直接覆盖：如果特征树里有非本 skill 前缀的特征依赖这些零件，先提醒用户。
