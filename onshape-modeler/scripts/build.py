@@ -106,6 +106,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--new-studio", metavar="NAME", help="在 --url 所在文档新建一个 Part Studio 并建在里面")
+    ap.add_argument("--no-assembly", action="store_true", help="plan 里有 assembly 时也只建 Part Studio")
     a = ap.parse_args()
 
     if a.check:
@@ -151,6 +152,11 @@ def main():
             raise SystemExit(f"停止：{feat['name']} 状态 {status}。见 SKILL.md 排查清单。")
     name_parts(c, new_bodies)
     report(c, plan.get("expect", {}).get("bbox_in"))
+    if plan.get("assembly") and not a.no_assembly:
+        from assembly import build_assembly
+        asm = build_assembly(c, plan)
+        bom = f"bom_{plan.get('name', 'model')}.csv"
+        print(f"  BOM {asm.bom(bom)} 行 → {bom}")
 
 
 if __name__ == "__main__":

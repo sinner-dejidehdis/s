@@ -24,7 +24,7 @@ description: Build parametric CAD models directly in the user's Onshape Part Stu
 | 需求 | 模板 |
 |---|---|
 | intake / 滚轮吸入 / roller intake | `scripts/templates/roller_intake.py` |
-| elevator / 升降 / 电梯（2 级 continuous，皮带走管内） | `scripts/templates/elevator.py` |
+| elevator / 升降 / 电梯（2 级 continuous，WCP-0199 轴承块，带装配体和 BOM） | `scripts/templates/elevator.py` |
 
 ### 2. 生成建模计划（plan.json）
 - 有模板：`python scripts/templates/roller_intake.py --set inner_width=24 --set rollers='[[11,2],[5.5,4.5],[1,6]]' > plan.json`
@@ -52,21 +52,30 @@ python scripts/build.py plan.json --url "<Part Studio URL>" --replace
 - 新零件用 `op: new`，要并入已有零件用 `add`。
 
 ## 已知限制与 API 要点
-roller intake（30 个特征）和 elevator（48 个特征）两个模板都已在真实 Onshape（v6 API）上建成并全部 OK，elevator 在收起和全伸出两种姿态下都做过干涉检查，特征 JSON 的写法已经按真实报错修正过。以后改 `scripts/features.py` 时注意这几点：
+roller intake（30 个特征）和 elevator（137 个特征 + 174 个实例的装配体）都已在真实 Onshape（v6 API）上建成并全部 OK，elevator 的自制件之间做过干涉检查，特征 JSON 的写法已经按真实报错修正过。以后改 `scripts/features.py` 时注意这几点：
 - 草图直线的 geometry 字段是 `pntX/pntY/dirX/dirY`。写成 `pointVector/direction` 会被静默忽略，草图显示 OK，但里面没有区域，后面的拉伸会报 ERROR。
 - 平面的 `offset` 不接受负值：取绝对值，再用 `oppositeDirection` 表示方向。
 - extrude 的 `defaultScope` 默认是 false，add/remove 必须设成 true，否则找不到要合并或切除的零件。对称拉伸用布尔参数 `symmetric`，不要用 `endBound`。
 - 遇到 "does not match its feature spec" 时，用 `GET .../featurespecs` 查参数定义；遇到 ERROR 时，用 `POST .../featurescript` 执行 `evaluateQuery` 数一下 query 命中了几个实体。
 
-## Elevator 模板说明
-蓝本是 254 2025 Undertow 的 elevator（技术手册第 16 页）：2 级、continuous 连续绳法，所有级都用 2x1x1/16" 方管加轴承块，9mm 宽 HTD5 皮带走管内，由 2 个 Kraken X60 经 11:50 齿轮驱动 36T 皮带轮当卷筒，行程约 52"，约 0.3s 走完。254 在 2023 手册里写过，elevator 刚度不足是限制他们对位速度的主要因素。模板在这个基础上做了下面的改进：
-- 固定级管壁用 1/8"，运动级保持 1/16"：固定级更刚，同时不增加运动质量。
-- 每一级都做成闭合框（底横梁 + 顶横梁）。stage 1 的横梁始终在 stage 0 横梁的上方，两者永远不会相遇，所以横梁可以都放在背面，前面只留给 carriage。
-- 满伸出时两级之间至少重叠 `min_overlap`（默认 8"）。行程由脚本从 `base_height` 反算，超出最大行程会直接报错，不会建出一个伸出后散架的模型。
-- 每一级向前错开 1/8"，运动的管子不会贴着上一级的横梁滑。
-- 背面加 A 字斜撑，并留出卷筒轴和两侧轴承板的位置。
+## Elevator 模板说明（可建造版：Part Studio + Assembly）
+`scripts/templates/elevator.py` 生成的 plan 同时包含 Part Studio 的特征，以及 `assembly` 段（标准件清单、刚性组、slider）。`build.py` 建完零件后会接着建（或清空重建）名为 **Elevator Assembly** 的装配体，并导出 `bom_elevator.csv`。只想建零件时加 `--no-assembly`。
 
-常用参数：`travel`、`base_height`、`width`、`carriage_length`、`extension`（0=收起，1=全伸出，用来检查伸出后的姿态）。plan 里的 `info` 会给出各级行程和满伸出时的重叠量。轴承块、皮带、电机没有建模（放轴承块的间隙是 `bearing_gap`）；A 字斜撑按实心 1x1 简化。
+- **蓝本**：254 2025 Undertow 的 elevator（技术手册第 16 页）：2 级、continuous，所有级都用 2x1x1/16" 管加轴承块，2 个 Kraken X60，行程约 52"。254 在 2023 年说过刚度不足是限制他们对位速度的主要原因。
+- **导向**：8 个 WCP-0199 inline 轴承块（3/4" 轴承配置，级间隙 1/4"），分别在 S0 顶、S1 底、carriage 底和顶。块的套筒插进管端，用 3 颗 10-32 螺栓穿管固定；S1 底和 carriage 的这 3 颗螺栓同时夹住角撑板或前板。WCP-0199 只配 1/16" 壁厚的管，所以固定级不再用 1/8" 壁厚。
+- **结构（刚度改进）**：每一级都是闭合框。外级的顶横梁放在背面，通过侧角撑板（3/16" 铆钉）和管堵（ELV-040，等同 WCP-0374）连接，让内级可以穿过；底横梁在同一平面内，用前后两块 1/8" 角撑板加 2.5" 螺栓夹紧。满伸出时 S0 和 S1 至少重叠 `min_overlap`，超出最大行程会直接报错。
+- **驱动**：2 个 Kraken X60 装在两侧 1/4" 电机板内侧，12T→36T（HTD5 9mm，60T 皮带，3:1）带动 1/2" hex 卷筒轴，轴上两个 24T 卷筒。空载线速度约 157 in/s，和 254 相当。
+- **没做的**：连续绳法的提升皮带、惰轮和皮带夹没有建模，这是下一步；轴套和卡簧、线缆、拖链也没有；S0 需要用户在装配体里右键 Fix，或者装到底盘上。
+
+标准件来自 MKCad 公开库，记录在 `references/cots.json`（文档、版本、零件 id，以及零件自身坐标系）。新增标准件时，先用 bodydetails 查清它的坐标系再写进去。
+
+## 装配体 API 要点（踩过的坑）
+- 插入：`POST /assemblies/.../instances`，外部零件要带 `versionId` 和 `partId`；插入整个子装配用 `isAssembly: true`。只给 `isWholePartStudio` 时，外部文档的零件会被静默跳过。
+- 定位：`POST .../occurrencetransforms` 要用 **isRelative: true**（新实例在原点，相对等于绝对）。对子装配用绝对变换会把内部零件打乱。
+- 同一厂商的螺栓，不同长度的自身坐标系可能不同（MKCad 的 0.5"/2.25" 沿 Y，1.5"/2.5" 沿 X 且居中），必须逐个确认。
+- 装配体里的 mate connector 用 `BTMInferenceQueryWithOccurrence-1083`，里面必须是 **`deterministicIds`（列表）**。写成单数 `deterministicId` 会一直 ERROR，也没有报错信息。面 id 从 Part Studio 的 `bodydetails` 取。
+- slider 要求两个连接器的 z 轴共线；用连接器的 `transform/translationX/Y` 把其中一个平移到另一个的轴线上。刚性组用 `BTMMateGroup-65`。
+- 删除 feature 或实例时，id 里可能有 `/` 和 `+`，要 URL 编码。删除整个标签页（element）需要 API key 有 Delete 权限。
 
 ## 修改已建模型
 保留上次的 plan.json（或重新用模板+新参数生成），改参数后 `--replace` 重建。不要在用户手动改过的特征上直接覆盖：如果特征树里有非本 skill 前缀的特征依赖这些零件，先提醒用户。
