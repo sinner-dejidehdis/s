@@ -121,7 +121,9 @@ def build_extrude(step, tag, units, sketch_fids):
         "parameters": [
             _enum("bodyType", "ExtendedToolBodyType", "SOLID"),
             _enum("operationType", "NewBodyOperationType", op),
-            _qlist("entities", f'query=qSketchRegion(makeId("{sketch_fids[step["sketch"]]}"), false);'),
+            # hollow=true：只拉伸环形区域（方管、带孔的板），内轮廓保持空心，不用再单独切除
+            _qlist("entities", f'query=qSketchRegion(makeId("{sketch_fids[step["sketch"]]}"), '
+                               f'{"true" if step.get("hollow") else "false"});'),
             _enum("endBound", "BoundingType", "BLIND"),
             _qty("depth", _expr(step["depth"], units)),
             _bool("oppositeDirection", DIRS[direction]),

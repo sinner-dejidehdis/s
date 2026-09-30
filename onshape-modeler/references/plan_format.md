@@ -29,6 +29,7 @@ base = Top / Front / Right 或先前 plane 的 id。offset 沿平面法向。
 **extrude**
 `{"type":"extrude","id":"e1","sketch":"s1","depth":0.25,"direction":"normal|flip|symmetric","op":"new|add|remove|intersect"}`
 - normal = 沿平面法向；flip = 反向；symmetric = 两侧各 depth/2。
+- `"hollow": true`：只拉伸环形区域，草图里的内轮廓保持空心。方管（外矩形 + 内矩形）和带孔的板都用这种写法，一步完成，不会误切到别的零件。
 - 一个 sketch 对应一次 extrude；孔用单独的 sketch + `remove`（见 SKILL.md）。
 
 ## 模板

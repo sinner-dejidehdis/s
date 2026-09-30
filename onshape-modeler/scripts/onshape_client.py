@@ -2,11 +2,13 @@
 import os
 import re
 import sys
+from urllib.parse import quote
 from pathlib import Path
 
 import requests
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
+NAME_PROPERTY_ID = "57f3fb8efa3416c06701d60d"   # Onshape 内置 "Name" 属性
 URL_RE = re.compile(r"documents/([0-9a-f]+)/([wvm])/([0-9a-f]+)/e/([0-9a-f]+)")
 
 
@@ -69,6 +71,19 @@ class Client:
 
     def parts(self):
         return self._req("GET", f"{self.base}/parts/d/{self.did}/w/{self.wid}/e/{self.eid}")
+
+    def create_part_studio(self, name):
+        """在同一文档/工作区新建 Part Studio，返回它的 URL。"""
+        r = self._req("POST", f"{self.base}/partstudios/d/{self.did}/w/{self.wid}", json={"name": name})
+        host = self.base.rsplit("/api/", 1)[0]
+        return f"{host}/documents/{self.did}/w/{self.wid}/e/{r['id']}"
+
+    def featurescript(self, script):
+        return self._req("POST", f"{self.ps}/featurescript", json={"script": script}).get("result")
+
+    def set_part_name(self, part_id, name):
+        self._req("POST", f"{self.base}/metadata/d/{self.did}/w/{self.wid}/e/{self.eid}/p/{quote(part_id, safe='')}",
+                  json={"properties": [{"propertyId": NAME_PROPERTY_ID, "value": name}]})
 
     def bbox(self):
         return self._req("GET", f"{self.ps}/boundingboxes")
