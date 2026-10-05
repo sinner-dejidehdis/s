@@ -24,6 +24,7 @@ description: Build parametric CAD models directly in the user's Onshape Part Stu
 | 需求 | 模板 |
 |---|---|
 | intake / 滚轮吸入 / roller intake | `scripts/templates/roller_intake.py` |
+| shooter / 发射器 / 飞轮 | `scripts/templates/shooter.py`（单飞轮 + 同心 hood + 送球辊，11 个零件；`tests/check_shooter.py` 用真实尺寸的球沿 hood 扫一遍，检查压缩和干涉） |
 | elevator / 升降 / 电梯（2 级 continuous，WCP-0199 轴承块，带装配体和 BOM） | `scripts/templates/elevator.py` |
 
 ### 2. 生成建模计划（plan.json）
@@ -64,6 +65,9 @@ roller intake（30 个特征）和 elevator（旧版 137 个特征 + 174 个实�
 - 平面的 `offset` 不接受负值：取绝对值，再用 `oppositeDirection` 表示方向。
 - extrude 的 `defaultScope` 默认是 false，add/remove 必须设成 true，否则找不到要合并或切除的零件。对称拉伸用布尔参数 `symmetric`，不要用 `endBound`。
 - 遇到 "does not match its feature spec" 时，用 `GET .../featurespecs` 查参数定义；遇到 ERROR 时，用 `POST .../featurescript` 执行 `evaluateQuery` 数一下 query 命中了几个实体。
+
+## Shooter 模板说明
+`scripts/templates/shooter.py`：两块侧板（带轴孔、拉杆孔）、飞轮轴 + N 个飞轮、同心 hood、后端送球辊、3 根拉杆。球夹在飞轮表面和 hood 之间（hood 内半径 = 飞轮半径 + 球径 − 压缩量），沿 hood 逆时针走并沿切线射出，发射角 = `hood_end − 270°`。默认假设球径 5.9"、压缩 0.75"、4" 飞轮 ×2、侧板内宽 8"，**球径是假设，按当年比赛改**。参数不合理会报错或警告（宽度小于球径、飞轮碰不到球）。没做的：电机/皮带轮/传动、送球通道和 indexer、hood 角度调节、侧板轻量化；飞轮和轴目前是光轴（真实用 hex 轴）。球出口速度只给了经验比例，需实测。
 
 ## Elevator 模板说明（可建造版：Part Studio + Assembly）
 `scripts/templates/elevator.py` 生成的 plan 同时包含 Part Studio 的特征，以及 `assembly` 段（标准件清单、刚性组、slider）。`build.py` 建完零件后会接着建（或清空重建）名为 **Elevator Assembly** 的装配体，并导出 `bom_elevator.csv`。只想建零件时加 `--no-assembly`。
