@@ -25,7 +25,7 @@ K = 25.4
 FRAME_X, FRAME_Y = 27.0, 27.0           # 机架周长 108 in（R104 上限 110 in）
 HX_, HY_ = FRAME_X / 2, FRAME_Y / 2
 TUBE_H, TUBE_W, TUBE_WALL, TUBE_Z0 = 2.0, 1.0, 0.0625, 2.5      # 2x1x1/16 管，在保险杠区 2.5–5.75 in 内
-BUMPER_T, BUMPER_Z = 3.25, (2.5, 7.5)                           # 保险杠包络（偏保守：顶到 7.5 in）
+BUMPER_T, BUMPER_Z = 3.25, [2.5, 7.5]                           # 保险杠包络（默认偏保守：顶到 7.5 in；4.5 in 高的标准保险杠装在 2.5 in 处顶部是 7.0 in，用 --bumper-top= 改）
 DENS = {"polycarbonate": 0.0433, "6061": 0.0975, "7075": 0.101, "steel": 0.283, "urethane": 0.043, "belt": 0.035}
 COTS_LB = {"kraken_x60": 1.23, "bearing_flanged_half_hex": 0.035, "pulley_12t_9mm_falcon": 0.03, "pulley_24t_9mm_half_hex": 0.07,
            "pulley_36t_9mm_half_hex": 0.15, "shcs_10_32_0.5": 0.004, "shcs_10_32_1.5": 0.01, "shcs_10_32_2.25": 0.014,
@@ -121,6 +121,8 @@ def main():
     global SHOOTER_Z0
     out = Path(sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else HERE.parent / "output"
     for a in sys.argv:
+        if a.startswith("--bumper-top="):
+            BUMPER_Z[1] = float(a.split("=", 1)[1])
         if a.startswith("--shooter-z="):
             SHOOTER_Z0 = float(a.split("=", 1)[1])
     ip = dict(RI.DEFAULTS); ip["inner_width"] = 22.0                 # 机架 27 in 宽：intake 总宽 ≈ 25.3 in
@@ -134,7 +136,7 @@ def main():
     iplan, splan = RI.build(ip), SH.build(sp)
     ibod, sbod = E.build(iplan), E.build(splan)
     pivot = tuple(iplan["info"]["pivot_yz"])
-    report = {"frame_in": [FRAME_X, FRAME_Y], "shooter_lowest_point_z_in": SHOOTER_Z0}
+    report = {"frame_in": [FRAME_X, FRAME_Y], "shooter_lowest_point_z_in": SHOOTER_Z0, "bumper_top_assumed_in": BUMPER_Z[1]}
 
     # ---- shooter：机架中后部，最低点离机架顶 0.5 in，最后端离后周长 1.5 in
     sb = cq.Compound.makeCompound([w.val() for _, w in sbod]).BoundingBox()
@@ -147,18 +149,18 @@ def main():
     #      收起时整体收进周长（starting configuration）、高度 <= 29.5 in，且两个姿态都不与车架/保险杠/shooter 干涉
     P = cloud(ibod)
     best = None
-    for FLOOR in (0.25, 0.75, 1.25, 1.75, 2.5):
+    for FLOOR in (0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5):
         FLOOR_CLEAR_ = FLOOR
         best = None
         floor_used = None
         stats = {"ext/z ok": 0, "deploy ok": 0}
         first_hit = first_stow = None
-        for ypw in np.arange(HY_ - 1.0, 3.9, -0.5):
-            for th_d in np.arange(-80.0, 40.01, 1.0):
+        for ypw in np.arange(HY_ - 0.5, HY_ - 4.0, -0.5):
+            for th_d in np.arange(-30.0, 10.01, 1.0):
                 Q0 = move_pts(P, pivot, th_d, (0.0, 0.0))
                 ext = ypw + Q0[:, 1].max() - HY_
                 zpw = FLOOR_CLEAR_ - Q0[:, 2].min()
-                if not (5.5 <= ext <= 11.5) or zpw < 5.0 or zpw > 26.0:
+                if not (5.5 <= ext <= 11.9) or zpw < 5.0 or zpw > 26.0:
                     continue
                 stats["ext/z ok"] += 1
                 pw = (float(ypw), float(zpw))
@@ -168,7 +170,7 @@ def main():
                     continue
                 stats["deploy ok"] += 1
                 why = {"outside": 0, "hit": 0}
-                for th in np.arange(th_d, th_d + 330.01, 1.0):
+                for th in np.arange(th_d + 140.0, th_d + 260.01, 1.0):
                     Q = move_pts(P, pivot, th, pw)
                     if Q[:, 1].max() > HY_ - 0.05 or Q[:, 2].max() > 29.5 or np.abs(Q[:, 0]).max() > HX_ - 0.05:
                         why["outside"] += 1
