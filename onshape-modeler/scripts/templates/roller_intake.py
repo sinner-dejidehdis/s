@@ -32,6 +32,7 @@ DEFAULTS = {
     "plate_material": "polycarbonate",     # 254 2022：1/4" 聚碳酸酯侧板，抗冲击；或 "aluminum"
     "pivot": True,                         # 加枢轴（hex 轴 + 两个法兰轴承），供四连杆/slapdown 臂使用
     "pivot_distance": 3.0,                 # 枢轴在最后一个滚轮后面多远（沿滚轮线）
+    "arm": False,                          # True = 过保险杠臂式布局：电机、2 根横管、枢轴都沿滚轮线向后排成细长的臂（板下沿不鼓）
     "plate_margin": 1.0,        # 滚轮外缘到板边
     "roller_teeth": 24,         # 滚轮带轮齿数（COTS 217-3227）
     "motor_teeth": 12,          # 电机带轮齿数（COTS WCP-0454）
@@ -93,39 +94,48 @@ def build(p):
 
     # --- 电机：驱动滚轮下方；皮带取整数齿，离所有滚轮轴 >= 滚轮半径 + 电机半径 + 间隙
     motor = None
+    if p["arm"]:
+        di = n - 1                                     # 臂式：电机驱动最后（最靠后）的滚轮，在它后面
     for T in range(40, 140):
         C = center_for_teeth(T, D, d)
-        m = (R[di][0] + nrm[0] * C, R[di][1] + nrm[1] * C)
+        m = (R[di][0] + (dvec[0] if p["arm"] else nrm[0]) * C, R[di][1] + (dvec[1] if p["arm"] else nrm[1]) * C)
         if C >= (D + d) / 2 + 0.6 and all(math.dist(m, r) >= rds[j] + MOTOR_R + 0.15 for j, r in enumerate(R)):
             motor, motor_T, motor_C = m, T, C
             break
     if motor is None:
         sys.exit("找不到合适的电机位置")
 
-    # --- 枢轴：最后一个滚轮后面，沿滚轮线；避开电机（电机本体在板内侧，枢轴轴穿过全宽）
-    pivot = None
-    if p["pivot"]:
-        for k in range(0, 80):
-            q = (R[-1][0] + dvec[0] * (p["pivot_distance"] + 0.1 * k), R[-1][1] + dvec[1] * (p["pivot_distance"] + 0.1 * k))
-            if math.dist(q, motor) >= MOTOR_R + 0.3 + 0.2 and all(math.dist(q, r) >= rds[j] + 0.3 + 0.15 + 0.4 for j, r in enumerate(R)):
-                pivot = q
-                break
-        else:
-            sys.exit("找不到避开电机的枢轴位置")
+    if p["arm"]:
+        # 臂式：沿滚轮线向后依次是 电机(rear roller 后) → 横管 1 → 横管 2 → 枢轴
+        line = lambda s: (motor[0] + dvec[0] * s, motor[1] + dvec[1] * s)
+        tubes = [line(2.9), line(5.3)]                 # 横管半对角线 1.12：间距 2.4 > 2.24 不重叠
+        pivot = line(7.3) if p["pivot"] else None      # 枢轴轴承法兰 r=0.625 + 横管 1.12 + 间隙
+    else:
+        # --- 枢轴：最后一个滚轮后面，沿滚轮线；避开电机（电机本体在板内侧，枢轴轴穿过全宽）
+        pivot = None
+        if p["pivot"]:
+            for k in range(0, 80):
+                q = (R[-1][0] + dvec[0] * (p["pivot_distance"] + 0.1 * k), R[-1][1] + dvec[1] * (p["pivot_distance"] + 0.1 * k))
+                if math.dist(q, motor) >= MOTOR_R + 0.3 + 0.2 and all(math.dist(q, r) >= rds[j] + 0.3 + 0.15 + 0.4 for j, r in enumerate(R)):
+                    pivot = q
+                    break
+            else:
+                sys.exit("找不到避开电机的枢轴位置")
 
-    # --- 横管（2 根）：第一个/最后一个滚轮下方，沿线向外滑开直到避开滚轮、电机和枢轴
-    tubes = []
-    for end, r, rdi in ((-1, R[0], rds[0]), (1, R[-1], rds[-1])):
-        for k in range(0, 60):
-            s = k * 0.25 * end
-            c = (r[0] + nrm[0] * (rdi + 1.7) + dvec[0] * s, r[1] + nrm[1] * (rdi + 1.7) + dvec[1] * s)
-            if math.dist(c, motor) >= MOTOR_R + 1.15 + 0.15 and \
-                    all(math.dist(c, q) >= rds[j] + 1.15 + 0.15 for j, q in enumerate(R)) and \
-                    (pivot is None or math.dist(c, pivot) >= 1.15 + 0.65 + 0.1):
-                break
-        else:
-            sys.exit("找不到避开电机的横管位置")
-        tubes.append(c)
+        # --- 横管（2 根）：第一个/最后一个滚轮下方，沿线向外滑开直到避开滚轮、电机和枢轴
+        tubes = []
+        for end, r, rdi in ((-1, R[0], rds[0]), (1, R[-1], rds[-1])):
+            for k in range(0, 60):
+                s = k * 0.25 * end
+                c = (r[0] + nrm[0] * (rdi + 1.7) + dvec[0] * s, r[1] + nrm[1] * (rdi + 1.7) + dvec[1] * s)
+                if math.dist(c, motor) >= MOTOR_R + 1.15 + 0.15 and \
+                        all(math.dist(c, q) >= rds[j] + 1.15 + 0.15 for j, q in enumerate(R)) and \
+                        (pivot is None or math.dist(c, pivot) >= 1.15 + 0.65 + 0.1):
+                    break
+            else:
+                sys.exit("找不到避开电机的横管位置")
+            tubes.append(c)
+
 
     # --- 侧板轮廓、孔
     pts = []

@@ -1,0 +1,64 @@
+{
+ "frame_in": [
+  27.0,
+  27.0
+ ],
+ "intake_lowest_point_above_floor_in": 2.5,
+ "intake_pivot_world_yz": [
+  12.0,
+  15.906
+ ],
+ "intake_deployed_deg": -3.0,
+ "intake_stowed_deg": 176.0,
+ "weight_lb": {
+  "intake custom parts (volume x density)": 7.91,
+  "intake COTS (catalogue approx)": 1.78,
+  "shooter custom parts (volume x density)": 13.4,
+  "shooter COTS (catalogue approx)": 1.61,
+  "frame 2x1x1/16 tubes": 3.64,
+  "swerve modules x4 (incl. motors, ASSUMED 7.0 lb each)": 28.0,
+  "roboRIO+PDH+radio+breaker+wiring (ASSUMED)": 12.0,
+  "belly pan 1/8in 6061 25x25": 7.62,
+  "misc fasteners/brackets/risers (ASSUMED)": 4.0
+ },
+ "weight_total_no_bumpers_battery_lb": 79.95,
+ "weight_margin_lb": 35.05,
+ "checks": [
+  {
+   "ok": true,
+   "text": "[deployed] R107 height 17.49 in <= 30.0 in"
+  },
+  {
+   "ok": true,
+   "text": "[deployed] R105 max extension +10.77 in <= 12.0 in (front)"
+  },
+  {
+   "ok": true,
+   "text": "[deployed] R106 extends in 1 direction(s): front"
+  },
+  {
+   "ok": true,
+   "text": "[stowed] R107 height 29.49 in <= 30.0 in"
+  },
+  {
+   "ok": true,
+   "text": "[stowed] R104 starting configuration inside perimeter: OK"
+  },
+  {
+   "ok": true,
+   "text": "[stowed] R104 start height 29.49 in <= 30.0 in"
+  },
+  {
+   "ok": true,
+   "text": "R104 perimeter 108.0 in <= 110.0 in"
+  },
+  {
+   "ok": true,
+   "text": "R103 weight (no bumpers/battery) 79.9 lb <= 115.0 lb"
+  },
+  {
+   "ok": true,
+   "text": "R408 weight with bumpers 87.9 lb <= 135.0 lb"
+  }
+ ]
+}
