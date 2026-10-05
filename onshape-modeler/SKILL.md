@@ -44,6 +44,13 @@ python scripts/build.py plan.json --url "<Part Studio URL>" --replace
 ### 4. 校验并汇报
 脚本最后会列出零件数和整体包围盒。对照需求核对（比如宽度 ≈ inner_width + 2×板厚 + 2×轴伸出）。给用户简短结论：建了哪些零件、关键尺寸、用了哪些假设，并提示可以直接说“宽 2 寸”“换 3 个滚轮”来修改。
 
+## 没有 API 密钥时（离线备选）
+`pip install cadquery`，然后：
+```
+python scripts/export_step.py plan.json out.step
+```
+在 Onshape 的 Part Studio 里用 Insert / Import 上传 out.step 即可得到各个独立零件。注意这样没有草图和特征树（只是实体）；想要参数化的草图+拉伸，仍需 API 路线。
+
 ## 建模规则（自定义 plan 必读，详见 references/plan_format.md）
 - 一个草图 = 一次拉伸，草图里所有闭合轮廓都会被拉伸。**孔不要和外轮廓画在同一个草图里**（会被当成实心填上）：先拉外形，再在同平面单独画孔草图，用 `"op": "remove"` 切除。
 - 新零件用 `op: new`，要并入已有零件用 `add`。
