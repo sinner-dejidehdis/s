@@ -26,8 +26,8 @@ for (n1, a), (n2, b) in itertools.combinations(bodies, 2):
         adj[n1].add(n2); adj[n2].add(n1)
 print(f"{len(bodies)} parts, {len(bad)} interferences", *bad[:10])
 fails += len(bad)
-floating = [n for n in adj if not adj[n]]
-print("floating parts:", floating or "none")
+floating = [n for n in adj if not adj[n] and "belt" not in n.lower()]
+print("floating custom parts:", floating or "none")
 fails += len(floating)
 
 ball = plan["ball"]
@@ -40,7 +40,7 @@ for ang in ball["angles_deg"]:
         v = sph.intersect(b).val().Volume() / K ** 3 if sph.val().BoundingBox().xmax >= b.val().BoundingBox().xmin else 0
         if v > 1e-4:
             hits[n] = round(v, 4)
-    wheels = {k: v for k, v in hits.items() if "Flywheel" in k and "shaft" not in k}
+    wheels = {k: v for k, v in hits.items() if "tire" in k}
     others = {k: v for k, v in hits.items() if k not in wheels}
     ok = bool(wheels) and not others
     print(f"ball at {ang:.0f} deg: wheel squeeze {wheels or 'NONE'}  other contacts {others or 'none'}  -> {'OK' if ok else 'FAIL'}")

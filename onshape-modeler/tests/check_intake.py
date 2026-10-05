@@ -27,8 +27,8 @@ for (n1, a), (n2, b) in itertools.combinations(bodies, 2):
         adj[n1].add(n2); adj[n2].add(n1)
 print(f"{len(bodies)} parts, {len(bad)} interferences", *bad[:8])
 fails += len(bad)
-float_ = [n for n in names if not adj[n]]
-print("floating parts:", float_ or "none")
+float_ = [n for n in names if not adj[n] and "belt" not in n.lower()]
+print("floating custom parts:", float_ or "none")
 fails += len(float_)
 
 b = plan["ball"]; R = [tuple(r) for r in b["rollers"]]; rd = b["roller_radius_in"]; rb = b["diameter_in"] / 2
@@ -47,7 +47,7 @@ for i, (r1, r2) in enumerate(zip(R, R[1:]), 1):
     for n, s in bodies:
         v = sph.intersect(s).val().Volume() / K ** 3 if sph.val().BoundingBox().xmax >= s.val().BoundingBox().xmin else 0
         dist = sph.val().distance(s.val()) / K
-        if "Roller" in n and "pulley" not in n and dist < 0.01:
+        if "tube" in n and dist < 0.01:
             touch[n] = round(dist, 4)
         if v > 1e-3:
             hit[n] = round(v, 4)

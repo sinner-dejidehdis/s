@@ -32,7 +32,7 @@ plan = subprocess.run([sys.executable, ROOT/"scripts/templates/roller_intake.py"
 Path("/tmp/mock_plan.json").write_text(plan)
 url = "https://cad.onshape.com/documents/aa/w/bb/e/cc"
 for i in range(2):  # second run must replace the first
-    r = subprocess.run([sys.executable, ROOT/"scripts/build.py", "/tmp/mock_plan.json", "--url", url, "--replace"], env=env, capture_output=True, text=True)
+    r = subprocess.run([sys.executable, ROOT/"scripts/build.py", "/tmp/mock_plan.json", "--url", url, "--replace", "--no-assembly"], env=env, capture_output=True, text=True)
     print(r.stdout[-300:], r.stderr)
     assert r.returncode == 0
 N = len(json.loads(plan)["steps"])

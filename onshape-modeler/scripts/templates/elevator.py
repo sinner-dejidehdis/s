@@ -376,7 +376,7 @@ def build(p):
         lo, ln = span(cpw + 0.06, xcd + 0.15, sd)
         P.part(f"ELV-073 carriage top tab {sfx}", GC, "Top", ZC + Lc - PT,
                [{"kind": "rect", "corner": [lo, yo_d - 0.1], "size": [ln, -(yo_d - 0.1)]}], PT, hollow=False)
-        lo, ln = span(xcd - 0.1, x0 - 0.1, sd)
+        lo, ln = span(xcd - 0.35, x0 - 0.1, sd)        # 孔 r=0.15 要整个落在板内（距边 ≥ 0.2）
         P.part(f"ELV-074 S0 top anchor {sfx}", G0, "Top", za_d,
                [{"kind": "rect", "corner": [lo, yi_d - 0.1], "size": [ln, -(yi_d - 0.1)]},
                 {"kind": "circle", "center": [sd * xcd, yo_d], "radius": 0.15}], PT)   # carriage 绳从孔中穿过

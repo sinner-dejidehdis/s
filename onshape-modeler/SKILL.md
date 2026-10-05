@@ -23,8 +23,8 @@ description: Build parametric CAD models directly in the user's Onshape Part Stu
 
 | 需求 | 模板 |
 |---|---|
-| intake / 滚轮吸入 / roller intake | `scripts/templates/roller_intake.py`（带轴承、HTD5 链带 + 电机驱动、拉杆、减重孔；27 个零件；`tests/check_intake.py`） |
-| shooter / 发射器 / 飞轮 | `scripts/templates/shooter.py`（单飞轮 + 同心 hood + 送球辊 + 电机皮带传动，24 个零件；`tests/check_shooter.py` 用真实尺寸的球沿 hood 扫一遍，检查压缩和干涉） |
+| intake / 滚轮吸入 / roller intake（可建造版：Part Studio + Assembly + BOM） | `scripts/templates/roller_intake.py` |
+| shooter / 发射器 / 飞轮（可建造版：Part Studio + Assembly + BOM） | `scripts/templates/shooter.py` |
 | elevator / 升降 / 电梯（2 级 continuous，WCP-0199 轴承块，带装配体和 BOM） | `scripts/templates/elevator.py` |
 
 ### 2. 生成建模计划（plan.json）
@@ -66,11 +66,16 @@ roller intake（30 个特征）和 elevator（旧版 137 个特征 + 174 个实�
 - extrude 的 `defaultScope` 默认是 false，add/remove 必须设成 true，否则找不到要合并或切除的零件。对称拉伸用布尔参数 `symmetric`，不要用 `endBound`。
 - 遇到 "does not match its feature spec" 时，用 `GET .../featurespecs` 查参数定义；遇到 ERROR 时，用 `POST .../featurescript` 执行 `evaluateQuery` 数一下 query 命中了几个实体。
 
-## Intake 模板说明
-`scripts/templates/roller_intake.py`：两块凸包轮廓侧板（滚轮轴孔按 1.125" 法兰轴承开，相邻滚轮之间自动开减重孔，枢轴孔）、管状滚轮 + 轴 + 每个轴端的轴承环、HTD5 9mm 带轮和链带（相邻带交替放在 A/B 两个 x 平面，避免重叠）、一个 Kraken 级电机（包络圆柱，装在右板内侧、滚轮线下方，轴穿过侧板到外侧带轮）、两根拉杆（遇到电机或滚轮会自动沿线滑开）。默认 24" 内宽、3 个 2" 滚轮、电机 18T → 滚轮 24T（空载滚轮 4500 rpm、面速约 471 in/s）。`tests/check_intake.py` 检查零件干涉、悬空件，并把球（`ball_diameter`，默认 5.9"，假设）放在每对相邻滚轮上，要求同时接触两个滚轮且不碰其他零件。没做的：滚轮的实际聚氨酯/柔性轮、抬起机构（over-the-bumper 的枢轴臂和气缸/电机）、皮带张紧器、侧板和 bumper 的连接；带齿数是几何近似值，真实皮带只有标准齿数。
+## Intake / Shooter 模板说明（可建造版，和 elevator 同一套做法）
+两个模板都用 `elevator.Plan`，生成：Part Studio 的特征（自制件带真实孔位）+ `assembly` 段（刚性组、标准件的位置和朝向，来自 `references/cots.json` 里的 MKCad 真实零件）。有 API 密钥时 `build.py plan.json --url … --replace` 一次建出零件和装配体并导出 BOM；没有密钥时用 `scripts/export_step.py`（自制件 STEP）、`scripts/plan_bom.py`（BOM CSV：自制件的材料/尺寸 + 标准件数量）、`scripts/plan_dxf.py`（侧板/电机板 1:1 DXF，英寸，可直接切割）、`scripts/render_preview.py`（带标准件包络的预览图）。
 
-## Shooter 模板说明
-`scripts/templates/shooter.py`：两块侧板（带轴承孔、拉杆孔、3 个减重孔）、**hex 飞轮轴**（轴承和飞轮、带轮都是 hex 孔）+ N 个飞轮、同心 hood、后端送球辊、3 根拉杆，以及**传动**：每侧电机侧是 `[侧板][0.9" 带区][1/4" 电机板][电机本体]`，电机板用两个立柱撑在侧板外面，电机轴穿过电机板到带区的电机带轮，皮带连到飞轮轴带轮；`motors=1` 只做右侧，`motors=2` 两侧各一个。球夹在飞轮表面和 hood 之间（hood 内半径 = 飞轮半径 + 球径 − 压缩量），沿 hood 逆时针走并沿切线射出，发射角 = `hood_end − 270°`。默认假设球径 5.9"、压缩 0.75"、4" 飞轮 ×2、侧板内宽 8"、电机:飞轮 = 24T:24T，**球径是假设，按当年比赛改**。参数不合理会报错或警告（宽度小于球径、飞轮碰不到球）。信息里给了空载转速、轮面速度、飞轮转动惯量（按铝，偏大）和储能。`tests/check_shooter.py` 检查零件干涉、悬空件，并用真实尺寸的球沿 hood 扫三个位置（只许压进飞轮）。没做的：送球通道和 indexer、送球辊的驱动、hood 角度调节、电机的真实 CAD（目前是 Ø2.4" × 2.5" 的包络圆柱）、皮带张紧；球出口速度只给经验比例，需实测。
+**Intake**（`roller_intake.py`，默认 24" 内宽、3 个 2" 滚轮）：两块 1/4" 侧板（1.125" 轴承孔、减重孔）+ 两根 1x2x1/16" 横管（1.5" 塞子 + 每端 2 颗 10-32x1.5"）；滚轮 = 2" OD x 1/16" 壁管 + 压入 hex hub（每 8" 一个）+ 1/2" hex 轴；每轴端 1 个 COTS 法兰半 hex 轴承；每个滚轮 24T COTS 带轮，相邻滚轮 HTD5 9mm 链带（**滚轮间距会被微调 ≤0.1"，让皮带是整数齿的标准长度**，默认 85T/72T），Kraken X60 装在右板内侧、12T 在外侧 A 平面、4 颗 10-32x0.5" 固定，电机皮带 43T。B/C 两个平面交替放链带，A 放电机带。默认 12T→24T 减速 2:1（空载滚轮 3000 rpm，面速约 314 in/s）。
+
+**Shooter**（`shooter.py`，默认球径 5.9"（假设，按比赛改）、4" 飞轮 ×2、侧板内宽 8"、2:1 减速）：两块 1/4" 侧板（轴承孔、**hood 弧形槽**、减重孔），hood 是 1/16" 板，两端凸片穿过侧板槽（tab-and-slot）；3 根 1x1x1/16" 横管 + 塞子 + 螺栓；hex 飞轮轴 + 铝 hub + 聚氨酯轮胎 + 两侧轴环；空转入口辊；电机侧是 `[侧板][0.8" 带区][1/4" 电机板][Kraken]`，电机板用两根立柱和 10-32x1.5" 螺栓（螺母在侧板内表面）固定；`motors=2` 两侧各一套。球夹在飞轮轮胎和 hood 之间（hood 内半径 = 飞轮半径 + 球径 − 压缩量），发射角 = `hood_end − 270°`。**cots.json 里只有 Falcon 孔的 12T 带轮，所以传动只能是减速（24T 或 36T）**，要更高转速请加大 `wheel_diameter`，或先把新的带轮加进 cots.json。
+
+**检查**（需 cadquery，均为本地几何检查）：`tests/check_intake.py`、`tests/check_shooter.py`：自制件干涉、悬空件（皮带除外，它靠 COTS 带轮）、球放在每对滚轮上 / 沿 hood 扫过必须只接触该接触的零件；`tests/check_cots_envelopes.py --tpl roller_intake|shooter|elevator`：标准件近似包络 vs 自制件；`tests/check_plan_assembly.py`：装配描述自洽（零件名唯一、都在刚性组、标准件 key 存在）。**标准件干涉用的是近似圆柱包络；API 路线的装配体没有在真实 Onshape 上建过**，第一次真实运行请重点看装配体里的标准件朝向（轴承 hex 孔与 hex 轴是否对齐）。
+
+**没做的**：滚轮/带轮/轴环的轴向固定件（卡簧、紧定螺钉）、皮带张紧、hood 的固定细节（目前靠槽配合）、送球通道和 indexer、入口辊驱动、抬起机构（over-the-bumper 枢轴臂）、与底盘的连接；hub 与管、hub 与轴的连接是过盈/压入，没有螺钉。
 
 ## Elevator 模板说明（可建造版：Part Studio + Assembly）
 `scripts/templates/elevator.py` 生成的 plan 同时包含 Part Studio 的特征，以及 `assembly` 段（标准件清单、刚性组、slider）。`build.py` 建完零件后会接着建（或清空重建）名为 **Elevator Assembly** 的装配体，并导出 `bom_elevator.csv`。只想建零件时加 `--no-assembly`。
