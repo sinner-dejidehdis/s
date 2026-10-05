@@ -23,8 +23,8 @@ description: Build parametric CAD models directly in the user's Onshape Part Stu
 
 | 需求 | 模板 |
 |---|---|
-| intake / 滚轮吸入 / roller intake | `scripts/templates/roller_intake.py` |
-| shooter / 发射器 / 飞轮 | `scripts/templates/shooter.py`（单飞轮 + 同心 hood + 送球辊，11 个零件；`tests/check_shooter.py` 用真实尺寸的球沿 hood 扫一遍，检查压缩和干涉） |
+| intake / 滚轮吸入 / roller intake | `scripts/templates/roller_intake.py`（带轴承、HTD5 链带 + 电机驱动、拉杆、减重孔；27 个零件；`tests/check_intake.py`） |
+| shooter / 发射器 / 飞轮 | `scripts/templates/shooter.py`（单飞轮 + 同心 hood + 送球辊 + 电机皮带传动，24 个零件；`tests/check_shooter.py` 用真实尺寸的球沿 hood 扫一遍，检查压缩和干涉） |
 | elevator / 升降 / 电梯（2 级 continuous，WCP-0199 轴承块，带装配体和 BOM） | `scripts/templates/elevator.py` |
 
 ### 2. 生成建模计划（plan.json）
@@ -66,8 +66,11 @@ roller intake（30 个特征）和 elevator（旧版 137 个特征 + 174 个实�
 - extrude 的 `defaultScope` 默认是 false，add/remove 必须设成 true，否则找不到要合并或切除的零件。对称拉伸用布尔参数 `symmetric`，不要用 `endBound`。
 - 遇到 "does not match its feature spec" 时，用 `GET .../featurespecs` 查参数定义；遇到 ERROR 时，用 `POST .../featurescript` 执行 `evaluateQuery` 数一下 query 命中了几个实体。
 
+## Intake 模板说明
+`scripts/templates/roller_intake.py`：两块凸包轮廓侧板（滚轮轴孔按 1.125" 法兰轴承开，相邻滚轮之间自动开减重孔，枢轴孔）、管状滚轮 + 轴 + 每个轴端的轴承环、HTD5 9mm 带轮和链带（相邻带交替放在 A/B 两个 x 平面，避免重叠）、一个 Kraken 级电机（包络圆柱，装在右板内侧、滚轮线下方，轴穿过侧板到外侧带轮）、两根拉杆（遇到电机或滚轮会自动沿线滑开）。默认 24" 内宽、3 个 2" 滚轮、电机 18T → 滚轮 24T（空载滚轮 4500 rpm、面速约 471 in/s）。`tests/check_intake.py` 检查零件干涉、悬空件，并把球（`ball_diameter`，默认 5.9"，假设）放在每对相邻滚轮上，要求同时接触两个滚轮且不碰其他零件。没做的：滚轮的实际聚氨酯/柔性轮、抬起机构（over-the-bumper 的枢轴臂和气缸/电机）、皮带张紧器、侧板和 bumper 的连接；带齿数是几何近似值，真实皮带只有标准齿数。
+
 ## Shooter 模板说明
-`scripts/templates/shooter.py`：两块侧板（带轴孔、拉杆孔）、飞轮轴 + N 个飞轮、同心 hood、后端送球辊、3 根拉杆。球夹在飞轮表面和 hood 之间（hood 内半径 = 飞轮半径 + 球径 − 压缩量），沿 hood 逆时针走并沿切线射出，发射角 = `hood_end − 270°`。默认假设球径 5.9"、压缩 0.75"、4" 飞轮 ×2、侧板内宽 8"，**球径是假设，按当年比赛改**。参数不合理会报错或警告（宽度小于球径、飞轮碰不到球）。没做的：电机/皮带轮/传动、送球通道和 indexer、hood 角度调节、侧板轻量化；飞轮和轴目前是光轴（真实用 hex 轴）。球出口速度只给了经验比例，需实测。
+`scripts/templates/shooter.py`：两块侧板（带轴承孔、拉杆孔、3 个减重孔）、**hex 飞轮轴**（轴承和飞轮、带轮都是 hex 孔）+ N 个飞轮、同心 hood、后端送球辊、3 根拉杆，以及**传动**：每侧电机侧是 `[侧板][0.9" 带区][1/4" 电机板][电机本体]`，电机板用两个立柱撑在侧板外面，电机轴穿过电机板到带区的电机带轮，皮带连到飞轮轴带轮；`motors=1` 只做右侧，`motors=2` 两侧各一个。球夹在飞轮表面和 hood 之间（hood 内半径 = 飞轮半径 + 球径 − 压缩量），沿 hood 逆时针走并沿切线射出，发射角 = `hood_end − 270°`。默认假设球径 5.9"、压缩 0.75"、4" 飞轮 ×2、侧板内宽 8"、电机:飞轮 = 24T:24T，**球径是假设，按当年比赛改**。参数不合理会报错或警告（宽度小于球径、飞轮碰不到球）。信息里给了空载转速、轮面速度、飞轮转动惯量（按铝，偏大）和储能。`tests/check_shooter.py` 检查零件干涉、悬空件，并用真实尺寸的球沿 hood 扫三个位置（只许压进飞轮）。没做的：送球通道和 indexer、送球辊的驱动、hood 角度调节、电机的真实 CAD（目前是 Ø2.4" × 2.5" 的包络圆柱）、皮带张紧；球出口速度只给经验比例，需实测。
 
 ## Elevator 模板说明（可建造版：Part Studio + Assembly）
 `scripts/templates/elevator.py` 生成的 plan 同时包含 Part Studio 的特征，以及 `assembly` 段（标准件清单、刚性组、slider）。`build.py` 建完零件后会接着建（或清空重建）名为 **Elevator Assembly** 的装配体，并导出 `bom_elevator.csv`。只想建零件时加 `--no-assembly`。
