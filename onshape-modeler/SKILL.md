@@ -59,7 +59,7 @@ python scripts/export_step.py plan.json out.step
 - 新零件用 `op: new`，要并入已有零件用 `add`。
 
 ## 已知限制与 API 要点
-roller intake（30 个特征）和 elevator（137 个特征 + 174 个实例的装配体）都已在真实 Onshape（v6 API）上建成并全部 OK，elevator 的自制件之间做过干涉检查，特征 JSON 的写法已经按真实报错修正过。以后改 `scripts/features.py` 时注意这几点：
+roller intake（30 个特征）和 elevator（旧版 137 个特征 + 174 个实例的装配体；加绳系后 259 个特征，**新增部分只在本地验证过，未在真实 Onshape 上建过**）都已在真实 Onshape（v6 API）上建成并全部 OK，elevator 的自制件之间做过干涉检查，特征 JSON 的写法已经按真实报错修正过。以后改 `scripts/features.py` 时注意这几点：
 - 草图直线的 geometry 字段是 `pntX/pntY/dirX/dirY`。写成 `pointVector/direction` 会被静默忽略，草图显示 OK，但里面没有区域，后面的拉伸会报 ERROR。
 - 平面的 `offset` 不接受负值：取绝对值，再用 `oppositeDirection` 表示方向。
 - extrude 的 `defaultScope` 默认是 false，add/remove 必须设成 true，否则找不到要合并或切除的零件。对称拉伸用布尔参数 `symmetric`，不要用 `endBound`。
@@ -71,8 +71,10 @@ roller intake（30 个特征）和 elevator（137 个特征 + 174 个实例的�
 - **蓝本**：254 2025 Undertow 的 elevator（技术手册第 16 页）：2 级、continuous，所有级都用 2x1x1/16" 管加轴承块，2 个 Kraken X60，行程约 52"。254 在 2023 年说过刚度不足是限制他们对位速度的主要原因。
 - **导向**：8 个 WCP-0199 inline 轴承块（3/4" 轴承配置，级间隙 1/4"），分别在 S0 顶、S1 底、carriage 底和顶。块的套筒插进管端，用 3 颗 10-32 螺栓穿管固定；S1 底和 carriage 的这 3 颗螺栓同时夹住角撑板或前板。WCP-0199 只配 1/16" 壁厚的管，所以固定级不再用 1/8" 壁厚。
 - **结构（刚度改进）**：每一级都是闭合框。外级的顶横梁放在背面，通过侧角撑板（3/16" 铆钉）和管堵（ELV-040，等同 WCP-0374）连接，让内级可以穿过；底横梁在同一平面内，用前后两块 1/8" 角撑板加 2.5" 螺栓夹紧。满伸出时 S0 和 S1 至少重叠 `min_overlap`，超出最大行程会直接报错。
-- **驱动**：2 个 Kraken X60 装在两侧 1/4" 电机板内侧，12T→36T（HTD5 9mm，60T 皮带，3:1）带动 1/2" hex 卷筒轴，轴上两个 24T 卷筒。空载线速度约 157 in/s，和 254 相当。
-- **没做的**：连续绳法的提升皮带、惰轮和皮带夹没有建模，这是下一步；轴套和卡簧、线缆、拖链也没有；S0 需要用户在装配体里右键 Fix，或者装到底盘上。
+- **驱动**：2 个 Kraken X60 装在两侧 1/4" 电机板内侧，**位于滚筒正后方同高**（这样滚筒向上的绳不会穿过电机），12T→36T（HTD5 9mm，60T 皮带，3:1）带动 1/2" hex 卷筒轴，轴上两个 24T 卷筒。空载线速度约 157 in/s，和 254 相当。
+- **绳系（continuous，每侧 4 根绳）**：S1 上行绳 = S1 底后 tab → S0 顶后轴滑轮 → 滚筒背面；S1 下行绳 = S1 顶后 tab → 滚筒正面；carriage 上行绳 = S0 底前锚 → S1 顶滑轮 → carriage 底 tab；carriage 下行绳 = S0 顶前锚 → S1 底滑轮 → carriage 顶 tab（绳穿过锚板的孔）。绳、滑轮、轴、tab、锚、夹板都是自制零件（ELV-050…074），绳归 `rigging` 组。S1 速度是 carriage 的一半，所以 `extension` 现在是 continuous 运动学：S1 走 `travel/2`，carriage 走 `travel`，且 `stage1_travel == carriage_travel == travel/2`。
+- **验证**：`python tests/check_elevator.py`（需 cadquery）在 extension=0/0.5/1 三个姿态下检查自制件两两干涉，并检查绳长不变量（上行绳缩短量 = S1 行程 = 下行绳增长量；carriage 两根绳全程长度不变）。绳是直线段，滑轮包角和绳在滚筒上的缠绕没有建模，绳到滚筒的半径取 0.8"（近似）。
+- **没做的**：绳在滑轮和滚筒上的包角/缠绕、绳端的夹具/打结、张紧器；绳系的 COTS 件（Spectra、真实滑轮）；轴套和卡簧、线缆、拖链也没有；绳系的 COTS 干涉没有检查（只查了自制件）；S0 需要用户在装配体里右键 Fix，或者装到底盘上。
 
 标准件来自 MKCad 公开库，记录在 `references/cots.json`（文档、版本、零件 id，以及零件自身坐标系）。新增标准件时，先用 bodydetails 查清它的坐标系再写进去。
 
