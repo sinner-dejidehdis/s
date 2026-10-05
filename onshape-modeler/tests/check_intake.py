@@ -27,21 +27,21 @@ for (n1, a), (n2, b) in itertools.combinations(bodies, 2):
         adj[n1].add(n2); adj[n2].add(n1)
 print(f"{len(bodies)} parts, {len(bad)} interferences", *bad[:8])
 fails += len(bad)
-float_ = [n for n in names if not adj[n] and "belt" not in n.lower()]
+float_ = [n for n in names if not adj[n] and "belt" not in n.lower() and "pivot" not in n.lower()]
 print("floating custom parts:", float_ or "none")
 fails += len(float_)
 
-b = plan["ball"]; R = [tuple(r) for r in b["rollers"]]; rd = b["roller_radius_in"]; rb = b["diameter_in"] / 2
-for i, (r1, r2) in enumerate(zip(R, R[1:]), 1):
-    mid = ((r1[0] + r2[0]) / 2, (r1[1] + r2[1]) / 2); dd = math.dist(r1, r2)
-    need = rb + rd
-    if dd / 2 > need:
-        print(f"balls rest on pair {i}: FAIL (rollers {dd:.2f} in apart, ball {2*rb} cannot touch both)"); fails += 1; continue
-    h = math.sqrt(need ** 2 - (dd / 2) ** 2)
-    v = (r2[0] - r1[0], r2[1] - r1[1]); up = (-v[1] / dd, v[0] / dd)       # 该对滚轮连线的法向，取朝上的一侧
-    if up[1] < 0:
-        up = (-up[0], -up[1])
-    c = (mid[0] + up[0] * h, mid[1] + up[1] * h)
+b = plan["ball"]; R = [tuple(r) for r in b["rollers"]]; rds = b["roller_radii_in"]; rb = b["diameter_in"] / 2
+for i, ((r1, r2), (a1, a2)) in enumerate(zip(zip(R, R[1:]), zip(rds, rds[1:])), 1):
+    d1, d2 = rb + a1, rb + a2                      # 球心到两个滚轮轴的距离（与两者都相切）
+    dd = math.dist(r1, r2)
+    if dd > d1 + d2:
+        print(f"balls rest on pair {i}: FAIL (rollers {dd:.2f} in apart, ball cannot touch both)"); fails += 1; continue
+    a = (d1 ** 2 - d2 ** 2 + dd ** 2) / (2 * dd); h = math.sqrt(max(d1 ** 2 - a ** 2, 0.0))
+    ex = ((r2[0] - r1[0]) / dd, (r2[1] - r1[1]) / dd); nx = (-ex[1], ex[0])
+    if nx[1] < 0:
+        nx = (-nx[0], -nx[1])                       # 朝上的一侧
+    c = (r1[0] + ex[0] * a + nx[0] * h, r1[1] + ex[1] * a + nx[1] * h)
     sph = cq.Workplane().add(cq.Solid.makeSphere(rb * K, cq.Vector(0, c[0] * K, c[1] * K), cq.Vector(0, 0, 1), -90, 90, 360))
     touch = {}; hit = {}
     for n, s in bodies:

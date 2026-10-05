@@ -32,16 +32,18 @@ DEFAULTS = {
     "tag": "shooter",
     "width": 8.0,              # 两侧板内侧距离
     "ball_diameter": 5.9,      # 球直径（假设，按比赛改）
-    "compression": 0.75,       # 球在飞轮和 hood 之间的压缩量
+    "compression": 0.5,        # 球在飞轮和 hood 之间的压缩量（254 2017：5.5" 球 0.5" 最优，约 9%）
     "wheel_diameter": 4.0,     # 飞轮直径
     "wheel_width": 1.0,
     "n_wheels": 2,
     "wheel_pitch": 3.0,        # 飞轮中心距
     "hood_thickness": 0.0625,
     "hood_start": 210.0,       # hood 圆弧起止角（度，从 +Y 向 +Z）
-    "hood_end": 330.0,         # 发射角 = hood_end - 270
+    "hood_end": 315.0,         # 发射角 = hood_end - 270（默认 45°）
     "feed_roller_diameter": 2.0,
     "feed_angle": 195.0,       # 入口辊中心角度
+    "hood_strip": 0.0625,      # hood 内侧聚氨酯条厚度（254 2017：贴聚氨酯条提高压缩和抓力）；0 = 不加
+    "inertia_discs": 1,        # 每侧飞轮组外侧加 1 个钢质惯量盘（254 2017 钢飞轮约 4 lb·in²）；0 = 不加
     "motors": 1,               # 1 = 仅右侧；2 = 两侧各一个
     "wheel_teeth": 24,         # 飞轮轴带轮齿数：24 或 36（COTS 只有这两种 hex 孔带轮）
     "motor_angle": 240.0,      # 电机相对飞轮轴的方位角（度）
@@ -91,8 +93,10 @@ def build(p):
     xo = x0 + PLATE_T                # 侧板外表面
     rw = p["wheel_diameter"] / 2
     ht = p["hood_thickness"]
-    hood_in = rw + p["ball_diameter"] - p["compression"]
-    hood_out = hood_in + ht
+    st = p["hood_strip"]
+    hood_in = rw + p["ball_diameter"] - p["compression"]      # 球接触面半径（聚氨酯条表面）
+    hood_sheet = hood_in + st                                  # hood 板内表面
+    hood_out = hood_sheet + ht
     ball_c = hood_in - p["ball_diameter"] / 2
     rr = p["feed_roller_diameter"] / 2
     feed_c = polar(hood_in + rr, p["feed_angle"])
@@ -125,8 +129,9 @@ def build(p):
     nseg = max(2, int(round((a1 - a0) / 5.0)))
     angs = [a0 + (a1 - a0) * i / nseg for i in range(nseg + 1)]
     kfac = 1.0 / math.cos(math.radians((a1 - a0) / nseg / 2))     # 折线面外切于圆
-    band = [polar(hood_out * kfac, a) for a in angs] + [polar(hood_in * kfac, a) for a in reversed(angs)]
-    slot = [polar((hood_out + 0.01) * kfac, a) for a in angs] + [polar((hood_in - 0.01) * kfac, a) for a in reversed(angs)]
+    band = [polar(hood_out * kfac, a) for a in angs] + [polar(hood_sheet * kfac, a) for a in reversed(angs)]
+    slot = [polar((hood_out + 0.01) * kfac, a) for a in angs] + [polar((hood_sheet - 0.01) * kfac, a) for a in reversed(angs)]
+    strip_band = [polar(hood_sheet * kfac, a) for a in angs] + [polar(hood_in * kfac, a) for a in reversed(angs)]
 
     pts = [q for a in angs for q in [polar(hood_out + 0.6, a)]]
     for c in tubes:
@@ -163,6 +168,11 @@ def build(p):
     # hood：1/16" 板，凸片穿过侧板槽
     P.part("SHT-030 Hood (1/16in sheet, rolled)", FR, "Right", -xo, [poly(band)], 2 * xo, hollow=False,
            material="6061 sheet 0.0625")
+    if st > 0:
+        for i in range(nw):
+            xc = (i - (nw - 1) / 2) * pitch
+            P.part(f"SHT-031 Hood strip {i + 1}", FR, "Right", xc - ww / 2, [poly(strip_band)], ww, hollow=False,
+                   material="urethane strip 1.0 x {:.4f} (bond to hood)".format(st))
 
     # 飞轮：hex 轴 + hub + 聚氨酯轮胎 + 轴环
     sh_r = x_mp1 + FLANGE + 0.15 if p["motors"] >= 1 else xo + FLANGE + 0.15
@@ -176,8 +186,14 @@ def build(p):
         P.part(f"SHT-011 Flywheel {i + 1} tire", FW, "Right", xc - ww / 2, [circ((0, 0), rw), circ((0, 0), 1.0)], ww,
                material="urethane tire 2.0 ID x {:.2f} OD".format(p["wheel_diameter"]))
     edge = (nw - 1) / 2 * pitch + ww / 2
+    disc_t, disc_r = 0.5, 1.75
     for sd, sfx in ((-1, "L"), (1, "R")):
-        xa, xb = sorted((sd * edge, sd * (edge + 0.3)))
+        if p["inertia_discs"]:
+            xa, xb = sorted((sd * edge, sd * (edge + disc_t)))
+            P.part(f"SHT-014 Inertia disc {sfx}", FW, "Right", xa, [circ((0, 0), disc_r), poly(hexpts((0, 0), HX + 0.005))],
+                   xb - xa, material="1018 steel round 3.5 OD x 0.5, 1/2in hex bore")
+        c0 = edge + (disc_t if p["inertia_discs"] else 0.0)
+        xa, xb = sorted((sd * c0, sd * (c0 + 0.3)))
         P.part(f"SHT-012 Shaft collar {sfx}", FW, "Right", xa, [circ((0, 0), 0.5), poly(hexpts((0, 0), HX + 0.005))], xb - xa,
                material="6061 round 1.0 OD, 1/2in hex bore")
         P.place("bearing_flanged_half_hex", FR, [sd * x0, 0, 0], z=[sd, 0, 0], x=[0, 1, 0])
@@ -235,6 +251,8 @@ def build(p):
         m_hub = 0.0975 * math.pi * (1.0 ** 2 - HX ** 2) * ww
         m_tire = 0.043 * math.pi * (rw ** 2 - 1.0) * ww
         I += 0.5 * m_hub * (1.0 + HX ** 2) + 0.5 * m_tire * (rw ** 2 + 1.0)
+    if p["inertia_discs"]:
+        I += 2 * 0.5 * (0.283 * math.pi * (1.75 ** 2 - HX ** 2) * 0.5) * (1.75 ** 2 + HX ** 2)
     omega = rpm * 2 * math.pi / 60
     info = {"hood_inner_radius_in": round(hood_in, 3), "ball_center_radius_in": round(ball_c, 3),
             "launch_angle_deg": round(p["hood_end"] - 270.0, 1), "side_plate_in": [round(max(q[0] for q in outline) - min(q[0] for q in outline), 2),
@@ -242,6 +260,7 @@ def build(p):
             "motors": p["motors"], "belt": {"teeth": belt_T, "center_in": round(Cd, 3), "motor_yz": [round(v, 3) for v in M]},
             "drive": f"12T -> {TW}T reduction {TW // 12}:1", "flywheel_free_rpm": round(rpm),
             "wheel_surface_speed_in_s_free": round(math.pi * p["wheel_diameter"] * rpm / 60),
+            "compression_pct_of_ball": round(100 * p["compression"] / p["ball_diameter"], 1),
             "flywheel_inertia_lb_in2": round(I, 3), "stored_energy_J_free": round(0.5 * (I * 0.000292641) * omega ** 2, 1),
             "note": "球出口速度约为轮面速度的 0.4–0.6 倍（经验值，需实测）；皮带轮/轴环固定件、hood 固定、送球通道未建模"}
     asm = {"name": "Shooter Assembly", "groups": P.groups, "cots": P.cots}

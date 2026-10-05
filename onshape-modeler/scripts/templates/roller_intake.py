@@ -27,8 +27,11 @@ DEFAULTS = {
     "tag": "intake",
     "inner_width": 24.0,        # 两侧板内侧距离
     "rollers": [[11, 2], [5.5, 4.5], [1, 6]],   # [y, z] 轴心，沿斜线从前到后（会被微调以凑整数齿皮带）
-    "roller_diameter": 2.0,
+    "roller_diameters": [3.0, 2.0, 2.0],   # 前辊 3"（254 2022：3" 聚碳酸酯管 + 防滑带抓球），其余 2"
     "tube_wall": 0.0625,
+    "plate_material": "polycarbonate",     # 254 2022：1/4" 聚碳酸酯侧板，抗冲击；或 "aluminum"
+    "pivot": True,                         # 加枢轴（hex 轴 + 两个法兰轴承），供四连杆/slapdown 臂使用
+    "pivot_distance": 3.0,                 # 枢轴在最后一个滚轮后面多远（沿滚轮线）
     "plate_margin": 1.0,        # 滚轮外缘到板边
     "roller_teeth": 24,         # 滚轮带轮齿数（COTS 217-3227）
     "motor_teeth": 12,          # 电机带轮齿数（COTS WCP-0454）
@@ -54,7 +57,7 @@ def poly(pts):
 
 
 def build(p):
-    W, rd = p["inner_width"], p["roller_diameter"] / 2
+    W = p["inner_width"]
     x0 = W / 2                    # 侧板内表面
     xo = x0 + PLATE_T             # 侧板外表面
     L = W - 2 * GAP               # 滚轮长度
@@ -63,6 +66,8 @@ def build(p):
     D, d = pd(TR), pd(TM)
     R = [list(map(float, r)) for r in p["rollers"]]
     n = len(R)
+    rds = [float(v) / 2 for v in p["roller_diameters"]][:n]
+    rds += [rds[-1]] * (n - len(rds))
     di = min(p["drive_roller"], n - 1)
 
     # --- 链带：相邻滚轮中心距微调到整数齿
@@ -86,24 +91,37 @@ def build(p):
     if nrm[1] > 0:
         nrm = (-nrm[0], -nrm[1])
 
-    # --- 电机：驱动滚轮下方；皮带取整数齿，离所有滚轮轴 >= rd + 电机半径 + 间隙
+    # --- 电机：驱动滚轮下方；皮带取整数齿，离所有滚轮轴 >= 滚轮半径 + 电机半径 + 间隙
     motor = None
     for T in range(40, 140):
         C = center_for_teeth(T, D, d)
         m = (R[di][0] + nrm[0] * C, R[di][1] + nrm[1] * C)
-        if C >= (D + d) / 2 + 0.6 and all(math.dist(m, r) >= rd + MOTOR_R + 0.15 for r in R):
+        if C >= (D + d) / 2 + 0.6 and all(math.dist(m, r) >= rds[j] + MOTOR_R + 0.15 for j, r in enumerate(R)):
             motor, motor_T, motor_C = m, T, C
             break
     if motor is None:
         sys.exit("找不到合适的电机位置")
 
-    # --- 横管（2 根）：第一个/最后一个滚轮下方，沿线向外滑开直到避开滚轮和电机
+    # --- 枢轴：最后一个滚轮后面，沿滚轮线；避开电机（电机本体在板内侧，枢轴轴穿过全宽）
+    pivot = None
+    if p["pivot"]:
+        for k in range(0, 80):
+            q = (R[-1][0] + dvec[0] * (p["pivot_distance"] + 0.1 * k), R[-1][1] + dvec[1] * (p["pivot_distance"] + 0.1 * k))
+            if math.dist(q, motor) >= MOTOR_R + 0.3 + 0.2 and all(math.dist(q, r) >= rds[j] + 0.3 + 0.15 + 0.4 for j, r in enumerate(R)):
+                pivot = q
+                break
+        else:
+            sys.exit("找不到避开电机的枢轴位置")
+
+    # --- 横管（2 根）：第一个/最后一个滚轮下方，沿线向外滑开直到避开滚轮、电机和枢轴
     tubes = []
-    for end, r in ((-1, R[0]), (1, R[-1])):
+    for end, r, rdi in ((-1, R[0], rds[0]), (1, R[-1], rds[-1])):
         for k in range(0, 60):
             s = k * 0.25 * end
-            c = (r[0] + nrm[0] * (rd + 1.7) + dvec[0] * s, r[1] + nrm[1] * (rd + 1.7) + dvec[1] * s)
-            if math.dist(c, motor) >= MOTOR_R + 1.15 + 0.15 and all(math.dist(c, q) >= rd + 1.15 + 0.15 for q in R):
+            c = (r[0] + nrm[0] * (rdi + 1.7) + dvec[0] * s, r[1] + nrm[1] * (rdi + 1.7) + dvec[1] * s)
+            if math.dist(c, motor) >= MOTOR_R + 1.15 + 0.15 and \
+                    all(math.dist(c, q) >= rds[j] + 1.15 + 0.15 for j, q in enumerate(R)) and \
+                    (pivot is None or math.dist(c, pivot) >= 1.15 + 0.65 + 0.1):
                 break
         else:
             sys.exit("找不到避开电机的横管位置")
@@ -111,15 +129,17 @@ def build(p):
 
     # --- 侧板轮廓、孔
     pts = []
-    for r in R:
-        pts += ring_pts(r, rd + p["plate_margin"])
+    for j, r in enumerate(R):
+        pts += ring_pts(r, rds[j] + p["plate_margin"])
+    if pivot:
+        pts += ring_pts(pivot, 1.2)
     for c in tubes:
         pts += ring_pts(c, 1.5)
     pts += ring_pts(motor, 1.6)
     outline = hull(pts)
 
     mt = lambda c: [(c[0] - 0.5, c[1]), (c[0] + 0.5, c[1])]          # 横管两端的 2 个螺栓（沿 y 间距 1"）
-    common = [circ(r, BORE_D / 2) for r in R]
+    common = [circ(r, BORE_D / 2) for r in R] + ([circ(pivot, BORE_D / 2)] if pivot else [])
     for c in tubes:
         common += [circ(q, BOLT_D / 2) for q in mt(c)]
     for a, b in zip(R, R[1:]):
@@ -132,7 +152,7 @@ def build(p):
 
     P = EL.Plan()
     FR, MO, BE = "frame", "motor", "belts"
-    MAT_PLATE = "6061-T6 1/4in plate"
+    MAT_PLATE = "polycarbonate 1/4in sheet (press-fit bearings)" if p["plate_material"] == "polycarbonate" else "6061-T6 1/4in plate"
 
     # ---------- Part Studio ----------
     P.part("INT-001 Side plate L", FR, "Right", -xo, [poly(outline)] + common, PLATE_T, material=MAT_PLATE, flat=True)
@@ -152,16 +172,24 @@ def build(p):
     hubw = 0.5
     for i, c in enumerate(R, 1):
         g = f"roller{i}"
+        rd = rds[i - 1]
         P.part(f"INT-010 Roller {i} tube", g, "Right", -L / 2, [circ(c, rd), circ(c, rd - tw)], L,
-               material="6061 tube 2.000 OD x 0.0625 wall")
+               material=f"polycarbonate tube {2 * rd:.3f} OD x {tw} wall, wrap with anti-slip tape")
         for j in range(nh):
             xa = -L / 2 + (L - hubw) * j / (nh - 1)
             P.part(f"INT-011 Roller {i} hub {j + 1}", g, "Right", xa, [circ(c, rd - tw), poly(hexpts(c, HX + 0.005))], hubw,
-                   material="6061 round 1.875 OD, 1/2in hex bore")
+                   material=f"6061 round {2 * (rd - tw):.3f} OD, 1/2in hex bore")
         P.part(f"INT-012 Roller {i} hex shaft", g, "Right", shaft_l, [poly(hexpts(c, HX))], shaft_r - shaft_l, hollow=False,
                material="7075 1/2in hex bar")
         for sd in (-1, 1):
             P.place("bearing_flanged_half_hex", FR, [sd * x0, c[0], c[1]], z=[sd, 0, 0], x=[0, 1, 0])
+
+    if pivot:
+        pl, pr = -(xo + FLANGE + 0.4), xo + FLANGE + 0.4
+        P.part("INT-050 Pivot hex shaft", "pivot", "Right", pl, [poly(hexpts(pivot, HX))], pr - pl, hollow=False,
+               material="7075 1/2in hex bar")
+        for sd in (-1, 1):
+            P.place("bearing_flanged_half_hex", FR, [sd * x0, pivot[0], pivot[1]], z=[sd, 0, 0], x=[0, 1, 0])
 
     # 每个滚轮需要的带轮平面
     planes_of = {i: set() for i in range(n)}
@@ -198,18 +226,25 @@ def build(p):
 
     # ---------- 校验用的信息 ----------
     ratio = TM / TR
+    for j, r in enumerate(rds):
+        v = math.pi * 2 * r * 6000 * ratio / 60 / 12
+        if v < 15:
+            print(f"警告：滚轮 {j + 1} 空载面速 {v:.1f} ft/s < 15 ft/s；254 的 intake 面速要大于车速"
+                  f"（2017：40 ft/s，2022：3\" 管约 35 ft/s）", file=sys.stderr)
     info = {"rollers_yz_after_belt_snap": [[round(v, 3) for v in r] for r in R],
             "roller_pitch_in": [round(math.dist(a, b), 3) for a, b in zip(R, R[1:])],
             "belts": {"chain_teeth": chain_T, "motor_teeth": motor_T,
                       "motor_belt_center_in": round(motor_C, 3)},
             "motor_center_yz": [round(v, 3) for v in motor],
-            "roller_rpm_free": round(6000 * ratio), "roller_surface_speed_in_s_free": round(math.pi * 2 * rd * 6000 * ratio / 60),
+            "roller_rpm_free": round(6000 * ratio),
+            "roller_surface_speed_ft_s_free": [round(math.pi * 2 * r * 6000 * ratio / 60 / 12, 1) for r in rds],
+            "pivot_yz": [round(v, 3) for v in pivot] if pivot else None,
             "plate_size_in": [round(max(q[0] for q in outline) - min(q[0] for q in outline), 2),
                               round(max(q[1] for q in outline) - min(q[1] for q in outline), 2)],
             "note": "滚轮轴向固定（卡簧）、带轮固定、皮带张紧未建模；带都是整数齿的标准长度，需按此中心距加工"}
     asm = {"name": "Intake Assembly", "groups": P.groups, "cots": P.cots}
     return {"name": "intake", "tag": p["tag"], "units": "in", "steps": P.steps, "info": info, "assembly": asm,
-            "ball": {"diameter_in": p["ball_diameter"], "rollers": R, "roller_radius_in": rd}}
+            "ball": {"diameter_in": p["ball_diameter"], "rollers": R, "roller_radii_in": rds}}
 
 
 def main():
