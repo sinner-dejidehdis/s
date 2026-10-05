@@ -100,6 +100,9 @@ roller intake（30 个特征）和 elevator（旧版 137 个特征 + 174 个实�
 - slider 要求两个连接器的 z 轴共线；用连接器的 `transform/translationX/Y` 把其中一个平移到另一个的轴线上。刚性组用 `BTMMateGroup-65`。
 - 删除 feature 或实例时，id 里可能有 `/` 和 `+`，要 URL 编码。删除整个标签页（element）需要 API key 有 Delete 权限。
 
+## 整机布局与 FRC 规则检查（2027 BIOCORE 赛前）
+`scripts/robot_layout.py`：把机架、保险杠包络、舵轮占位、shooter、带枢轴的 intake 放进同一坐标系，自动解出 intake 的**展开**和**收起**两个姿态，检查 R104/R105/R106/R107（高度、周长、伸出、一次一个方向）、干涉和重量（R103/R408）。规则放在 `references/frc_rules_2026.json`（2026 手册逐字核实；2027 手册 2027-01-09 发布后必须更新）。`scripts/render_layout.py` 画带规则界限的侧视图。耗时约几分钟（cadquery 求解）。BIOCORE 的事实、社区推测和 R302/R303 的赛前合规提醒见 `references/biocore_2027.md`，概念设计和已知问题见 `references/biocore_robot_concept.md`。intake 模板新增 `arm=true` 的过保险杠臂式布局。
+
 ## 修改已建模型
 保留上次的 plan.json（或重新用模板+新参数生成），改参数后 `--replace` 重建。不要在用户手动改过的特征上直接覆盖：如果特征树里有非本 skill 前缀的特征依赖这些零件，先提醒用户。
 

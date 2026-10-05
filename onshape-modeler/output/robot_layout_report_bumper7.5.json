@@ -4,14 +4,14 @@
   27.0
  ],
  "shooter_lowest_point_z_in": 5.0,
- "bumper_top_assumed_in": 7.0,
- "intake_lowest_point_above_floor_in": 1.5,
+ "bumper_top_assumed_in": 7.5,
+ "intake_lowest_point_above_floor_in": 2.0,
  "intake_pivot_world_yz": [
   12.0,
-  14.906
+  15.406
  ],
  "intake_deployed_deg": -3.0,
- "intake_stowed_deg": 170.0,
+ "intake_stowed_deg": 173.0,
  "weight_lb": {
   "intake custom parts (volume x density)": 7.91,
   "intake COTS (catalogue approx)": 1.78,
@@ -40,7 +40,7 @@
   },
   {
    "ok": true,
-   "text": "[stowed] R107 height 29.48 in <= 30.0 in"
+   "text": "[stowed] R107 height 29.50 in <= 30.0 in"
   },
   {
    "ok": true,
@@ -48,7 +48,7 @@
   },
   {
    "ok": true,
-   "text": "[stowed] R104 start height 29.48 in <= 30.0 in"
+   "text": "[stowed] R104 start height 29.50 in <= 30.0 in"
   },
   {
    "ok": true,
