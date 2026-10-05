@@ -206,7 +206,7 @@ def build(p):
         # 顶侧角撑板：贴 S0 外侧面，向后伸到横梁
         gx = sd * x0 if sd > 0 else -x0 - GUSSET_T
         P.part(f"ELV-005 S0 top gusset {sfx}", G0, "Right", gx,
-               [{"kind": "rect", "corner": [0.0, H0 - 3.0], "size": [BACK_Y + 2.75, 3.0]}], GUSSET_T, hollow=False)
+               [{"kind": "rect", "corner": [0.0, H0 - 3.0], "size": [BACK_Y + 3.25, 3.0]}], GUSSET_T, hollow=False)
         # 横梁端管堵
         px = (x0 - T_W, x0) if sd > 0 else (-x0, -x0 + T_W)
         P.xblock(f"ELV-040 tube plug S0 {sfx}", G0, px[0], px[1], BACK_Y + WALL, H0 - 2.0 + WALL, 1.0 - 2 * WALL,
@@ -269,15 +269,18 @@ def build(p):
 
 
     # ================= 绳系（continuous）：每侧 4 根绳，全部为直线段 + 滑轮 =================
-    # S1 上行绳：S1 底部后tab → 上到 S0 顶后轴滑轮 → 回到滚筒背面（卷筒收绳 = S1 上升）
-    # S1 下行绳：S1 顶部后tab → 直接下到滚筒正面（卷筒放绳 = S1 下降的反向）
-    # Carriage 上行绳：S0 底前锚 → 上到 S1 顶滑轮 → 下到 carriage 底tab    （carriage 相对 S1 同速上升）
-    # Carriage 下行绳：S0 顶前锚 → 下到 S1 底滑轮 → 上到 carriage 顶tab
+    # S1 上行绳：S1 底后 tab → 上到 S0 顶后轴滑轮 → 回到卷筒背面（卷筒收绳 = S1 上升）
+    # S1 下行绳：S1 顶后 tab → 直接下到卷筒正面（卷筒放绳 = S1 下降）
+    # Carriage 上行绳：S0 底前锚 → 上到 S1 顶滑轮 → 下到 carriage 底 tab    （carriage 相对 S1 同速上升）
+    # Carriage 下行绳：S0 顶前锚 → 下到 S1 底滑轮 → 上到 carriage 顶 tab（绳穿过锚板的孔）
     GR = "rigging"
-    CR, RS, ST, BORE, AX = 0.0625, 0.5, 0.25, 0.13, 0.125     # 绳半径、滑轮半径/厚、轴孔、轴半径
+    CR = 1 / 32                                               # 绳半径：1/16" Spectra/Dyneema，1" 滑轮 D/d = 16
+    RS, ST, AX, BORE = 0.5, 0.25, 0.125, 0.13                 # 滑轮半径/厚、小轴半径、小轴孔半径
+    SR, SBORE = 0.3125, 0.318                                  # S0 后轴：Ø5/8" 钢轴，孔半径
     RE = RS + CR                                               # 绳中心到滑轮中心
-    DR = 0.8                                                   # 滚筒绳半径（24T 带轮外缘，近似）
-    xu, xd = c1 - 0.15, c1 + 0.15                              # 后部两条 stage1 绳的 x 车道
+    DRUM_R, DRUM_W, FL_T, FL_R = 0.75, 1.5, 0.1, 1.0           # 卷筒：Ø1.5" × 1.5"，法兰 Ø2"
+    DR = DRUM_R + CR                                           # 绳中心到卷筒轴
+    xu, xd = c1 - 0.35, c1 + 0.35                              # 后部两条 stage1 绳的 x 车道（各占卷筒一半）
     y_b, y_f = ys + DR, ys - DR
     y_sh, z_sh = y_b - RE, H0 - 1.0                            # S0 后轴
     xcu, xcd = c1 - 0.25, c1 + 0.20                            # 前部 carriage 上/下行绳 x 车道
@@ -285,8 +288,10 @@ def build(p):
     yc_u, yc_d = yo_u - RE, yo_d - RE                          # 滑轮中心 y
     yi_u, yi_d = yc_u - RE, yc_d - RE                          # 靠锚点一侧的绳 y
     zs2, zsd = S1T - 1.0, Z1 + 1.2                             # S1 顶滑轮 / S1 底滑轮 中心高度
-    za_u, za_d = 1.125, H0 - 1.125                             # S0 底锚顶面 / S0 顶锚底面
-    PT = 0.125                                                 # tab 板厚
+    PT, TT = 0.25, 0.25                                        # 锚板/carriage tab 板厚；S1 后 tab 板厚
+    za_u, za_d = 1.0 + PT, H0 - 1.0 - PT                       # S0 底锚顶面 / S0 顶锚底面
+    zt1, zt2 = Z1 + 2.0, S1T - 1.9                             # S1 上行 tab 顶面（绳接处）/ S1 下行 tab 底面
+    CO_T, CO_R = 0.3, 0.45                                     # 轴环厚、半径
 
     def span(a, b, sd):
         lo, hi = sorted((sd * a, sd * b))
@@ -296,41 +301,67 @@ def build(p):
         P.part(name, GR, "Top", min(za, zb), [{"kind": "circle", "center": [x, y], "radius": CR}], abs(zb - za),
                hollow=False)
 
-    def sheave(name, grp, x, y, z):
-        P.part(name, grp, "Right", x - ST / 2, [{"kind": "circle", "center": [y, z], "radius": RS},
-                                               {"kind": "circle", "center": [y, z], "radius": BORE}], ST)
-
-    def axle(name, grp, xa, xb, y, z):
+    def ring(name, grp, xa, xb, y, z, ro, ri):
+        """沿 X 的圆环/圆盘（滑轮、轴环）：x ∈ [xa, xb]"""
         lo, ln = min(xa, xb), abs(xb - xa)
-        P.part(name, grp, "Right", lo, [{"kind": "circle", "center": [y, z], "radius": AX}], ln, hollow=False)
+        P.part(name, grp, "Right", lo, [{"kind": "circle", "center": [y, z], "radius": ro},
+                                        {"kind": "circle", "center": [y, z], "radius": ri}], ln)
+
+    def sheave(name, grp, x, y, z, bore=BORE):
+        ring(name, grp, x - ST / 2, x + ST / 2, y, z, RS, bore)
+
+    def axle(name, grp, xa, xb, y, z, r=AX):
+        lo, ln = min(xa, xb), abs(xb - xa)
+        P.part(name, grp, "Right", lo, [{"kind": "circle", "center": [y, z], "radius": r}], ln, hollow=False)
 
     def clevis(name, grp, cx, yfront, ymax, z0, dz, yc, zc_):
         for k, sgn in (("a", -1), ("b", 1)):
             xm = cx + sgn * 0.19
-            P.xblock(f"{name} {k}", grp, xm - PT / 2, xm + PT / 2, yfront, z0, ymax - yfront, dz,
+            P.xblock(f"{name} {k}", grp, xm - 0.0625, xm + 0.0625, yfront, z0, ymax - yfront, dz,
                      holes=[{"kind": "circle", "center": [yc, zc_], "radius": BORE}])
 
-    xs = x0 + GUSSET_T
-    P.part("ELV-050 S0 rear shaft", G0, "Right", -xs, [{"kind": "circle", "center": [y_sh, z_sh], "radius": AX}],
-           2 * xs, hollow=False)
+    # --- 卷筒（替代 24T 带轮：5.5 圈 + 余量，绳 1/16" 单层绕 0.56"/根，需要 ≥1.3" 宽）
+    hexr = 0.25 / math.cos(math.pi / 6) + 0.005
     for sd, sfx in ((-1, "L"), (1, "R")):
-        P.holes(f"holes X S0 rear shaft {sfx}", "Right", sd * (x0 + GUSSET_T / 2), [(y_sh, z_sh)], BORE * 2,
+        xa, xb = sd * (c1 - DRUM_W / 2), sd * (c1 + DRUM_W / 2)
+        lo, ln = min(xa, xb), abs(xb - xa)
+        P.part(f"ELV-032 drum {sfx}", G0, "Right", lo,
+               [{"kind": "circle", "center": [ys, zs], "radius": DRUM_R},
+                {"kind": "polygon", "points": [[ys + hexr * math.cos(math.pi / 3 * i), zs + hexr * math.sin(math.pi / 3 * i)]
+                                               for i in range(6)]}], ln)
+        P.part(f"ELV-033 drum flange {sfx} a", G0, "Right", lo - FL_T,
+               [{"kind": "circle", "center": [ys, zs], "radius": FL_R},
+                {"kind": "polygon", "points": [[ys + hexr * math.cos(math.pi / 3 * i), zs + hexr * math.sin(math.pi / 3 * i)]
+                                               for i in range(6)]}], FL_T)
+        P.part(f"ELV-033 drum flange {sfx} b", G0, "Right", lo + ln,
+               [{"kind": "circle", "center": [ys, zs], "radius": FL_R},
+                {"kind": "polygon", "points": [[ys + hexr * math.cos(math.pi / 3 * i), zs + hexr * math.sin(math.pi / 3 * i)]
+                                               for i in range(6)]}], FL_T)
+
+    xs = x0 + GUSSET_T
+    P.part("ELV-050 S0 rear shaft 5/8in", G0, "Right", -(xs + CO_T),
+           [{"kind": "circle", "center": [y_sh, z_sh], "radius": SR}], 2 * (xs + CO_T), hollow=False)
+    for sd, sfx in ((-1, "L"), (1, "R")):
+        P.holes(f"holes X S0 rear shaft {sfx}", "Right", sd * (x0 + GUSSET_T / 2), [(y_sh, z_sh)], SBORE * 2,
                 GUSSET_T + 0.1)
-        # --- 后部：S1 上行绳 / 下行绳
-        sheave(f"ELV-051 S0 rear sheave {sfx}", G0, sd * xu, y_sh, z_sh)
+        # --- 后部：S1 上行绳 / 下行绳；后轴上的滑轮 + 轴环（轴向定位）
+        sheave(f"ELV-051 S0 rear sheave {sfx}", G0, sd * xu, y_sh, z_sh, SBORE)
+        ring(f"ELV-051 shaft collar {sfx} in", G0, sd * (xu - ST / 2), sd * (xu - ST / 2 - CO_T), y_sh, z_sh, CO_R, SBORE)
+        ring(f"ELV-051 shaft collar {sfx} out", G0, sd * (xu + ST / 2), sd * (xu + ST / 2 + CO_T), y_sh, z_sh, CO_R, SBORE)
+        ring(f"ELV-051 shaft collar {sfx} end", G0, sd * xs, sd * (xs + CO_T), y_sh, z_sh, CO_R, SBORE)
         y_u1 = y_b - 2 * RE
-        P.xblock(f"ELV-052 S1 up tab {sfx}", G1, sd * xu - PT / 2, sd * xu + PT / 2, T_D + GUSSET_T, Z1 + 1.0,
-                 y_u1 + 0.2 - (T_D + GUSSET_T), 0.5)
-        P.xblock(f"ELV-053 S1 down tab {sfx}", G1, sd * xd - PT / 2, sd * xd + PT / 2, BACK_Y + 1.0, S1T - 1.5,
-                 y_f + 0.2 - (BACK_Y + 1.0), 0.5)
-        rod(f"ELV-060 rope S1 up A {sfx}", sd * xu, y_u1, Z1 + 1.5, z_sh)
+        P.xblock(f"ELV-052 S1 up tab {sfx}", G1, sd * xu - TT / 2, sd * xu + TT / 2, T_D + GUSSET_T, Z1 + 1.0,
+                 y_u1 + 0.2 - (T_D + GUSSET_T), zt1 - (Z1 + 1.0))
+        P.xblock(f"ELV-053 S1 down tab {sfx}", G1, sd * xd - TT / 2, sd * xd + TT / 2, BACK_Y + 1.0, zt2,
+                 y_f + 0.2 - (BACK_Y + 1.0), 1.0)
+        rod(f"ELV-060 rope S1 up A {sfx}", sd * xu, y_u1, zt1, z_sh)
         rod(f"ELV-061 rope S1 up B {sfx}", sd * xu, y_b, zs, z_sh)
-        rod(f"ELV-062 rope S1 down {sfx}", sd * xd, y_f, zs, S1T - 1.5)
+        rod(f"ELV-062 rope S1 down {sfx}", sd * xd, y_f, zs, zt2)
         # --- 前部：carriage 上行绳（S1 顶滑轮）
         sheave(f"ELV-054 S1 top sheave {sfx}", G1, sd * xcu, yc_u, zs2)
         clevis(f"ELV-055 S1 top clevis {sfx}", G1, sd * xcu, yi_u - 0.15, 0.0, S1T - 2.0, 1.8, yc_u, zs2)
         axle(f"ELV-056 S1 top axle {sfx}", G1, sd * (xcu - 0.2525), sd * (xcu + 0.2525), yc_u, zs2)
-        lo, ln = span(cpw, xcu + 0.15, sd)
+        lo, ln = span(cpw + 0.06, xcu + 0.15, sd)
         P.part(f"ELV-057 carriage bottom tab {sfx}", GC, "Top", ZC,
                [{"kind": "rect", "corner": [lo, yo_u - 0.1], "size": [ln, -(yo_u - 0.1)]}], PT, hollow=False)
         lo, ln = span(xcu - 0.1, x0 - 0.1, sd)
@@ -342,7 +373,7 @@ def build(p):
         sheave(f"ELV-070 S1 bottom sheave {sfx}", G1, sd * xcd, yc_d, zsd)
         clevis(f"ELV-071 S1 bottom clevis {sfx}", G1, sd * xcd, yi_d - 0.15, -GUSSET_T, Z1 + 0.95, 1.15, yc_d, zsd)
         axle(f"ELV-072 S1 bottom axle {sfx}", G1, sd * (xcd - 0.2525), sd * (xcd + 0.2525), yc_d, zsd)
-        lo, ln = span(cpw, xcd + 0.15, sd)
+        lo, ln = span(cpw + 0.06, xcd + 0.15, sd)
         P.part(f"ELV-073 carriage top tab {sfx}", GC, "Top", ZC + Lc - PT,
                [{"kind": "rect", "corner": [lo, yo_d - 0.1], "size": [ln, -(yo_d - 0.1)]}], PT, hollow=False)
         lo, ln = span(xcd - 0.1, x0 - 0.1, sd)
@@ -351,7 +382,7 @@ def build(p):
                 {"kind": "circle", "center": [sd * xcd, yo_d], "radius": 0.15}], PT)   # carriage 绳从孔中穿过
         rod(f"ELV-065 rope carriage down A {sfx}", sd * xcd, yi_d, zsd, za_d)
         rod(f"ELV-066 rope carriage down B {sfx}", sd * xcd, yo_d, zsd, ZC + Lc - PT)
-    rope = {"s1_up": (z_sh - (Z1 + 1.5)) + (z_sh - zs), "s1_down": (S1T - 1.5) - zs,
+    rope = {"s1_up": (z_sh - zt1) + (z_sh - zs), "s1_down": zt2 - zs,
             "carriage_up": (zs2 - za_u) + (zs2 - (ZC + PT)),
             "carriage_down": (za_d - zsd) + ((ZC + Lc - PT) - zsd)}
 
@@ -371,7 +402,7 @@ def build(p):
     P.holes("holes carriage plate grid", "Front", PLATE_T / 2, grid, BOLT_D, PLATE_T + 0.02)
     P.holes("holes Z base mount", "Top", 0.5, [(sd * a, Y) for sd in (-1, 1) for a in (2.0, 5.0)], BOLT_D, 1.1)
     for sd in (-1, 1):
-        P.holes("holes X drive plate", "Right", sd * (c0 + PLATE_T / 2), [(0.5, 1.0), (1.5, 1.0)], BOLT_D,
+        P.holes("holes X drive plate", "Right", sd * (c0 + PLATE_T / 2), [(0.5, 1.5), (1.5, 1.5)], BOLT_D,
                 T_W + PLATE_T + 0.05)
     for sd, (xo, top, xz) in ((sd, v) for sd in (-1, 1) for v in ((x0, H0, c0 - 0.15), (x1, S1T, c1 - 0.15))):
         # 角撑板→管堵（X 向）、管堵固定（Z 向）、角撑板→立管铆钉（X 向，避开管端轴承块套筒）
@@ -405,20 +436,19 @@ def build(p):
             P.bolt(2.25, grp, [sd * xz, BACK_Y + 0.5, top], [0, 0, -1], grip=2.0)
         # --- 电机板→立管螺栓（X 向，由外向内）
         for yy in (0.5, 1.5):
-            P.bolt(1.5, G0, [sd * (x0 + PLATE_T), yy, 1.0], [-sd, 0, 0], grip=T_W + PLATE_T)
+            P.bolt(1.5, G0, [sd * (x0 + PLATE_T), yy, 1.5], [-sd, 0, 0], grip=T_W + PLATE_T)
         # --- 驱动：法兰轴承、Kraken、皮带轮
         P.place("bearing_flanged_half_hex", G0, [sd * x0, ys, zs], z=[sd, 0, 0], x=[0, 1, 0])
         P.place("kraken_x60", G0, [sd * (x0 - 1.23), ym, zs], y=[-sd, 0, 0], z=[0, 0, 1])
         P.place("pulley_12t_9mm_falcon", G0, [sd * px_c, ym, zs], z=[sd, 0, 0], x=[0, 1, 0])
         P.place("pulley_36t_9mm_half_hex", G0, [sd * px_c, ys, zs], y=[sd, 0, 0], z=[0, 0, 1])
-        P.place("pulley_24t_9mm_half_hex", G0, [sd * c1, ys, zs], y=[sd, 0, 0], z=[0, 0, 1], name="drum 24T")
         for (yy, zz) in kr_holes:
             P.bolt(0.5, G0, [sd * (x0 + PLATE_T), yy, zz], [-sd, 0, 0], nut=False)
 
     info = {"stage1_travel": round(t1, 3), "carriage_travel": round(t2, 3),
             "max_travel": round(2 * t1_max, 3), "rope_length_in": {k: round(v, 4) for k, v in rope.items()},
             "overlap_at_full": round(H0 - (zb1 + t1), 3), "stowed_height": round(zb1 + H1, 3),
-            "drive": f"Kraken X60 ×2 → 12T:36T ({p['belt_teeth']}T belt, C={C:.3f}\") → 24T drum → continuous 绳系",
+            "drive": f"Kraken X60 ×2 → 12T:36T ({p['belt_teeth']}T belt, C={C:.3f}\") → Ø1.5\" 卷筒 → continuous 绳系",
             "free_speed_in_s": round(6000 / 3 / 60 * math.pi * pd(24), 1)}
     asm = {"name": "Elevator Assembly", "groups": P.groups, "cots": P.cots,
            "sliders": [{"name": "Stage 1 slider", "a": "ELV-001 S0 upright L", "b": "ELV-010 S1 tube L"},
