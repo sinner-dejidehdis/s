@@ -32,7 +32,7 @@ def cq_plane(p):
     return cq.Plane(origin=o, xDir=xd, normal=n)
 
 
-def sketch_solid(planes, step, depth, direction, k):
+def sketch_solid(planes, step, depth, direction, k, hollow=False):
     pl = cq_plane(planes[step["plane"]])
     n = pl.zDir
     shift = {"normal": 0, "flip": -depth, "symmetric": -depth / 2}[direction]
@@ -45,7 +45,10 @@ def sketch_solid(planes, step, depth, direction, k):
             pts = ent["points"] if ent["kind"] == "polygon" else _rect(ent)
             w = wp.polyline([(x * k, y * k) for x, y in pts]).close()
         s = w.extrude(depth)
-        out = s if out is None else out.union(s)
+        if out is None:
+            out = s
+        else:  # hollow: 第一个轮廓为外形，其余为内孔
+            out = out.cut(s) if hollow else out.union(s)
     return out
 
 
@@ -66,7 +69,7 @@ def build(plan):
                 planes.setdefault(s["plane"], make_plane(planes, s["plane"], 0, k))
         else:
             sk = sketches[s["sketch"]]
-            solid = sketch_solid(planes, sk, s["depth"] * k, s.get("direction", "normal"), k)
+            solid = sketch_solid(planes, sk, s["depth"] * k, s.get("direction", "normal"), k, s.get("hollow", False))
             op = s.get("op", "new")
             if op == "new":
                 bodies.append([s.get("name", s["id"]), solid])
