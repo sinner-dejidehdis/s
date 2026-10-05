@@ -1,0 +1,147 @@
+{
+ "_note": "MKCad 公开库（Onshape 公开文档）里的真实厂商件。frame 描述零件自身坐标系，模板据此计算装配位置。",
+ "shcs_10_32_0.5": {
+  "doc": "8d7236e497bf1e271e21fbd2",
+  "version": "d14f63050910dd3a39e01c3d",
+  "element": "eec77e916c1d25c351212a0b",
+  "partId": "JFD",
+  "name": "BOLT SHCS 10-32 0.500",
+  "frame": "螺杆沿 Y：螺纹末端在原点，螺帽下表面在 y=L（螺帽朝 +Y）",
+  "bolt": {
+   "tip_dir": [
+    0,
+    -1,
+    0
+   ],
+   "under_head": [
+    0,
+    0.5,
+    0
+   ]
+  }
+ },
+ "shcs_10_32_1.5": {
+  "doc": "8d7236e497bf1e271e21fbd2",
+  "version": "d14f63050910dd3a39e01c3d",
+  "element": "c3c43dd66f73106068b9785a",
+  "partId": "JFD",
+  "name": "BOLT SHCS 10-32 1.500",
+  "frame": "螺杆沿 X、居中：螺帽下表面在 x=-L/2，末端在 x=+L/2（注意与 0.5/2.25 的坐标系不同）",
+  "bolt": {
+   "tip_dir": [
+    1,
+    0,
+    0
+   ],
+   "under_head": [
+    -0.75,
+    0,
+    0
+   ]
+  }
+ },
+ "shcs_10_32_2.25": {
+  "doc": "8d7236e497bf1e271e21fbd2",
+  "version": "d14f63050910dd3a39e01c3d",
+  "element": "74b5186267704602ca6fa5be",
+  "partId": "JFD",
+  "name": "BOLT SHCS 10-32 2.250",
+  "frame": "螺杆沿 Y：螺纹末端在原点，螺帽下表面在 y=L（螺帽朝 +Y）",
+  "bolt": {
+   "tip_dir": [
+    0,
+    -1,
+    0
+   ],
+   "under_head": [
+    0,
+    2.25,
+    0
+   ]
+  }
+ },
+ "shcs_10_32_2.5": {
+  "doc": "8d7236e497bf1e271e21fbd2",
+  "version": "d14f63050910dd3a39e01c3d",
+  "element": "fdff4ee5e0e73cb1c19ad317",
+  "partId": "JFD",
+  "name": "BOLT SHCS 10-32 2.500",
+  "frame": "螺杆沿 X、居中：螺帽下表面在 x=-L/2，末端在 x=+L/2（注意与 0.5/2.25 的坐标系不同）",
+  "bolt": {
+   "tip_dir": [
+    1,
+    0,
+    0
+   ],
+   "under_head": [
+    -1.25,
+    0,
+    0
+   ]
+  }
+ },
+ "nylock_10_32": {
+  "doc": "8d7236e497bf1e271e21fbd2",
+  "version": "d14f63050910dd3a39e01c3d",
+  "element": "2a31d751d319652626ce8761",
+  "partId": "JFH",
+  "name": "10-32 Nylon-Insert Locknut",
+  "frame": "原点=支承面中心，+Z 为螺母厚度方向（0.234\"）"
+ },
+ "rivet_3_16": {
+  "doc": "8d7236e497bf1e271e21fbd2",
+  "version": "d14f63050910dd3a39e01c3d",
+  "element": "6c656cc1012f8426f5da5f61",
+  "partId": "JHD",
+  "name": "3/16 Rivet",
+  "frame": "原点=铆钉头下表面中心，+Z 指向铆杆"
+ },
+ "bearing_flanged_half_hex": {
+  "doc": "92b0b8a2272e065eb151c20c",
+  "version": "c2266c33703e7b76a9a4425d",
+  "element": "a9027bce5abc017097327ec4",
+  "partId": "JFD",
+  "name": ".5\" Hex ID 1.125\" OD Flanged Bearing (217-2734)",
+  "frame": "+Z 轴向；z∈[0,0.25] 为压入孔内的本体，z∈[0.25,0.313] 为法兰"
+ },
+ "pulley_12t_9mm_falcon": {
+  "doc": "a0b589f74b21e8886d697efc",
+  "version": "cf50e58097485215dd5d269f",
+  "element": "1866e95355e1da94efc7ebfb",
+  "partId": "JFD",
+  "name": "12t 9mm Wide Falcon Bore Double Flange 5mm HTD Aluminum Pulley (WCP-0454)",
+  "frame": "+Z 轴向，居中"
+ },
+ "pulley_36t_9mm_half_hex": {
+  "doc": "a0b589f74b21e8886d697efc",
+  "version": "cf50e58097485215dd5d269f",
+  "element": "6c3c4d44343824e36eee7927",
+  "partId": "JFD",
+  "name": "36t 9mm Wide 1/2\" Hex Bore Double Flange 5mm HTD Aluminum Pulley (217-3231)",
+  "frame": "+Y 轴向，居中"
+ },
+ "pulley_24t_9mm_half_hex": {
+  "doc": "a0b589f74b21e8886d697efc",
+  "version": "cf50e58097485215dd5d269f",
+  "element": "4b19f6615ea48217ad0c8eb7",
+  "partId": "JFD",
+  "name": "24t 9mm Wide 1/2\" Hex Bore Double Flange 5mm HTD Aluminum Pulley (217-3227)",
+  "frame": "+Y 轴向，居中"
+ },
+ "kraken_x60": {
+  "doc": "2979144bb1e87ddd1747e172",
+  "version": "c5c9969e813e179c431de156",
+  "element": "1ce7f6edfe09be4fb53cad38",
+  "partId": "JJD",
+  "name": "Kraken X60 powered by Talon FX (WCP-0940)",
+  "frame": "输出轴沿 -Y；安装面在 y=-1.23\"，12 个 #10-32 螺孔在 Ø2\" 圆上（30° 间隔）"
+ },
+ "wcp_0199_bearing_block": {
+  "doc": "ea2083d11da013e3ded51232",
+  "version": "431a103d458c2e6bad94eba8",
+  "element": "bf79aace11cc2ca1259bcec5",
+  "assembly": true,
+  "name": "Inline Bearing Block (WCP-0199)",
+  "frame": "x=管的 2\" 方向（居中），-y=插入管的方向（y∈[-1,0] 为套筒，贴管端），+z=朝相邻级；3/4\" 轴承配置下级间隙 0.25\""
+ }
+}

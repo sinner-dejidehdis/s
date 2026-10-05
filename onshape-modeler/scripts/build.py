@@ -3,6 +3,7 @@
 
   python build.py plan.json --dry-run
   python build.py plan.json --url <Part Studio URL> [--replace]
+  python build.py plan.json --url <URL> --new-studio Elevator   # 在同一文档新建 Part Studio 再建
   python build.py --url <URL> --check        # 验证密钥/链接可用
 """
 import argparse
@@ -67,6 +68,23 @@ def replace_old(c, tag):
     print(f"已删除旧特征 {len(old)} 个（tag={tag}）")
 
 
+def name_parts(c, new_bodies):
+    """把 op=new 拉伸出的零件改名为特征名（去掉 [tag] 前缀），失败不影响建模。"""
+    if not new_bodies:
+        return
+    ids = ", ".join(f'makeId("{fid}")' for fid, _ in new_bodies)
+    script = ("function(context is Context, queries) { var out = []; for (var id in [" + ids + "]) "
+              "out = append(out, transientQueriesToStrings(evaluateQuery(context, qCreatedBy(id, EntityType.BODY)))); "
+              "return out; }")
+    try:
+        res = c.featurescript(script)["value"]
+        for (_, name), bodies in zip(new_bodies, res):
+            for b in bodies["value"]:
+                c.set_part_name(b["value"], name)
+    except Exception as e:  # noqa: BLE001
+        print(f"（零件改名跳过：{e}）")
+
+
 def report(c, expect=None):
     parts = c.parts()
     print(f"\n零件数: {len(parts)}")
@@ -87,6 +105,8 @@ def main():
     ap.add_argument("--replace", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--new-studio", metavar="NAME", help="在 --url 所在文档新建一个 Part Studio 并建在里面")
+    ap.add_argument("--no-assembly", action="store_true", help="plan 里有 assembly 时也只建 Part Studio")
     a = ap.parse_args()
 
     if a.check:
@@ -105,10 +125,14 @@ def main():
 
     from onshape_client import Client, OnshapeError, feature_status
     c = Client(a.url)
+    if a.new_studio:
+        url = c.create_part_studio(a.new_studio)
+        print(f"新建 Part Studio「{a.new_studio}」: {url}")
+        c = Client(url)
     tag = plan.get("tag", "ai")
     if a.replace:
         replace_old(c, tag)
-    plane_fids, sketch_fids = {}, {}
+    plane_fids, sketch_fids, new_bodies = {}, {}, []
     for s in plan["steps"]:
         feat = make_feature(s, tag, units, plane_fids, sketch_fids)
         try:
@@ -120,11 +144,19 @@ def main():
             plane_fids[s["id"]] = fid
         elif s["type"] == "sketch":
             sketch_fids[s["id"]] = fid
+        elif s.get("op", "new") == "new":
+            new_bodies.append((fid, s.get("name", s["id"])))
         status, msg = feature_status(resp)
         print(f"  {status:7s} {feat['name']} {msg}")
         if status not in ("OK", "WARNING"):
             raise SystemExit(f"停止：{feat['name']} 状态 {status}。见 SKILL.md 排查清单。")
+    name_parts(c, new_bodies)
     report(c, plan.get("expect", {}).get("bbox_in"))
+    if plan.get("assembly") and not a.no_assembly:
+        from assembly import build_assembly
+        asm = build_assembly(c, plan)
+        bom = f"bom_{plan.get('name', 'model')}.csv"
+        print(f"  BOM {asm.bom(bom)} 行 → {bom}")
 
 
 if __name__ == "__main__":

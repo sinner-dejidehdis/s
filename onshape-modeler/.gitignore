@@ -1,4 +1,5 @@
 .env
 __pycache__/
 *.pyc
-plan.json
+plan*.json
+bom_*.csv

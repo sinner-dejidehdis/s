@@ -47,7 +47,9 @@ def build_plane(step, tag, units, plane_fids):
         "parameters": [
             _qlist("entities", plane_query(step["base"], plane_fids)),
             _enum("cplaneType", "CPlaneType", "OFFSET"),
-            _qty("offset", _expr(step["offset"], units)),
+            # Onshape 的 offset 不接受负值：取绝对值并用 oppositeDirection 表示方向
+            _qty("offset", _expr(abs(step["offset"]), units)),
+            _bool("oppositeDirection", step["offset"] < 0),
         ],
     }
 
@@ -88,7 +90,7 @@ def sketch_entities(step, units):
                     "startPointId": f"{lid}.start", "endPointId": f"{lid}.end",
                     "startParam": 0.0, "endParam": n * k, "internalIds": [], "isConstruction": False,
                     "geometry": {"btType": "BTCurveGeometryLine-117",
-                                 "pointVector": [a[0] * k, a[1] * k], "direction": [dx / n, dy / n]},
+                                 "pntX": a[0] * k, "pntY": a[1] * k, "dirX": dx / n, "dirY": dy / n},
                 })
         else:
             raise ValueError(f"未知草图元素 kind={ent['kind']}（支持 polygon/rect/circle）")
@@ -105,22 +107,28 @@ def build_sketch(step, tag, units, plane_fids):
 
 
 OPS = {"new": "NEW", "add": "ADD", "remove": "REMOVE", "intersect": "INTERSECT"}
-DIRS = {"normal": ("BLIND", False), "flip": ("BLIND", True), "symmetric": ("SYMMETRIC", False)}
+DIRS = {"normal": False, "flip": True, "symmetric": False}
 
 
 def build_extrude(step, tag, units, sketch_fids):
     if step["sketch"] not in sketch_fids:
         raise ValueError(f"extrude {step['id']} 引用的草图 '{step['sketch']}' 不存在")
-    bound, opp = DIRS[step.get("direction", "normal")]
+    direction = step.get("direction", "normal")
+    op = OPS[step.get("op", "new")]
     return {
         "btType": "BTMFeature-134", "featureType": "extrude", "suppressed": False,
         "name": f"[{tag}] {step.get('name', step['id'])}",
         "parameters": [
             _enum("bodyType", "ExtendedToolBodyType", "SOLID"),
-            _enum("operationType", "NewBodyOperationType", OPS[step.get("op", "new")]),
-            _qlist("entities", f'query=qSketchRegion(makeId("{sketch_fids[step["sketch"]]}"), false);'),
-            _enum("endBound", "BoundingType", bound),
+            _enum("operationType", "NewBodyOperationType", op),
+            # hollow=true：只拉伸环形区域（方管、带孔的板），内轮廓保持空心，不用再单独切除
+            _qlist("entities", f'query=qSketchRegion(makeId("{sketch_fids[step["sketch"]]}"), '
+                               f'{"true" if step.get("hollow") else "false"});'),
+            _enum("endBound", "BoundingType", "BLIND"),
             _qty("depth", _expr(step["depth"], units)),
-            _bool("oppositeDirection", opp),
+            _bool("oppositeDirection", DIRS[direction]),
+            _bool("symmetric", direction == "symmetric"),
+            # 默认 defaultScope=false，不设为 true 时 remove/add 找不到要合并/切除的零件
+            _bool("defaultScope", op != "NEW"),
         ],
     }
