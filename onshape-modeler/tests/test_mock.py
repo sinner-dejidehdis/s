@@ -35,8 +35,9 @@ for i in range(2):  # second run must replace the first
     r = subprocess.run([sys.executable, ROOT/"scripts/build.py", "/tmp/mock_plan.json", "--url", url, "--replace"], env=env, capture_output=True, text=True)
     print(r.stdout[-300:], r.stderr)
     assert r.returncode == 0
-assert len(feats) == 30, len(feats)
-assert sum(1 for l in log if l[0] == "DEL") == 30
+N = len(json.loads(plan)["steps"])
+assert len(feats) == N, (len(feats), N)
+assert sum(1 for l in log if l[0] == "DEL") == N
 # references resolve to server-assigned ids
 ex = next(f for f in feats if f["featureType"] == "extrude")
 assert 'makeId("F' in ex["parameters"][2]["queries"][0]["queryString"]
@@ -49,4 +50,9 @@ for args, ok in (([], True), (["--set", "extension=1"], True), (["--set", "trave
         d = subprocess.run([sys.executable, ROOT/"scripts/build.py", "/tmp/mock_elev.json", "--dry-run"],
                            capture_output=True, text=True)
         assert d.returncode == 0 and "dry-run 通过" in d.stdout, d.stdout + d.stderr
+for tpl in ("shooter.py", "roller_intake.py"):
+    out = subprocess.run([sys.executable, ROOT/"scripts/templates"/tpl], capture_output=True, text=True, check=True).stdout
+    Path("/tmp/mock_t.json").write_text(out)
+    d = subprocess.run([sys.executable, ROOT/"scripts/build.py", "/tmp/mock_t.json", "--dry-run"], capture_output=True, text=True)
+    assert d.returncode == 0 and "dry-run 通过" in d.stdout, tpl + d.stdout + d.stderr
 print("mock test OK")
