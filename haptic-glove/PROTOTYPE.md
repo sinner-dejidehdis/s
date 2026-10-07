@@ -21,6 +21,8 @@
 | 音频输出（AudioWorklet，每指一个声道）+ WebSocket 备用输出 | `web/src/audio.js` | 在无头浏览器里能启动；**没接真实硬件** |
 | 网页（场景、加载线上/本地模型、示波器、状态） | `web/index.html`、`web/src/app.js` | 端到端通过，默认链接真实 glb 加载并检测到接触 |
 
+**想先做盲测（不需要手部追踪）：见 [QUICKSTART_TEST.md](QUICKSTART_TEST.md)。**
+
 运行：`cd web && python3 -m http.server 8000`，浏览器开 `http://localhost:8000`，点“启动触觉输出”，鼠标移动指尖，滚轮降低高度压进物体并滑动。用 Chrome。
 
 ## 3. 还没有的 / 要你做的
