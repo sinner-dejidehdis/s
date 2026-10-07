@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Haptic Sandbox</title>
+<style>
+ :root{color-scheme:dark} body{margin:0;background:#15181d;color:#dde;font:14px system-ui,sans-serif;display:flex;flex-direction:column;height:100vh}
+ #bar{padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#1d2128}
+ #bar input[type=text]{flex:1;min-width:220px;padding:6px;background:#12151a;color:#dde;border:1px solid #333;border-radius:4px}
+ button{padding:6px 10px;background:#2b6cb0;color:#fff;border:0;border-radius:4px;cursor:pointer}
+ #view{flex:1;width:100%;min-height:0;display:block} #info{padding:6px 12px;background:#1d2128;font-family:monospace;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+</style></head><body>
+<div id="bar">
+ <button id="start">① 启动触觉输出(音频)</button><button id="test">测试碰撞</button>
+ <input id="url" type="text" placeholder="glTF/GLB 链接（需允许 CORS）" value="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/DamagedHelmet/glTF-Binary/DamagedHelmet.glb">
+ <button id="loadUrl">加载线上模型</button><label>或本地 <input id="file" type="file" accept=".glb,.gltf"></label>
+ <span id="msg"></span>
+</div>
+<canvas id="view"></canvas>
+<div id="info"><span id="stat">—</span><canvas id="scope" width="400" height="70"></canvas>
+ <span>鼠标移动指尖；滚轮改高度；↑↓ 改前后。把指尖压进物体并滑动。</span></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script type="module" src="src/app.js"></script>
+</body></html>
