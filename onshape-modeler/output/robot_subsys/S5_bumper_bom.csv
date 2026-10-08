@@ -1,0 +1,8 @@
+item,qty,material / spec,size,mass_lb(calc or assumed)
+BP-001 front/back backing,2,1/2 in Baltic birch plywood,"28.0 x 5.0 x 0.5 in, 3 holes 0.201",3.64
+BP-002 left/right backing,2,1/2 in Baltic birch plywood,"27.0 x 5.0 x 0.5 in, 3 holes 0.201",3.51
+BP-003/004 foam strips,4,"solid pool noodle, 2 stacked (2.5 in OD) or 2.5x5 in foam bar",per side length,2.8
+BP-005 corner foam blocks,4,solid foam,2.5 x 2.5 x 5.0 in,0.25
+covers (red + blue sets),2,"1000D Cordura or similar, sewn, hook-free",wrap all outward/upward/downward faces (R402),1.6
+hardware,12,"10-32 x 1.5 SHCS, tapped into frame plugs F-004",12 bolts + staples/rivets for cover,0.8
+numerals,3-4,"white vinyl or iron-on, 4.0 in tall, 0.6 in stroke",####,0.0

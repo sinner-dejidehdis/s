@@ -1,0 +1,27 @@
+{
+  "_note": "2026 FRC Game Manual 里核实过的电气与保险杠规则要点（来自 https://www.frcmanual.com/2026/robot-construction-rules-(r) 的摘录，部分条文被截短；以官方手册全文为准）。2027 手册发布后必须重核。",
+  "battery": {"rule": "R601", "type": "1 only, non-spillable sealed lead-acid, 12V", "capacity_Ah": [17, 18.2], "size_in": [7.1, 3.0, 6.6], "size_tol_in": 0.1,
+              "weight_lb": [11.0, 14.5], "terminals": "nut-and-bolt", "vents": "must not be obstructed during charging",
+              "secure": "R606: must be secured so it will not dislodge during vigorous ROBOT interaction"},
+  "main_power": {"rule": "R609", "wire": "6 AWG copper or larger", "devices": "1 battery, 1 pair Anderson SB connectors, 1 main 120A surface-mount breaker, 1 main power distribution device (PDP/PDP 2.0/PDH/AMPD)",
+                 "breaker_access": "R612: the 120A breaker must be quickly and safely accessible from the exterior of the ROBOT",
+                 "visibility": "R613: the PD, associated wiring and all circuit breakers must be visible for inspection",
+                 "isolation": "R611: all wiring and electrical devices electrically isolated from the ROBOT frame; the frame must not carry current",
+                 "one_wire_per_terminal": "R618: only 1 wire per PD terminal"},
+  "breakers": "R619: Snap Action VB3-A/AT2-A (F57), MX5-A/MX5-L up to 40A; REV or CTR ATO auto-resetting up to 40A; ATM breakers within R620 fuse limits",
+  "fuses": "R620: PDP ATM per holder; all PDs ATC/ATO <= 10A; PDH ATM <= 15A plus one 20A for PCM/PH",
+  "wire_gauge_R622": [
+    {"circuit": "31-40A breaker", "min_awg": 12}, {"circuit": "21-30A breaker", "min_awg": 14}, {"circuit": "6-20A breaker", "min_awg": 18},
+    {"circuit": "11-20A fuse", "min_awg": 18}, {"circuit": "<=5A breaker", "min_awg": 22}, {"circuit": "<=10A fuse", "min_awg": 22},
+    {"circuit": "SIGNAL LEVEL (<=1A)", "min_awg": 28}],
+  "control": {"roboRIO": "R701: 1 roboRIO or roboRIO 2.0", "radio": "R702: 1 Vivid Hosting VH-109 (WCP-1538)", "rio_power": "R615: directly from a non-switched protected pair of the PD",
+              "signal_light": "R709: 1 or 2 diagnostic Robot Signal Lights (855PB-B12ME522 and/or am-3583)", "bandwidth": "R704: 7.0 Mbit/s for VH-109"},
+  "bumpers": {"R401": "protect the entire ROBOT PERIMETER", "R402": "padding >= 2.25 in deep, >= 4.5 in tall solid; backing >= 4.5 in tall; cloth cover; rigid fastening (no hook-and-loop, tape, cable ties)",
+              "R403": "extend <= 4.0 in from perimeter", "R404": "hard parts <= 1.25 in out", "R405": "padding+backing fill the BUMPER ZONE (2.5-5.75 in from floor)",
+              "R406": "corner joints filled with uncompressed padding extending >= 2.25 in", "R407": "must not act as wedges", "R409": "fixed relative to the perimeter",
+              "R410": "designed for installation and removal (inspection and weighing)", "R411": "red or blue covers to show alliance",
+              "R412": "team number on the cover in >= 3 locations, white Arabic numerals >= 3.75 in high, >= 0.5 in stroke"},
+  "unverified_dimensions": {"roboRIO_2_in": "~6.0 x 5.4 x 1.6 (PLACEHOLDER, replace with NI drawing; 4-40 inserts, spacing unknown)",
+                            "VH109_in": "~3.5 x 2.5 x 1.0 (PLACEHOLDER)", "main_breaker_120A_in": "~2.9 x 1.8 x 1.2 (PLACEHOLDER)",
+                            "PDH_in": "8.875 x 4.375 x 1.563, 1.14 lb, #10 clearance holes on 0.5 in grid (VERIFIED size; exact hole coordinates not verified)"}
+}

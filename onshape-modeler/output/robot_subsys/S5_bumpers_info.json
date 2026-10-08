@@ -1,0 +1,68 @@
+{
+ "mass_lb": {
+  "plywood": 7.15,
+  "foam": 3.05,
+  "cover(assumed)": 1.6,
+  "hardware(assumed)": 0.8,
+  "total": 12.6
+ },
+ "outer_size_in": 33.0,
+ "extends_from_perimeter_in": 3.15,
+ "rules": [
+  {
+   "rule": "R401 coverage of the whole perimeter",
+   "ok": true,
+   "detail": "four bumpers + 4 corner blocks, no gaps"
+  },
+  {
+   "rule": "R402 padding depth >= 2.25 in",
+   "ok": true,
+   "detail": "2.5 in solid foam"
+  },
+  {
+   "rule": "R402 padding/backing tall >= 4.5 in",
+   "ok": true,
+   "detail": "5.0 / 5.0 in"
+  },
+  {
+   "rule": "R403 extends <= 4.0 in from the perimeter",
+   "ok": true,
+   "detail": "3.15 in (backing 0.5 + foam 2.5 + cover 0.15)"
+  },
+  {
+   "rule": "R404 hard parts <= 1.25 in out",
+   "ok": true,
+   "detail": "backing 0.5 in (bolt heads inside the foam recess)"
+  },
+  {
+   "rule": "R405 padding + backing fill the 2.5-5.75 in zone",
+   "ok": true,
+   "detail": "z 2.5 to 7.5 in"
+  },
+  {
+   "rule": "R406 corner joints filled with >= 2.25 in uncompressed padding",
+   "ok": true,
+   "detail": "2.5 x 2.5 in corner foam blocks"
+  },
+  {
+   "rule": "R409 fixed to the perimeter",
+   "ok": true,
+   "detail": "bolted to frame plugs, no articulation"
+  },
+  {
+   "rule": "R410 designed for installation and removal",
+   "ok": true,
+   "detail": "12 bolts (10-32 x 1.5 SHCS), tool: 5/32 hex"
+  },
+  {
+   "rule": "R411 red or blue covers",
+   "ok": true,
+   "detail": "TWO cover sets (red and blue) per robot"
+  },
+  {
+   "rule": "R412 white numerals >= 3.75 in tall, >= 0.5 in stroke, >= 3 locations",
+   "ok": true,
+   "detail": "####: 4.0 in tall, 0.6 in stroke, on back, left and right (front optional)"
+  }
+ ]
+}

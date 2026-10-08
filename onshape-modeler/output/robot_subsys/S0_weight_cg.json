@@ -1,0 +1,115 @@
+{
+ "items": [
+  {
+   "name": "modules x4 (ASSUMED)",
+   "lb": 28.0,
+   "pos_xyz_in": [
+    0,
+    0,
+    3.0
+   ]
+  },
+  {
+   "name": "frame + pan + gussets + plugs",
+   "lb": 13.85,
+   "pos_xyz_in": [
+    0,
+    0,
+    3.6
+   ]
+  },
+  {
+   "name": "battery (12.5 lb typical, R601 11-14.5)",
+   "lb": 12.5,
+   "pos_xyz_in": [
+    0.0,
+    -8.0,
+    8.05
+   ]
+  },
+  {
+   "name": "battery tray + hold-down",
+   "lb": 1.7,
+   "pos_xyz_in": [
+    0,
+    -8.0,
+    7.5
+   ]
+  },
+  {
+   "name": "panel + uprights",
+   "lb": 1.9,
+   "pos_xyz_in": [
+    0,
+    -12.75,
+    11.0
+   ]
+  },
+  {
+   "name": "PDH",
+   "lb": 1.14,
+   "pos_xyz_in": [
+    0,
+    -11.95,
+    11.0
+   ]
+  },
+  {
+   "name": "roboRIO (PLACEHOLDER)",
+   "lb": 1.2,
+   "pos_xyz_in": [
+    -9.2,
+    -11.95,
+    11.3
+   ]
+  },
+  {
+   "name": "radio (PLACEHOLDER)",
+   "lb": 0.4,
+   "pos_xyz_in": [
+    8.1,
+    -12.25,
+    13.0
+   ]
+  },
+  {
+   "name": "main breaker (PLACEHOLDER)",
+   "lb": 0.5,
+   "pos_xyz_in": [
+    10.4,
+    -12.15,
+    9.6
+   ]
+  },
+  {
+   "name": "wiring (computed + 1.5 lb connectors)",
+   "lb": 4.7,
+   "pos_xyz_in": [
+    0,
+    -4.0,
+    6.0
+   ]
+  },
+  {
+   "name": "mechanism bay (ASSUMED 25 lb: intake + scoring)",
+   "lb": 25.0,
+   "pos_xyz_in": [
+    0,
+    3.0,
+    10.0
+   ]
+  }
+ ],
+ "total_lb_with_battery_no_bumpers": 90.89,
+ "R103_robot_weight_lb_(no battery, no bumpers)": 78.39,
+ "R103_limit_lb": 115.0,
+ "with_bumpers_no_battery_lb": 90.99,
+ "R408_limit_lb": 135.0,
+ "cg_in": {
+  "x": -0.03,
+  "y": -1.33,
+  "z": 6.41
+ },
+ "wire_lb": 4.7,
+ "can_total_in": 186.0
+}

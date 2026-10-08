@@ -1,0 +1,18 @@
+circuit,from,to,breaker_A,min_AWG_R622,chosen_AWG,length_in_each,qty,wire_lb,note
+main +: battery(+) -> 120A breaker,battery +,main breaker,120A,6,6,18.2,1,0.5,R609 6 AWG; ring lugs; breaker reachable from behind (R612) through the panel window
+main +: breaker -> PDH,main breaker,PDH +,-,6,6,11.3,1,0.309,R609
+main -: battery(-) -> PDH,battery -,PDH -,-,6,6,17.6,1,0.482,R609
+swerve FL drive power,PDH,module FL,40A,12,12,53.0,1,0.236,R622: 31-40A -> 12 AWG min
+swerve FL steer power (ASSUMED 30A),PDH,module FL,30A,14,14,53.0,1,0.148,R622: 21-30A -> 14 AWG min; depends on the module/steer motor chosen
+swerve FR drive power,PDH,module FR,40A,12,12,53.0,1,0.236,R622: 31-40A -> 12 AWG min
+swerve FR steer power (ASSUMED 30A),PDH,module FR,30A,14,14,53.0,1,0.148,R622: 21-30A -> 14 AWG min; depends on the module/steer motor chosen
+swerve RL drive power,PDH,module RL,40A,12,12,25.8,1,0.115,R622: 31-40A -> 12 AWG min
+swerve RL steer power (ASSUMED 30A),PDH,module RL,30A,14,14,25.8,1,0.072,R622: 21-30A -> 14 AWG min; depends on the module/steer motor chosen
+swerve RR drive power,PDH,module RR,40A,12,12,25.8,1,0.115,R622: 31-40A -> 12 AWG min
+swerve RR steer power (ASSUMED 30A),PDH,module RR,30A,14,14,25.8,1,0.072,R622: 21-30A -> 14 AWG min; depends on the module/steer motor chosen
+intake roller Kraken,PDH,intake,40A,12,12,54.0,1,0.241,placeholder anchor point inside the bay
+intake pivot motor (ASSUMED 30A),PDH,intake,30A,14,14,73.6,1,0.205,placeholder; motor not chosen
+scoring motor (shooter),PDH,scoring,40A,12,12,46.0,1,0.205,placeholder anchor point
+roboRIO power,"PDH (non-switched pair, R615)",roboRIO,10A fuse,22,18,16.5,1,0.018,recommended 18 AWG (min 22 AWG per R622)
+"radio power (VH-109 via PoE injector/12V, R616)",PDH,radio,10A fuse,22,18,18.8,1,0.021,R616/R617; non-switched pair
+robot signal light (R709),PDH/roboRIO per R709,RSL,-,28,22,24.0,1,0.0,"1-2 RSL required; mounted on the panel top edge, visible from several sides"

@@ -1,0 +1,11 @@
+from,to,length_in
+roboRIO,PDH,17.8
+PDH,Pigeon 2 (IMU),17.9
+Pigeon 2 (IMU),module RL (drive+steer+encoder),22.9
+module RL (drive+steer+encoder),module RR,27.0
+module RR,scoring motor,20.7
+scoring motor,intake roller,14.3
+intake roller,module FR,14.9
+module FR,intake pivot,25.3
+intake pivot,module FL,25.3
+module FL (last device),120 ohm terminator,0

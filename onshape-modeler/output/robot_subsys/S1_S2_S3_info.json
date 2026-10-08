@@ -1,0 +1,9 @@
+{
+ "mass_lb": {
+  "S1_frame": 13.85,
+  "S2_battery": 1.7,
+  "S3_electronics_panel": 1.9
+ },
+ "rivets": 24,
+ "pan_holes": 45
+}

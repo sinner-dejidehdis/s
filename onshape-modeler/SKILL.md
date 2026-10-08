@@ -111,3 +111,6 @@ roller intake（30 个特征）和 elevator（旧版 137 个特征 + 174 个实�
 
 ## 扩展新模板
 新机构（shooter、elevator 滑块、爪子等）照 `roller_intake.py` 写一个生成 plan 的脚本，放进 `scripts/templates/` 并加到上表。
+
+## 分系统整机设计脚本(S0–S5)
+`scripts/robot_params.py`(共享参数)、`robot_frame.py`(S1 框架/S2 电池/S3 电控板)、`robot_wiring.py`(S4 线束/CAN、重量重心)、`robot_bumpers.py`(S5)、`robot_subsys_check.py`(干涉与禁区检查)。输出在 `output/robot_subsys/`,说明见 `references/robot_subsystems_v1.md`。
