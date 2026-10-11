@@ -1,4 +1,6 @@
 module.exports = function (eleventyConfig) {
+  eleventyConfig.ignores.add(".claude/**");
+
   return {
     dir: {
       input: ".",
