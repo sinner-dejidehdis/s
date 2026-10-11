@@ -2,6 +2,11 @@ import json,sys,re
 key=sys.argv[1]; N=int(sys.argv[2]); extra=[int(x) for x in sys.argv[3].split(',')] if len(sys.argv)>3 and sys.argv[3] not in ('','auto') else None
 m=json.load(open(f'books/{key}.metrics.json'))
 chs=[json.loads(l) for l in open(f'books/{key}.chapters.jsonl')]
+import os
+CAP=int(os.environ.get('CAP','0'))
+if CAP:
+    for c in chs:
+        if len(c['b'])>CAP: c['b']=c['b'][:CAP]+'\n……（本章过长，后文截断）'
 if extra is None:
     n=len(chs); fa=sorted(set(c['首现章'] for c in m['人物'] if c['首现章']>N))[:5]
     ev=[int(n*p) for p in (0.2,0.35,0.5,0.65,0.8,0.92)]
