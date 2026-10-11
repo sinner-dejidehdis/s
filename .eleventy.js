@@ -1,5 +1,6 @@
 module.exports = function (eleventyConfig) {
   eleventyConfig.ignores.add(".claude/**");
+  eleventyConfig.ignores.add("research/**");
 
   return {
     dir: {
