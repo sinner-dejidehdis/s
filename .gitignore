@@ -29,3 +29,6 @@ desktop.ini
 
 # Old build output
 docs/
+
+# Handoff bundles
+*.zip
