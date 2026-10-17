@@ -3,7 +3,7 @@ name: Deploy scouting site
 on:
   push:
     branches: [main]
-    paths: ['scouting/**']
+    paths: ['scouting/**', 'scouting-v2/**']
   workflow_dispatch:
 
 permissions:
@@ -26,10 +26,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test scouting/tests/*.test.js
+      - run: node --test scouting/tests/*.test.js scouting-v2/tests/*.test.js
+      - run: mkdir -p _site && cp -r scouting/. _site/ && mkdir -p _site/v2 && cp -r scouting-v2/. _site/v2/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: scouting
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
