@@ -180,7 +180,7 @@ SC.views = SC.views || {};
             h('div', { class: 'row between' }, h('span', null, label),
               h('span', null,
                 h('button', { class: 'btn small', onclick: function () { box.textContent = ''; box.appendChild(SC.ui.qr(SC.codec.encode(r))); } }, '显示二维码'),
-                h('button', { class: 'btn small', onclick: function () { if (confirm('删除这条记录？')) { SC.store.remove(k); root.textContent = ''; SC.views.data(root); } } }, '删除'))),
+                h('button', { class: 'btn small', onclick: function () { SC.ui.ask('删除这条记录？', '删除').then(function (ok) { if (ok) { SC.store.remove(k); root.textContent = ''; SC.views.data(root); } }); } }, '删除'))),
             box);
         })) : h('p', { class: 'muted' }, '还没有'))
     ));
@@ -242,10 +242,11 @@ SC.views = SC.views || {};
       ),
       h('div', { class: 'card' }, h('h3', null, '危险操作'),
         h('button', { class: 'btn danger', onclick: function () {
-          if (!confirm('清空本机所有记录？（建议先在「数据」页导出备份）')) return;
-          if (!confirm('真的清空？无法恢复')) return;
-          SC.store.clearAll();
-          SC.ui.toast('已清空');
+          SC.ui.ask('清空本机所有记录？无法恢复，建议先在「数据」页导出备份。', '清空').then(function (ok) {
+            if (!ok) return;
+            SC.store.clearAll();
+            SC.ui.toast('已清空');
+          });
         } }, '清空本机记录')
       ),
       h('p', { class: 'muted' }, '赛季：' + SC.GAME.name + ' · 字段在 js/config.js 修改')

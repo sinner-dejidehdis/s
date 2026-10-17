@@ -271,9 +271,11 @@ SC.views = SC.views || {};
           return h('li', { class: pl.dnp[s.tm] ? 'dnp' : '' }, h('a', { href: '#team/' + s.tm }, s.tm), ' ', h('b', null, s.score));
         })),
         h('button', { class: 'btn', onclick: function () {
-          if (pl.order.length && !confirm('用分数排序覆盖下面的手动名单？')) return;
-          pl.order = ranked.map(function (s) { return s.tm; });
-          redraw();
+          SC.ui.ask('用分数排序覆盖下面的手动名单？', '覆盖').then(function (ok) {
+            if (!ok) return;
+            pl.order = ranked.map(function (s) { return s.tm; });
+            redraw();
+          });
         } }, '按分数生成名单 ↓')
       ),
       h('div', { class: 'card' }, h('h3', null, '2. 手动名单（选人会议用）'),

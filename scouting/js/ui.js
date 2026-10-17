@@ -71,7 +71,46 @@ var SC = (globalThis.SC = globalThis.SC || {});
     return box;
   }
 
+  // 页内确认框（嵌入页面里 confirm() 不可用）
+  function ask(msg, okLabel) {
+    return new Promise(function (res) {
+      var box = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true' },
+        h('div', { class: 'modal-card' },
+          h('p', null, msg),
+          h('div', { class: 'row between' },
+            h('button', { class: 'btn', onclick: function () { box.remove(); res(false); } }, '取消'),
+            h('button', { class: 'btn danger', onclick: function () { box.remove(); res(true); } }, okLabel || '确定'))));
+      document.body.appendChild(box);
+    });
+  }
+
+  // 下载不可用时把内容显示出来让人复制
+  function showText(name, text) {
+    var ta = h('textarea', { rows: 10, readonly: true, value: text });
+    var box = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true' },
+      h('div', { class: 'modal-card' },
+        h('p', null, '这里不能直接下载，复制下面的内容另存为 ' + name + '：'),
+        ta,
+        h('div', { class: 'row between' },
+          h('button', { class: 'btn', onclick: function () { box.remove(); } }, '关闭'),
+          h('button', { class: 'btn primary', onclick: function () {
+            ta.select();
+            (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+              function () { toast('已复制', 'ok'); },
+              function () { toast('请手动复制选中的文字'); });
+          } }, '复制'))));
+    document.body.appendChild(box);
+  }
+
   function download(name, text, type) {
+    // 在 claude.ai 里打开时用平台的下载能力
+    if (globalThis.claude && typeof claude.use === 'function') {
+      claude.use('downloads').then(function (d) {
+        if (!d) return showText(name, text);
+        return d.save({ filename: name, data: text }).catch(function () { showText(name, text); });
+      }, function () { showText(name, text); });
+      return;
+    }
     var blob = new Blob([text], { type: type || 'text/plain' });
     var a = h('a', { href: URL.createObjectURL(blob), download: name });
     document.body.appendChild(a);
@@ -126,5 +165,5 @@ var SC = (globalThis.SC = globalThis.SC || {});
     return v == null ? '–' : Math.round(v * 100) + '%';
   }
 
-  SC.ui = { h: h, chips: chips, toast: toast, qr: qr, download: download, readFile: readFile, shrinkImage: shrinkImage, field: field, fmt: fmt, pct: pct };
+  SC.ui = { h: h, chips: chips, toast: toast, ask: ask, qr: qr, download: download, readFile: readFile, shrinkImage: shrinkImage, field: field, fmt: fmt, pct: pct };
 })();

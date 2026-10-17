@@ -309,3 +309,7 @@ dl.pit dd { margin: 0; }
   .picklist li { grid-template-columns: 26px 52px 1fr; }
   .picklist .acts { grid-column: 1 / -1; justify-content: flex-end; }
 }
+
+.modal { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal-card { background: var(--surface); color: var(--ink); border-radius: var(--radius); padding: 16px; width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 10px; }
+.modal-card p { margin: 0; }
