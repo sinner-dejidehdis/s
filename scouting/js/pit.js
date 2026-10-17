@@ -29,12 +29,12 @@ SC.views = SC.views || {};
     var teams = SC.store.schedule(ev()).teams.slice();
     SC.store.list('p', ev()).forEach(function (p) { if (teams.indexOf(Number(p.tm)) < 0) teams.push(Number(p.tm)); });
     teams.sort(function (a, b) { return a - b; });
-    var add = h('input', { type: 'number', inputmode: 'numeric', placeholder: '队号' });
+    var add = h('input', { type: 'number', inputmode: 'numeric', placeholder: 'Team' });
     var done = teams.filter(function (t) { return status(pitOf(t)) === 'done'; }).length;
     return h('section', null,
-      h('h2', null, 'Pit 记录 · ' + (ev() || '未设置赛事')),
-      h('p', { class: 'muted' }, '绿色 = 已完成，蓝色 = 部分完成。' + (teams.length ? done + ' / ' + teams.length + ' 完成' : '在「设置」同步 TBA 可自动列出全部队伍。')),
-      h('div', { class: 'row' }, add, h('button', { class: 'btn', onclick: function () { if (Number(add.value) > 0) open(Number(add.value)); } }, '记录这个队')),
+      h('h2', null, 'Pit scouting · ' + (ev() || 'no event set')),
+      h('p', { class: 'muted' }, 'Green = done, blue = partly done. ' + (teams.length ? done + ' / ' + teams.length + ' done' : 'Sync TBA in Settings to list every team.')),
+      h('div', { class: 'row' }, add, h('button', { class: 'btn', onclick: function () { if (Number(add.value) > 0) open(Number(add.value)); } }, 'Scout this team')),
       h('div', { class: 'teamgrid' }, teams.map(function (t) {
         return h('button', { class: 'tchip ' + status(pitOf(t)), onclick: function () { open(t); } }, t);
       }))
@@ -42,7 +42,7 @@ SC.views = SC.views || {};
   }
 
   function open(tm) {
-    if (!ev()) return SC.ui.toast('先在「设置」里填赛事代码', 'err');
+    if (!ev()) return SC.ui.toast('Set the event key in Settings first', 'err');
     var p = pitOf(tm);
     cur = p ? JSON.parse(JSON.stringify(p)) : { k: 'p', ev: ev(), tm: tm, sc: SC.store.settings().scout, ts: 0, d: {} };
     render();
@@ -52,7 +52,7 @@ SC.views = SC.views || {};
     var v = d[f.key];
     if (f.type === 'number') return h('input', { type: 'number', inputmode: 'decimal', value: v == null ? '' : v, oninput: function (e) { d[f.key] = e.target.value === '' ? null : Number(e.target.value); } });
     if (f.type === 'text') return h('textarea', { rows: 2, value: v || '', oninput: function (e) { d[f.key] = e.target.value; } });
-    if (f.type === 'bool') return chips([{ value: 1, label: '是' }, { value: 0, label: '否' }], v === true ? 1 : v === false ? 0 : '', function (x) { d[f.key] = x === 1; render(); });
+    if (f.type === 'bool') return chips([{ value: 1, label: 'Yes' }, { value: 0, label: 'No' }], v === true ? 1 : v === false ? 0 : '', function (x) { d[f.key] = x === 1; render(); });
     if (f.type === 'select') return chips(f.options, v || '', function (x) { d[f.key] = d[f.key] === x ? null : x; render(); });
     if (f.type === 'multi') {
       var arr = v || [];
@@ -76,18 +76,18 @@ SC.views = SC.views || {};
       SC.ui.shrinkImage(f).then(function (u) {
         img.src = u;
         return SC.photos.put(key, u);
-      }).then(function () { SC.ui.toast(label + '已保存'); }, function () { SC.ui.toast('照片保存失败', 'err'); });
+      }).then(function () { SC.ui.toast(label + ' saved'); }, function () { SC.ui.toast('Could not save the photo', 'err'); });
     } });
-    return h('div', { class: 'photobox' }, img, file, h('button', { class: 'btn small', onclick: function () { file.click(); } }, '拍' + label));
+    return h('div', { class: 'photobox' }, img, file, h('button', { class: 'btn small', onclick: function () { file.click(); } }, 'Take ' + label));
   }
 
   function formView() {
     var d = cur.d;
     return h('section', { class: 'card' },
-      h('div', { class: 'row between' }, h('h2', null, 'Pit · ' + cur.tm), h('button', { class: 'btn small', onclick: function () { cur = null; render(); } }, '← 列表')),
+      h('div', { class: 'row between' }, h('h2', null, 'Pit · ' + cur.tm), h('button', { class: 'btn small', onclick: function () { cur = null; render(); } }, '← Team list')),
       SC.GAME.pitFields.map(function (f) { return SC.ui.field(f.label, input(f, d)); }),
-      h('div', { class: 'row' }, photoSlot('full', '全身照'), photoSlot('side', '侧面照')),
-      h('button', { class: 'btn primary big', onclick: save }, '保存并生成二维码')
+      h('div', { class: 'row' }, photoSlot('full', 'full photo'), photoSlot('side', 'side photo')),
+      h('button', { class: 'btn primary big', onclick: save }, 'Save and show QR code')
     );
   }
 
@@ -98,10 +98,10 @@ SC.views = SC.views || {};
     var text = SC.codec.encode(cur);
     root.textContent = '';
     root.appendChild(h('section', { class: 'card center' },
-      h('h2', null, 'Pit · ' + cur.tm + ' 已保存'),
+      h('h2', null, 'Pit · ' + cur.tm + ' saved'),
       SC.ui.qr(text),
-      h('p', { class: 'muted' }, '照片不进二维码，用「数据」页导出 JSON（含照片）传给负责人。'),
-      h('button', { class: 'btn primary big', onclick: function () { cur = null; render(); } }, '回到列表')
+      h('p', { class: 'muted' }, 'Photos are not in the QR code. Export JSON (with photos) from the Data page to send them.'),
+      h('button', { class: 'btn primary big', onclick: function () { cur = null; render(); } }, 'Back to list')
     ));
   }
 

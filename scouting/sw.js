@@ -1,5 +1,5 @@
 // 离线缓存：第一次联网打开后，整站在没网的看台也能用。改了文件就把 VERSION 加 1。
-var VERSION = 'frcscout-v2';
+var VERSION = 'frcscout-v3';
 var FILES = [
   './', 'index.html', 'manifest.webmanifest', 'icons/icon.svg', 'css/style.css',
   'vendor/qrcode.js', 'vendor/jsQR.js',

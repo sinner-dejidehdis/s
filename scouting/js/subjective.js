@@ -63,19 +63,19 @@ SC.views = SC.views || {};
       });
     }
     return h('section', { class: 'card' },
-      h('h2', null, '主观记录 · 看整个联盟'),
-      SC.ui.field('赛事代码', h('input', { value: r.ev, oninput: function (e) { r.ev = e.target.value.trim(); refresh(); } })),
-      SC.ui.field('资格赛场次', h('input', { type: 'number', inputmode: 'numeric', value: r.mt, oninput: function (e) { r.mt = e.target.value; refresh(); } })),
-      SC.ui.field('联盟', chips([{ value: 'R', label: '红' }, { value: 'B', label: '蓝' }], r.al, function (v) { r.al = v; refresh(); render(); })),
-      SC.ui.field('三支队伍', h('div', { class: 'row' }, inputs)),
-      SC.ui.field('记录员', h('input', { value: r.sc, oninput: function (e) { r.sc = e.target.value.trim(); } })),
+      h('h2', null, 'Subjective scouting · whole alliance'),
+      SC.ui.field('Event key', h('input', { value: r.ev, oninput: function (e) { r.ev = e.target.value.trim(); refresh(); } })),
+      SC.ui.field('Qualification match', h('input', { type: 'number', inputmode: 'numeric', value: r.mt, oninput: function (e) { r.mt = e.target.value; refresh(); } })),
+      SC.ui.field('Alliance', chips([{ value: 'R', label: 'Red' }, { value: 'B', label: 'Blue' }], r.al, function (v) { r.al = v; refresh(); render(); })),
+      SC.ui.field('Teams', h('div', { class: 'row' }, inputs)),
+      SC.ui.field('Scout', h('input', { value: r.sc, oninput: function (e) { r.sc = e.target.value.trim(); } })),
       h('button', { class: 'btn primary big', onclick: function () {
         r.mt = Number(r.mt);
-        if (!r.ev || !(r.mt > 0) || !r.sc || r.teams.some(function (t) { return !(Number(t.tm) > 0); })) return SC.ui.toast('信息没填全', 'err');
+        if (!r.ev || !(r.mt > 0) || !r.sc || r.teams.some(function (t) { return !(Number(t.tm) > 0); })) return SC.ui.toast('Fill in every field', 'err');
         r.teams.forEach(function (t) { t.tm = Number(t.tm); if (!Object.keys(t.tags).length) prefill(t); });
         S.step = 'sheet';
         render();
-      } }, '开始 →')
+      } }, 'Start →')
     );
   }
 
@@ -110,20 +110,20 @@ SC.views = SC.views || {};
       h('div', { class: 'row between' },
         h('h3', null, h('span', { class: 'team ' + S.rec.al }, t.tm)),
         h('div', { class: 'row' },
-          h('button', { class: 'btn small' + (t.mark ? ' active' : ''), title: '标记这场，选人会议时回看', onclick: function () { t.mark = !t.mark; render(); } }, t.mark ? '★ 已标记' : '☆ 标记'),
-          h('button', { class: 'btn small' + (t.dnp ? ' danger' : ''), title: '不选 Do Not Pick', onclick: function () { t.dnp = !t.dnp; render(); } }, t.dnp ? '⊘ DNP' : 'DNP')
+          h('button', { class: 'btn small' + (t.mark ? ' active' : ''), title: 'Flag this match to review at the picklist meeting', onclick: function () { t.mark = !t.mark; render(); } }, t.mark ? '★ Flagged' : '☆ Flag'),
+          h('button', { class: 'btn small' + (t.dnp ? ' danger' : ''), title: 'Do Not Pick', onclick: function () { t.dnp = !t.dnp; render(); } }, t.dnp ? '⊘ DNP' : 'DNP')
         )
       ),
-      SC.ui.field('Auto 贡献（占本联盟 Auto Fuel 的比例）',
+      SC.ui.field('Auto contribution (share of alliance Auto Fuel)',
         h('div', { class: 'row' },
           h('input', { type: 'range', min: 0, max: 100, step: 10, value: t.ac == null ? 0 : t.ac, oninput: function (e) { t.ac = Number(e.target.value); e.target.nextSibling.textContent = t.ac + '%'; } }),
-          h('b', null, t.ac == null ? '未填' : t.ac + '%')
+          h('b', null, t.ac == null ? 'not set' : t.ac + '%')
         )),
-      SC.ui.field('往返路线', h('div', { class: 'grid2' }, cyBox('to', '出 · Trench'), cyBox('bo', '出 · Bump'), cyBox('ti', '回 · Trench'), cyBox('bi', '回 · Bump'))),
+      SC.ui.field('Cycle route', h('div', { class: 'grid2' }, cyBox('to', 'Out · Trench'), cyBox('bo', 'Out · Bump'), cyBox('ti', 'Back · Trench'), cyBox('bi', 'Back · Bump'))),
       Object.keys(cats).map(function (c) {
         return h('div', { class: 'tagcat' }, h('small', { class: 'muted' }, c), h('div', { class: 'chips' }, cats[c].map(function (tag) { return tagControl(t, tag); })));
       }),
-      h('textarea', { rows: 2, placeholder: '备注：数字可能偏高/偏低的原因、策略观察…', value: t.nt, oninput: function (e) { t.nt = e.target.value; } })
+      h('textarea', { rows: 2, placeholder: 'Notes: why numbers may be high or low, strategy observations…', value: t.nt, oninput: function (e) { t.nt = e.target.value; } })
     );
   }
 
@@ -131,10 +131,10 @@ SC.views = SC.views || {};
     var r = S.rec;
     return h('section', null,
       h('div', { class: 'row between' },
-        h('h2', null, 'Q' + r.mt + ' · ' + (r.al === 'R' ? '红' : '蓝') + '方联盟'),
-        h('button', { class: 'btn small', onclick: function () { r.teams.forEach(function (t) { t.tags = {}; }); render(); } }, '清空预填')
+        h('h2', null, 'Q' + r.mt + ' · ' + (r.al === 'R' ? 'Red' : 'Blue') + ' alliance'),
+        h('button', { class: 'btn small', onclick: function () { r.teams.forEach(function (t) { t.tags = {}; }); render(); } }, 'Clear prefill')
       ),
-      h('p', { class: 'muted' }, '标签已按该队以往最常见的值预填，只改不一样的。等级 1–4：差 → 好。'),
+      h('p', { class: 'muted' }, 'Tags are prefilled with each team\'s most common past values. Change only what is different. Levels 1–4: poor → great.'),
       r.teams.map(teamCard),
       h('button', { class: 'btn primary big', onclick: function () {
         r.ts = Date.now();
@@ -143,7 +143,7 @@ SC.views = SC.views || {};
         SC.store.addMine(SC.store.recordKey(r));
         S.step = 'qr';
         render();
-      } }, '保存并生成二维码')
+      } }, 'Save and show QR code')
     );
   }
 
@@ -151,10 +151,10 @@ SC.views = SC.views || {};
     var r = S.rec;
     var text = SC.codec.encode(r);
     return h('section', { class: 'card center' },
-      h('h2', null, 'Q' + r.mt + ' ' + (r.al === 'R' ? '红' : '蓝') + '方 · 让数据负责人扫码'),
+      h('h2', null, 'Q' + r.mt + ' ' + (r.al === 'R' ? 'Red' : 'Blue') + ' · show this to the data lead'),
       SC.ui.qr(text),
-      h('p', { class: 'muted' }, text.length + ' 字节'),
-      h('button', { class: 'btn primary big', onclick: function () { newSheet(r); render(); } }, '下一场 →')
+      h('p', { class: 'muted' }, text.length + ' bytes'),
+      h('button', { class: 'btn primary big', onclick: function () { newSheet(r); render(); } }, 'Next match →')
     );
   }
 

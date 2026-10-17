@@ -78,8 +78,8 @@ var SC = (globalThis.SC = globalThis.SC || {});
         h('div', { class: 'modal-card' },
           h('p', null, msg),
           h('div', { class: 'row between' },
-            h('button', { class: 'btn', onclick: function () { box.remove(); res(false); } }, '取消'),
-            h('button', { class: 'btn danger', onclick: function () { box.remove(); res(true); } }, okLabel || '确定'))));
+            h('button', { class: 'btn', onclick: function () { box.remove(); res(false); } }, 'Cancel'),
+            h('button', { class: 'btn danger', onclick: function () { box.remove(); res(true); } }, okLabel || 'OK'))));
       document.body.appendChild(box);
     });
   }
@@ -89,16 +89,16 @@ var SC = (globalThis.SC = globalThis.SC || {});
     var ta = h('textarea', { rows: 10, readonly: true, value: text });
     var box = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true' },
       h('div', { class: 'modal-card' },
-        h('p', null, '这里不能直接下载，复制下面的内容另存为 ' + name + '：'),
+        h('p', null, 'Downloads are blocked here. Copy this text and save it as ' + name + ':'),
         ta,
         h('div', { class: 'row between' },
-          h('button', { class: 'btn', onclick: function () { box.remove(); } }, '关闭'),
+          h('button', { class: 'btn', onclick: function () { box.remove(); } }, 'Close'),
           h('button', { class: 'btn primary', onclick: function () {
             ta.select();
             (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
-              function () { toast('已复制', 'ok'); },
-              function () { toast('请手动复制选中的文字'); });
-          } }, '复制'))));
+              function () { toast('Copied', 'ok'); },
+              function () { toast('Copy the selected text manually'); });
+          } }, 'Copy'))));
     document.body.appendChild(box);
   }
 

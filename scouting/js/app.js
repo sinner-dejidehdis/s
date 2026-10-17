@@ -5,14 +5,14 @@ var SC = (globalThis.SC = globalThis.SC || {});
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 
   var ROUTES = {
-    match: { label: '比赛', group: '记录' },
-    subj: { label: '主观', group: '记录' },
-    pit: { label: 'Pit', group: '记录' },
-    data: { label: '数据', group: '汇总' },
-    teams: { label: '队伍', group: '分析' },
-    pick: { label: '选人', group: '分析' },
-    predict: { label: '预测', group: '分析' },
-    settings: { label: '设置', group: '' },
+    match: { label: 'Match', group: 'scout' },
+    subj: { label: 'Subjective', group: 'scout' },
+    pit: { label: 'Pit', group: 'scout' },
+    data: { label: 'Data', group: 'data' },
+    teams: { label: 'Teams', group: 'analysis' },
+    pick: { label: 'Picklist', group: 'analysis' },
+    predict: { label: 'Predict', group: 'analysis' },
+    settings: { label: 'Settings', group: '' },
   };
   var current = null;
 

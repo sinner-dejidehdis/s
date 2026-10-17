@@ -102,8 +102,8 @@ nav a {
   border-bottom: 3px solid transparent; font-size: .95rem;
 }
 nav a.on { color: #fff; border-color: #7fb0ff; }
-nav a.g-分析 { color: #e8d9a8; }
-nav a.g-分析.on { color: #fff; }
+nav a.g-analysis { color: #e8d9a8; }
+nav a.g-analysis.on { color: #fff; }
 
 main { max-width: 980px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
 

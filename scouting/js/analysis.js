@@ -268,7 +268,7 @@ var SC = (globalThis.SC = globalThis.SC || {});
         x.subj.push(Object.assign({ mt: s.mt, sc: s.sc }, t));
         if (t.dnp) x.dnp = true;
         if (t.mark) x.marks.push(s.mt);
-        if (t.nt) x.notes.push({ mt: s.mt, src: '主观 ' + (s.sc || ''), text: t.nt });
+        if (t.nt) x.notes.push({ mt: s.mt, src: 'Subjective ' + (s.sc || ''), text: t.nt });
       });
     });
     (pits || []).forEach(function (p) {
@@ -285,7 +285,7 @@ var SC = (globalThis.SC = globalThis.SC || {});
       var lv = [0, 0, 0, 0];
       played.forEach(function (d) { lv[d.towerLevel]++; });
       x.rows.forEach(function (d) {
-        if (d.notes) x.notes.push({ mt: d.mt, src: '客观 ' + d.sc, text: d.notes });
+        if (d.notes) x.notes.push({ mt: d.mt, src: 'Match ' + d.sc, text: d.notes });
       });
       var tagCount = {};
       x.rows.forEach(function (d) {

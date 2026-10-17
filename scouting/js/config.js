@@ -29,13 +29,13 @@ SC.GAME = {
   // 地区赛 / 区域赛门槛
   rp: { energized: 100, supercharged: 360, traversal: 50 },
 
-  startPositions: ['左', '左中', '中', '右中', '右'],
+  startPositions: ['Left', 'Left-center', 'Center', 'Right-center', 'Right'],
   climbPositions: ['A', 'B', 'C', 'D', 'E'],
 
   zones: {
-    A: { label: '本方区', shoot: '得分 Score' },
-    N: { label: '中立区', shoot: '转运 Ferry' },
-    O: { label: '对方区', shoot: '偷分 Poach' },
+    A: { label: 'Our zone', shoot: 'Score' },
+    N: { label: 'Neutral', shoot: 'Ferry' },
+    O: { label: 'Opp. zone', shoot: 'Poach' },
   },
   zoneOrder: ['A', 'N', 'O'],
 
@@ -44,50 +44,50 @@ SC.GAME = {
 
   // 客观记录员赛后勾选
   postTags: [
-    { key: 'tip', label: '翻车' },
-    { key: 'beach', label: '卡在 Fuel 上' },
-    { key: 'broke', label: '机构损坏' },
-    { key: 'disc', label: '断连/不动' },
-    { key: 'foul', label: '犯规较多' },
-    { key: 'shuttle', label: '主要在转运' },
-    { key: 'hp', label: '依赖人类玩家' },
+    { key: 'tip', label: 'Tipped over' },
+    { key: 'beach', label: 'Beached on Fuel' },
+    { key: 'broke', label: 'Mechanism broke' },
+    { key: 'disc', label: 'Disconnected / dead' },
+    { key: 'foul', label: 'Many fouls' },
+    { key: 'shuttle', label: 'Mostly ferried' },
+    { key: 'hp', label: 'Relied on human player' },
   ],
 
   // 主观记录员 / 策略员的标签（参考 1678 Stand Strategist "Tags"）
   // kind: bool 或 level（1-4，红→黄→绿→紫）
   subjectiveTags: [
-    { cat: 'Auto/Endgame', key: 'autoCenter', label: 'Auto 去中立区', kind: 'bool' },
-    { cat: 'Auto/Endgame', key: 'autoReliable', label: 'Auto 稳定', kind: 'level' },
-    { cat: 'Auto/Endgame', key: 'climbFast', label: '爬塔速度', kind: 'level' },
-    { cat: 'Driving', key: 'agility', label: '驾驶灵活', kind: 'level' },
-    { cat: 'Driving', key: 'awareness', label: '场上意识', kind: 'level' },
-    { cat: 'Driving', key: 'pushback', label: '抗推/抗防守', kind: 'level' },
-    { cat: 'Active Shift', key: 'cycleScore', label: '激活时往返得分', kind: 'bool' },
-    { cat: 'Active Shift', key: 'stationary', label: '定点连续射', kind: 'bool' },
-    { cat: 'Inactive Shift', key: 'collect', label: '关闭时收集囤球', kind: 'bool' },
-    { cat: 'Inactive Shift', key: 'ferry', label: '关闭时转运', kind: 'bool' },
-    { cat: 'Inactive Shift', key: 'idle', label: '关闭时闲置', kind: 'bool' },
-    { cat: 'Defense', key: 'defense', label: '防守质量', kind: 'level' },
-    { cat: 'Defense', key: 'defPin', label: '卡位/拦截', kind: 'bool' },
-    { cat: 'Broken', key: 'brokeIntake', label: 'Intake 坏', kind: 'bool' },
-    { cat: 'Broken', key: 'brokeShooter', label: 'Shooter 坏', kind: 'bool' },
-    { cat: 'Broken', key: 'brokeDrive', label: '底盘/断电', kind: 'bool' },
+    { cat: 'Auto/Endgame', key: 'autoCenter', label: 'Auto went to neutral', kind: 'bool' },
+    { cat: 'Auto/Endgame', key: 'autoReliable', label: 'Auto reliability', kind: 'level' },
+    { cat: 'Auto/Endgame', key: 'climbFast', label: 'Climb speed', kind: 'level' },
+    { cat: 'Driving', key: 'agility', label: 'Agility', kind: 'level' },
+    { cat: 'Driving', key: 'awareness', label: 'Field awareness', kind: 'level' },
+    { cat: 'Driving', key: 'pushback', label: 'Handles defense', kind: 'level' },
+    { cat: 'Active Shift', key: 'cycleScore', label: 'Cycles to score', kind: 'bool' },
+    { cat: 'Active Shift', key: 'stationary', label: 'Shoots from one spot', kind: 'bool' },
+    { cat: 'Inactive Shift', key: 'collect', label: 'Collects / stockpiles', kind: 'bool' },
+    { cat: 'Inactive Shift', key: 'ferry', label: 'Ferries', kind: 'bool' },
+    { cat: 'Inactive Shift', key: 'idle', label: 'Idle', kind: 'bool' },
+    { cat: 'Defense', key: 'defense', label: 'Defense quality', kind: 'level' },
+    { cat: 'Defense', key: 'defPin', label: 'Pins / blocks', kind: 'bool' },
+    { cat: 'Broken', key: 'brokeIntake', label: 'Intake broke', kind: 'bool' },
+    { cat: 'Broken', key: 'brokeShooter', label: 'Shooter broke', kind: 'bool' },
+    { cat: 'Broken', key: 'brokeDrive', label: 'Drive / power lost', kind: 'bool' },
   ],
 
   // Pit 记录字段
   pitFields: [
-    { key: 'weight', label: '机器重量 (lb)', type: 'number' },
-    { key: 'drive', label: '底盘', type: 'select', options: ['Swerve', 'Tank', 'Mecanum', '其他'] },
-    { key: 'cross', label: '能过', type: 'multi', options: ['Bump', 'Trench'] },
-    { key: 'shooter', label: 'Shooter 类型', type: 'select', options: ['炮塔 Turret', '固定+可调 Hood', '固定', '无'] },
-    { key: 'hopper', label: '料仓容量 (个)', type: 'number' },
-    { key: 'intake', label: 'Intake', type: 'select', options: ['地面全宽', '地面窄', '只能从 Outpost', '无'] },
-    { key: 'bps', label: '自报射速 (个/秒)', type: 'number' },
-    { key: 'fullField', label: '能远距离/全场射', type: 'bool' },
-    { key: 'climb', label: '能爬', type: 'multi', options: ['L1', 'L2', 'L3'] },
-    { key: 'autoClimb', label: 'Auto 能爬 L1', type: 'bool' },
-    { key: 'autos', label: 'Auto 路线 / 起点', type: 'text' },
-    { key: 'notes', label: '备注', type: 'text' },
+    { key: 'weight', label: 'Robot weight (lb)', type: 'number' },
+    { key: 'drive', label: 'Drivetrain', type: 'select', options: ['Swerve', 'Tank', 'Mecanum', 'Other'] },
+    { key: 'cross', label: 'Can cross', type: 'multi', options: ['Bump', 'Trench'] },
+    { key: 'shooter', label: 'Shooter type', type: 'select', options: ['Turret', 'Fixed + adjustable hood', 'Fixed', 'None'] },
+    { key: 'hopper', label: 'Hopper capacity (Fuel)', type: 'number' },
+    { key: 'intake', label: 'Intake', type: 'select', options: ['Ground, full width', 'Ground, narrow', 'Outpost only', 'None'] },
+    { key: 'bps', label: 'Claimed shot rate (Fuel/s)', type: 'number' },
+    { key: 'fullField', label: 'Long-range / full-field shots', type: 'bool' },
+    { key: 'climb', label: 'Climb levels', type: 'multi', options: ['L1', 'L2', 'L3'] },
+    { key: 'autoClimb', label: 'Auto L1 climb', type: 'bool' },
+    { key: 'autos', label: 'Auto paths / start spots', type: 'text' },
+    { key: 'notes', label: 'Notes', type: 'text' },
   ],
 
   // The Blue Alliance 2026 score_breakdown 读取方式
@@ -107,8 +107,8 @@ SC.GAME = {
 
   // 选人权重预设（参考 1678 pickability：只看对我们有用的能力）
   pickPresets: {
-    '一号位 1st pick': { fuel: 1.0, tower: 0.5, auto: 0.4, reliability: 0.6, defense: 0, driving: 0.3 },
-    '二号位 2nd pick': { fuel: 0.6, tower: 0.6, auto: 0.3, reliability: 1.0, defense: 0.3, driving: 0.4 },
-    '防守型 2nd': { fuel: 0.1, tower: 0.4, auto: 0.1, reliability: 1.0, defense: 1.0, driving: 0.8 },
+    '1st pick': { fuel: 1.0, tower: 0.5, auto: 0.4, reliability: 0.6, defense: 0, driving: 0.3 },
+    '2nd pick': { fuel: 0.6, tower: 0.6, auto: 0.3, reliability: 1.0, defense: 0.3, driving: 0.4 },
+    'Defensive 2nd': { fuel: 0.1, tower: 0.4, auto: 0.1, reliability: 1.0, defense: 1.0, driving: 0.8 },
   },
 };

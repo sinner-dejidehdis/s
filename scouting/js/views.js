@@ -19,19 +19,19 @@ SC.views = SC.views || {};
   }
 
   var COLS = [
-    { k: 'tm', label: '队号' },
-    { k: 'n', label: '场' },
-    { k: 'total', label: '均分' },
+    { k: 'tm', label: 'Team' },
+    { k: 'n', label: 'M' },
+    { k: 'total', label: 'Avg pts' },
     { k: 'fuelPts', label: 'Fuel' },
-    { k: 'autoPts', label: 'Auto分' },
-    { k: 'towerPts', label: '爬塔分' },
-    { k: 'climbRate', label: '爬塔率', f: pct },
-    { k: 'bps', label: '球/秒', d: 2 },
-    { k: 'ferrySec', label: '转运s' },
-    { k: 'defenseSec', label: '防守s' },
-    { k: 'incapRate', label: '故障率', f: pct },
-    { k: 'driver', label: '驾驶' },
-    { k: 'sdTotal', label: '波动' },
+    { k: 'autoPts', label: 'Auto' },
+    { k: 'towerPts', label: 'Climb' },
+    { k: 'climbRate', label: 'Climb %', f: pct },
+    { k: 'bps', label: 'Fuel/s', d: 2 },
+    { k: 'ferrySec', label: 'Ferry s' },
+    { k: 'defenseSec', label: 'Def. s' },
+    { k: 'incapRate', label: 'Incap %', f: pct },
+    { k: 'driver', label: 'Driver' },
+    { k: 'sdTotal', label: 'Std dev' },
   ];
 
   SC.views.teams = function (root) {
@@ -45,8 +45,8 @@ SC.views = SC.views || {};
     });
     var calib = D.rows.filter(function (r) { return r.calibrated; }).length;
     root.appendChild(h('section', null,
-      h('h2', null, '队伍数据 · ' + (D.ev || '未设置赛事')),
-      h('p', { class: 'muted' }, D.rows.length + ' 条比赛数据，其中 ' + calib + ' 条已用 TBA 校准 Fuel。点表头排序，点队号看详情。⊘ = DNP'),
+      h('h2', null, 'Teams · ' + (D.ev || 'no event set')),
+      h('p', { class: 'muted' }, D.rows.length + ' match records, ' + calib + ' with Fuel calibrated by TBA. Click a header to sort, a team for details. ⊘ = DNP'),
       stats.length ? h('div', { class: 'scroll' }, h('table', { class: 'data' },
         h('thead', null, h('tr', null, COLS.map(function (c) {
           return h('th', { class: 'sort' + (sortKey === c.k ? ' on' : ''), onclick: function () {
@@ -62,7 +62,7 @@ SC.views = SC.views || {};
             return h('td', { class: 'num' }, c.f ? c.f(t[c.k]) : fmt(t[c.k], c.d));
           }));
         }))
-      )) : h('p', { class: 'muted' }, '还没有数据。到「数据」页扫码导入。')
+      )) : h('p', { class: 'muted' }, 'No data yet. Import QR codes on the Data page.')
     ));
   };
 
@@ -78,7 +78,7 @@ SC.views = SC.views || {};
     var series = [
       { k: 'autoFuel', label: 'Auto Fuel', cls: 's1' },
       { k: 'teleFuel', label: 'Teleop Fuel', cls: 's2' },
-      { k: 'towerPts', label: '爬塔', cls: 's3' },
+      { k: 'towerPts', label: 'Climb', cls: 's3' },
     ];
     // 按屏幕宽度画，手机上字不会被缩小
     var W = Math.max(300, Math.min(900, window.innerWidth - 64)), H = Math.round(Math.min(260, W * 0.45)), pad = { l: 34, r: 8, t: 10, b: 24 };
@@ -95,7 +95,7 @@ SC.views = SC.views || {};
       if (txt != null) el.textContent = txt;
       return el;
     }
-    var svg = s('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart', role: 'img', 'aria-label': '每场得分' });
+    var svg = s('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'chart', role: 'img', 'aria-label': 'Points per match' });
     [0, 0.5, 1].forEach(function (f) {
       var v = Math.round(top * f);
       svg.appendChild(s('line', { x1: pad.l, x2: W - pad.r, y1: y(v), y2: y(v), class: 'grid' }));
@@ -115,18 +115,18 @@ SC.views = SC.views || {};
       svg.appendChild(s('text', { x: x0(i) + bw / 2, y: H - 8, class: 'axis', 'text-anchor': 'middle' }, 'Q' + r.mt));
       var hit = s('rect', { x: x0(i) - 3, y: pad.t, width: bw + 6, height: H - pad.t - pad.b, class: 'hit' });
       hit.addEventListener('mouseenter', function () {
-        tip.textContent = 'Q' + r.mt + '：Auto Fuel ' + fmt(r.autoFuel) + ' · Teleop Fuel ' + fmt(r.teleFuel) + ' · 爬塔 ' + r.towerPts + ' · 合计 ' + fmt(r.total) + (r.calibrated ? '（已校准）' : '');
+        tip.textContent = 'Q' + r.mt + ': Auto Fuel ' + fmt(r.autoFuel) + ' · Teleop Fuel ' + fmt(r.teleFuel) + ' · Climb ' + r.towerPts + ' · Total ' + fmt(r.total) + (r.calibrated ? ' (calibrated)' : '');
         tip.style.visibility = 'visible';
       });
       hit.addEventListener('mouseleave', function () { tip.style.visibility = 'hidden'; });
       hit.addEventListener('click', function () {
-        tip.textContent = 'Q' + r.mt + '：Auto Fuel ' + fmt(r.autoFuel) + ' · Teleop Fuel ' + fmt(r.teleFuel) + ' · 爬塔 ' + r.towerPts + ' · 合计 ' + fmt(r.total);
+        tip.textContent = 'Q' + r.mt + ': Auto Fuel ' + fmt(r.autoFuel) + ' · Teleop Fuel ' + fmt(r.teleFuel) + ' · Climb ' + r.towerPts + ' · Total ' + fmt(r.total);
         tip.style.visibility = 'visible';
       });
       svg.appendChild(hit);
     });
     var legend = h('div', { class: 'legend' }, series.map(function (se) { return h('span', null, h('i', { class: se.cls }), se.label); }));
-    return h('div', { class: 'chartbox' }, h('h3', null, '每场得分'), legend, svg, tip);
+    return h('div', { class: 'chartbox' }, h('h3', null, 'Points per match'), legend, svg, tip);
   }
 
   SC.views.team = function (root, tm) {
@@ -135,7 +135,7 @@ SC.views = SC.views || {};
     var t = D.by[tm];
     var pl = SC.store.picklist(D.ev);
     if (!t) {
-      root.appendChild(h('p', null, '没有 ' + tm + ' 的数据。'));
+      root.appendChild(h('p', null, 'No data for ' + tm + '.'));
       return;
     }
     var tagLabel = {};
@@ -150,36 +150,36 @@ SC.views = SC.views || {};
 
     root.appendChild(h('section', null,
       h('div', { class: 'row between' },
-        h('h2', null, (t.dnp ? '⊘ ' : '') + '队伍 ' + tm),
+        h('h2', null, (t.dnp ? '⊘ ' : '') + 'Team ' + tm),
         h('button', { class: 'btn small' + (pl.dnp[tm] ? ' danger' : ''), onclick: function () {
           if (pl.dnp[tm]) delete pl.dnp[tm];
           else pl.dnp[tm] = true;
           SC.store.savePicklist(D.ev, pl);
           root.textContent = '';
           SC.views.team(root, tm);
-        } }, pl.dnp[tm] ? '取消 DNP' : '标为 DNP')),
+        } }, pl.dnp[tm] ? 'Remove DNP' : 'Mark DNP')),
       h('div', { class: 'tiles' },
-        tile('平均得分', fmt(t.total), '最高 ' + fmt(t.maxTotal) + ' · 波动 ±' + fmt(t.sdTotal)),
-        tile('Fuel / 场', fmt(t.fuelPts), 'Auto ' + fmt(t.autoFuel) + ' · Teleop ' + fmt(t.teleFuel)),
-        tile('爬塔', fmt(t.towerPts) + ' 分', 'L1/L2/L3 = ' + t.climbLevels.slice(1).join('/') + ' · Auto L1 ' + pct(t.autoTowerRate)),
-        tile('射速', t.bps == null ? '–' : t.bps + ' 球/秒', '得分射球 ' + fmt(t.scoreSec) + ' 秒/场'),
-        tile('可靠性', pct(1 - t.incapRate), '故障 ' + pct(t.incapRate) + ' · 没上场 ' + t.noShow),
-        tile('其他', '转运 ' + fmt(t.ferrySec) + 's', '防守 ' + fmt(t.defenseSec) + 's · 偷分 ' + fmt(t.poachSec) + 's')
+        tile('Avg points', fmt(t.total), 'Best ' + fmt(t.maxTotal) + ' · ±' + fmt(t.sdTotal)),
+        tile('Fuel / match', fmt(t.fuelPts), 'Auto ' + fmt(t.autoFuel) + ' · Teleop ' + fmt(t.teleFuel)),
+        tile('Climb', fmt(t.towerPts) + ' pts', 'L1/L2/L3 = ' + t.climbLevels.slice(1).join('/') + ' · Auto L1 ' + pct(t.autoTowerRate)),
+        tile('Shot rate', t.bps == null ? '–' : t.bps + ' Fuel/s', 'Scoring ' + fmt(t.scoreSec) + ' s/match'),
+        tile('Reliability', pct(1 - t.incapRate), 'Incap ' + pct(t.incapRate) + ' · no-shows ' + t.noShow),
+        tile('Other', 'Ferry ' + fmt(t.ferrySec) + 's', 'Defense ' + fmt(t.defenseSec) + 's · poach ' + fmt(t.poachSec) + 's')
       ),
       h('p', { class: 'muted' },
-        '场次 ' + t.n + ' · 校准比例 ' + pct(t.calibratedShare) + ' · 爬塔开始时平均剩 ' + fmt(t.climbLeft) + ' 秒 · Auto 去中立区 ' + pct(t.autoNeutralRate) +
-        ' · 过 Bump ' + t.bump + ' 次 / Trench ' + t.trench + ' 次' + (t.autoContrib != null ? ' · Auto 贡献 ' + t.autoContrib + '%' : '') +
-        (t.inactiveScoreSec ? ' · Hub 关闭时仍在射 ' + fmt(t.inactiveScoreSec) + 's/场' : '')),
+        t.n + ' matches · ' + pct(t.calibratedShare) + ' calibrated · climb starts with ' + fmt(t.climbLeft) + ' s left · Auto to neutral ' + pct(t.autoNeutralRate) +
+        ' · Bump ' + t.bump + ' / Trench ' + t.trench + ' crossings' + (t.autoContrib != null ? ' · Auto share ' + t.autoContrib + '%' : '') +
+        (t.inactiveScoreSec ? ' · shoots at inactive Hub ' + fmt(t.inactiveScoreSec) + ' s/match' : '')),
       matchChart(t.rows),
-      h('div', { class: 'card' }, h('h3', null, '标签'),
+      h('div', { class: 'card' }, h('h3', null, 'Tags'),
         h('div', { class: 'chips' },
           Object.keys(t.tagCount).sort(function (a, b) { return t.tagCount[b] - t.tagCount[a]; }).map(function (k) { return h('span', { class: 'chip static' }, (tagLabel[k] || k) + ' ×' + t.tagCount[k]); }),
           Object.keys(t.levelAvg).map(function (k) { return h('span', { class: 'chip static' }, (tagLabel[k] || k) + ' ' + t.levelAvg[k] + '/4'); })
         ),
-        t.marks.length ? h('p', null, '★ 标记的场次：' + t.marks.map(function (m) { return 'Q' + m; }).join('、')) : null),
-      h('div', { class: 'card' }, h('h3', null, '每场明细'),
+        t.marks.length ? h('p', null, '★ Flagged matches: ' + t.marks.map(function (m) { return 'Q' + m; }).join(', ')) : null),
+      h('div', { class: 'card' }, h('h3', null, 'Match by match'),
         h('div', { class: 'scroll' }, h('table', { class: 'data' },
-          h('thead', null, h('tr', null, ['场', '位置', 'Auto', 'Teleop', '爬塔', '合计', '射球s', '转运s', '防守s', '故障s', '驾驶', '记录员'].map(function (c) { return h('th', null, c); }))),
+          h('thead', null, h('tr', null, ['Match', 'Station', 'Auto', 'Teleop', 'Climb', 'Total', 'Score s', 'Ferry s', 'Def. s', 'Incap s', 'Driver', 'Scout'].map(function (c) { return h('th', null, c); }))),
           h('tbody', null, t.rows.map(function (r) {
             if (r.ns) return h('tr', null, h('td', null, 'Q' + r.mt), h('td', null, r.st), h('td', { colspan: 10 }, 'No Show'));
             return h('tr', null,
@@ -193,15 +193,15 @@ SC.views = SC.views || {};
               h('td', { class: 'num' }, fmt(r.driver)), h('td', null, r.sc));
           }))
         )),
-        h('small', { class: 'muted' }, '* = 记录员估计值，未经 TBA 校准')),
-      h('div', { class: 'card' }, h('h3', null, '备注'),
-        t.notes.length ? h('ul', { class: 'notes' }, t.notes.map(function (n) { return h('li', null, h('b', null, 'Q' + n.mt + ' '), h('small', { class: 'muted' }, n.src + '：'), n.text); })) : h('p', { class: 'muted' }, '无')),
-      h('div', { class: 'card' }, h('h3', null, 'Pit 信息'),
+        h('small', { class: 'muted' }, '* = scout estimate, not calibrated by TBA')),
+      h('div', { class: 'card' }, h('h3', null, 'Notes'),
+        t.notes.length ? h('ul', { class: 'notes' }, t.notes.map(function (n) { return h('li', null, h('b', null, 'Q' + n.mt + ' '), h('small', { class: 'muted' }, n.src + ': '), n.text); })) : h('p', { class: 'muted' }, 'None')),
+      h('div', { class: 'card' }, h('h3', null, 'Pit info'),
         pit ? h('dl', { class: 'pit' }, SC.GAME.pitFields.map(function (f) {
           var v = pit[f.key];
           if (v == null || v === '') return null;
-          return [h('dt', null, f.label), h('dd', null, Array.isArray(v) ? v.join('、') : v === true ? '是' : v === false ? '否' : String(v))];
-        })) : h('p', { class: 'muted' }, '还没有 Pit 数据'),
+          return [h('dt', null, f.label), h('dd', null, Array.isArray(v) ? v.join(', ') : v === true ? 'Yes' : v === false ? 'No' : String(v))];
+        })) : h('p', { class: 'muted' }, 'No pit data yet'),
         photos)
     ));
   };
@@ -229,7 +229,7 @@ SC.views = SC.views || {};
       root.textContent = '';
       SC.views.pick(root);
     }
-    var labels = { fuel: 'Fuel 得分', tower: '爬塔', auto: 'Auto', reliability: '可靠性', defense: '防守', driving: '驾驶' };
+    var labels = { fuel: 'Fuel', tower: 'Climb', auto: 'Auto', reliability: 'Reliability', defense: 'Defense', driving: 'Driving' };
 
     var dragFrom = null;
     var list = h('ol', { class: 'picklist' }, pl.order.map(function (tm, i) {
@@ -238,11 +238,11 @@ SC.views = SC.views || {};
       var li = h('li', { class: (pl.dnp[tm] ? 'dnp ' : '') + (pl.picked[tm] ? 'picked' : ''), draggable: 'true' },
         h('span', { class: 'rank' }, i + 1),
         h('a', { href: '#team/' + tm, class: 'tm' }, tm),
-        h('span', { class: 'muted' }, sc ? '分 ' + sc.score : '', t ? ' · 均 ' + fmt(t.total) + ' · 爬 ' + pct(t.climbRate) : ''),
+        h('span', { class: 'muted' }, sc ? 'score ' + sc.score : '', t ? ' · avg ' + fmt(t.total) + ' · climb ' + pct(t.climbRate) : ''),
         h('span', { class: 'acts' },
           h('button', { class: 'btn small', onclick: function () { if (i > 0) { pl.order.splice(i - 1, 0, pl.order.splice(i, 1)[0]); redraw(); } } }, '↑'),
           h('button', { class: 'btn small', onclick: function () { if (i < pl.order.length - 1) { pl.order.splice(i + 1, 0, pl.order.splice(i, 1)[0]); redraw(); } } }, '↓'),
-          h('button', { class: 'btn small' + (pl.picked[tm] ? ' active' : ''), onclick: function () { pl.picked[tm] = !pl.picked[tm]; redraw(); } }, '已被选'),
+          h('button', { class: 'btn small' + (pl.picked[tm] ? ' active' : ''), onclick: function () { pl.picked[tm] = !pl.picked[tm]; redraw(); } }, 'Picked'),
           h('button', { class: 'btn small' + (pl.dnp[tm] ? ' danger' : ''), onclick: function () { if (pl.dnp[tm]) delete pl.dnp[tm]; else pl.dnp[tm] = true; redraw(); } }, 'DNP')
         )
       );
@@ -258,9 +258,9 @@ SC.views = SC.views || {};
     }));
 
     root.appendChild(h('section', null,
-      h('h2', null, '选人名单 · ' + (D.ev || '')),
-      h('div', { class: 'card' }, h('h3', null, '1. 选人分数（Pickability）'),
-        h('p', { class: 'muted' }, '各项按全场最高值归一化后加权，满分 100。先用预设，再按我们队伍的需要微调。'),
+      h('h2', null, 'Picklist · ' + (D.ev || '')),
+      h('div', { class: 'card' }, h('h3', null, '1. Pickability'),
+        h('p', { class: 'muted' }, 'Each metric is scaled to the event best, then weighted. Max 100. Start from a preset, then tune for what our robot needs.'),
         SC.ui.chips(Object.keys(presets), '', function (k) { w = Object.assign({}, presets[k]); redraw(); }),
         h('div', { class: 'weights' }, Object.keys(labels).map(function (k) {
           return h('label', { class: 'wt' }, h('span', null, labels[k]),
@@ -271,15 +271,15 @@ SC.views = SC.views || {};
           return h('li', { class: pl.dnp[s.tm] ? 'dnp' : '' }, h('a', { href: '#team/' + s.tm }, s.tm), ' ', h('b', null, s.score));
         })),
         h('button', { class: 'btn', onclick: function () {
-          SC.ui.ask('用分数排序覆盖下面的手动名单？', '覆盖').then(function (ok) {
+          SC.ui.ask('Replace the manual list below with this ranking?', 'Replace').then(function (ok) {
             if (!ok) return;
             pl.order = ranked.map(function (s) { return s.tm; });
             redraw();
           });
-        } }, '按分数生成名单 ↓')
+        } }, 'Build list from scores ↓')
       ),
-      h('div', { class: 'card' }, h('h3', null, '2. 手动名单（选人会议用）'),
-        h('p', { class: 'muted' }, '拖动或用 ↑↓ 调整。选人时把被选走的队点「已被选」。'),
+      h('div', { class: 'card' }, h('h3', null, '2. Manual list (for the picklist meeting)'),
+        h('p', { class: 'muted' }, 'Drag or use ↑↓ to reorder. During alliance selection, mark teams that get picked.'),
         list,
         h('button', { class: 'btn', onclick: function () {
           var lines = ['rank,team,score,avg,dnp,picked'].concat(pl.order.map(function (tm, i) {
@@ -287,7 +287,7 @@ SC.views = SC.views || {};
             return [i + 1, tm, scoreOf[tm] ? scoreOf[tm].score : '', t ? t.total : '', pl.dnp[tm] ? 1 : 0, pl.picked[tm] ? 1 : 0].join(',');
           }));
           SC.ui.download('picklist_' + D.ev + '.csv', lines.join('\n'), 'text/csv');
-        } }, '导出 CSV')
+        } }, 'Export CSV')
       )
     ));
     save();
@@ -313,17 +313,17 @@ SC.views = SC.views || {};
       var blue = ['B1', 'B2', 'B3'].map(function (s) { return Number(inputs[s].value); }).filter(Boolean);
       var p = SC.analysis.predict(D.by, red, blue);
       out.textContent = '';
-      out.appendChild(h('div', { class: 'predict' }, [['red', '红方', p.red], ['blue', '蓝方', p.blue]].map(function (x) {
+      out.appendChild(h('div', { class: 'predict' }, [['red', 'Red', p.red], ['blue', 'Blue', p.blue]].map(function (x) {
         var side = x[2];
         return h('div', { class: 'card side ' + x[0] },
-          h('h3', null, x[1] + ' 预测 ' + fmt(side.total) + ' 分'),
-          h('p', { class: 'muted' }, 'Fuel ' + fmt(side.fuel) + ' · 爬塔 ' + fmt(side.tower) + ' · RP：' +
+          h('h3', null, x[1] + ' · predicted ' + fmt(side.total) + ' pts'),
+          h('p', { class: 'muted' }, 'Fuel ' + fmt(side.fuel) + ' · Climb ' + fmt(side.tower) + ' · RP: ' +
             ([side.energized ? 'Energized' : null, side.supercharged ? 'Supercharged' : null, side.traversal ? 'Traversal' : null].filter(Boolean).join(' / ') || '–')),
           h('div', { class: 'scroll' }, h('table', { class: 'data' },
-            h('thead', null, h('tr', null, ['队', '均分', 'Fuel', '爬塔', '爬塔率', 'Auto L1', '防守s', '故障'].map(function (c) { return h('th', null, c); }))),
+            h('thead', null, h('tr', null, ['Team', 'Avg', 'Fuel', 'Climb', 'Climb %', 'Auto L1', 'Def. s', 'Incap'].map(function (c) { return h('th', null, c); }))),
             h('tbody', null, side.rows.map(function (r) {
               var s = r.s;
-              if (!s) return h('tr', null, h('td', null, r.tm), h('td', { colspan: 7, class: 'muted' }, '没有数据'));
+              if (!s) return h('tr', null, h('td', null, r.tm), h('td', { colspan: 7, class: 'muted' }, 'No data'));
               return h('tr', { class: s.dnp ? 'dnp' : '' }, h('td', null, h('a', { href: '#team/' + r.tm }, r.tm)),
                 h('td', { class: 'num' }, fmt(s.total)), h('td', { class: 'num' }, fmt(s.fuelPts)), h('td', { class: 'num' }, fmt(s.towerPts)),
                 h('td', { class: 'num' }, pct(s.climbRate)), h('td', { class: 'num' }, pct(s.autoTowerRate)),
@@ -334,9 +334,9 @@ SC.views = SC.views || {};
     }
 
     root.appendChild(h('section', null,
-      h('h2', null, '比赛预测 / 赛前策略'),
+      h('h2', null, 'Match prediction'),
       h('div', { class: 'card' },
-        SC.ui.field('场次（有赛程会自动填队伍）', h('input', { type: 'number', value: predMt || '', oninput: function (e) {
+        SC.ui.field('Match (teams fill in from the schedule)', h('input', { type: 'number', value: predMt || '', oninput: function (e) {
           predMt = Number(e.target.value);
           var mm = sch.filter(function (x) { return x.mt === predMt; })[0] || {};
           Object.keys(inputs).forEach(function (st) { inputs[st].value = mm[st] || ''; });
@@ -344,10 +344,10 @@ SC.views = SC.views || {};
         } })),
         h('div', { class: 'row' }, ['R1', 'R2', 'R3'].map(function (s) { return inputs[s]; })),
         h('div', { class: 'row' }, ['B1', 'B2', 'B3'].map(function (s) { return inputs[s]; })),
-        h('button', { class: 'btn primary', onclick: run }, '预测')
+        h('button', { class: 'btn primary', onclick: run }, 'Predict')
       ),
       out,
-      h('p', { class: 'muted' }, '预测 = 三队平均分相加；RP 门槛按地区赛（Energized ' + SC.GAME.rp.energized + ' / Supercharged ' + SC.GAME.rp.supercharged + ' / Traversal ' + SC.GAME.rp.traversal + '）。')
+      h('p', { class: 'muted' }, 'Prediction = sum of the three teams\' average points. RP thresholds are for district/regional events (Energized ' + SC.GAME.rp.energized + ' / Supercharged ' + SC.GAME.rp.supercharged + ' / Traversal ' + SC.GAME.rp.traversal + ').')
     ));
     run();
   };
