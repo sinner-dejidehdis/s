@@ -49,3 +49,11 @@ test('rowPoints and team stats', () => {
   assert.deepStrictEqual(s.levels, { None: 1, L1: 0, L2: 0, L3: 1 });
   assert.strictEqual(s.autoL1, 50);
 });
+
+test('offline file is built from the current sources', () => {
+  const fs = require('node:fs');
+  const { build } = require(path.join(__dirname, '..', 'tools', 'build-offline.js'));
+  const committed = fs.readFileSync(path.join(__dirname, '..', 'rebuilt-scout-v2-offline.html'), 'utf8');
+  assert.strictEqual(committed, build(), 'run: node scouting-v2/tools/build-offline.js');
+  assert.ok(!/<script src=|<link rel="stylesheet"/.test(committed), 'offline file must not load external files');
+});

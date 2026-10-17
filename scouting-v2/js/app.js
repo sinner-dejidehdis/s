@@ -39,8 +39,43 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           root.textContent = '';
           settingsPage(root);
         } }, 'Load schedule')),
+      offlineCard(),
       h('p', { class: 'muted small' }, 'REBUILT Scout v2 · ' + V2.CONFIG.season + ' · fields are defined in js/config.js')
     ));
+  }
+
+  var OFFLINE_FILE = 'rebuilt-scout-v2-offline.html';
+
+  // One-file copy of the whole app that runs from the device's storage with no network
+  function offlineCard() {
+    if (V2.OFFLINE_BUILD) {
+      return h('section', { class: 'card' }, h('h3', null, 'Offline copy'),
+        h('p', { class: 'muted' }, 'You are using the offline file. It needs no internet. Keep it on this device and open it from the same place each time, so your records stay with it.'));
+    }
+    var status = h('small', { class: 'muted' });
+    var btn = h('button', { type: 'button', class: 'btn primary', onclick: function () {
+      status.textContent = 'Preparing…';
+      fetch(OFFLINE_FILE).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      }).then(function (html) {
+        var viaClaude = globalThis.claude && typeof claude.use === 'function' ? claude.use('downloads') : Promise.resolve(null);
+        return viaClaude.then(function (d) {
+          if (d) return d.save({ filename: OFFLINE_FILE, data: html }).then(function () { status.textContent = 'Saved.'; });
+          var a = h('a', { href: URL.createObjectURL(new Blob([html], { type: 'text/html' })), download: OFFLINE_FILE });
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+          status.textContent = 'Downloaded. Open the file in Chrome or Edge.';
+        });
+      }).catch(function (e) {
+        status.textContent = 'Could not download: ' + e.message;
+      });
+    } }, 'Download offline file');
+    return h('section', { class: 'card' }, h('h3', null, 'Offline copy'),
+      h('p', { class: 'muted' }, 'One HTML file with the whole app. Save it to a phone, tablet or laptop and open it in a browser with no internet. ' +
+        (navigator.serviceWorker && location.protocol.indexOf('http') === 0 ? 'This page also keeps working offline after you have opened it once.' : '')),
+      h('div', { class: 'row wrap' }, btn, status));
   }
 
   function route() {
@@ -59,4 +94,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   Object.keys(TABS).forEach(function (k) { nav.appendChild(h('a', { href: '#' + k }, TABS[k])); });
   window.addEventListener('hashchange', route);
   route();
+
+  if (!V2.OFFLINE_BUILD && 'serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    navigator.serviceWorker.register('sw.js').catch(function () { /* not allowed here: online only */ });
+  }
 })();

@@ -23,6 +23,21 @@
   - 「Copy match data」复制带表头的 TSV，可以直接粘贴进 Google Sheets 或 Excel。
 - **Settings**：赛事代码、赛程 CSV、场地图左右翻转。
 
+## 离线使用
+
+有两种方式，都不需要网络：
+
+1. **下载离线文件**（推荐，最稳）
+   - 在 Settings → Offline copy 点「Download offline file」；或者直接拷贝仓库里的 `rebuilt-scout-v2-offline.html`。
+   - 这个文件包含整个应用，存到手机、平板或电脑上，用 Chrome / Edge 打开就能用，完全不联网。
+   - 每次都从同一个位置打开同一个文件，记录才会留在这台设备上。
+   - iPhone/iPad 在「文件」App 里直接预览不能运行，建议用方式 2。
+2. **网页版加到主屏幕**
+   - 用 GitHub Pages 地址联网打开一次，页面就会缓存下来，之后断网也能打开。
+   - 用浏览器的「添加到主屏幕」，用起来像一个 App。
+
+改了任何源文件后，要重新生成离线文件：`node scouting-v2/tools/build-offline.js`。测试会检查离线文件是不是最新的。另外要把 `sw.js` 里的 `VERSION` 加 1。
+
 ## 改字段
 
 只改 `js/config.js` 就行。每个字段的 `code` 就是导出时的列；列的顺序按配置里的顺序。
