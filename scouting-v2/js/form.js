@@ -20,18 +20,18 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       else if (f.type === 'bool') v[f.code] = false;
       else v[f.code] = '';
     });
+    v.e = V2.CONFIG.event; // set by the scouting lead in config.js, never typed by scouts
     if (kind === 'match') {
       var saved = V2.ui.get('scout', {});
-      ['s', 'e', 'r'].forEach(function (k) { if (!v[k] && saved[k]) v[k] = saved[k]; });
-      if (!v.e) v.e = V2.ui.get('settings', {}).event || '';
+      ['s', 'r'].forEach(function (k) { if (!v[k] && saved[k]) v[k] = saved[k]; });
       if (prev.m) v.m = Number(prev.m) + 1;
       fillTeam(v);
-    } else if (!v.e) v.e = V2.ui.get('settings', {}).event || '';
+    }
     return v;
   }
 
   function fillTeam(v) {
-    var sch = V2.ui.get('schedule', {})[v.e] || [];
+    var sch = V2.ui.get('schedule', {})[V2.CONFIG.event] || [];
     var m = sch.filter(function (x) { return x.m === Number(v.m); })[0];
     var key = { r1: 'R1', r2: 'R2', r3: 'R3', b1: 'B1', b2: 'B2', b3: 'B3' }[v.r];
     if (m && key && m[key]) v.t = m[key];
@@ -45,10 +45,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     function setv(x) { v[f.code] = x; }
     switch (f.type) {
       case 'text':
-      case 'event':
-        return h('input', { id: id, value: val, maxlength: f.max || 40, placeholder: f.type === 'event' ? '2026txhou' : '', oninput: function (e) {
-          setv(f.type === 'event' ? e.target.value.trim().toLowerCase() : e.target.value);
-        } });
+        return h('input', { id: id, value: val, maxlength: f.max || 40, oninput: function (e) { setv(e.target.value); } });
       case 'number':
       case 'match':
       case 'team':
@@ -79,8 +76,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           } }, f.choices[k]);
         }));
       case 'rating':
-        return h('div', { class: 'seg', id: id }, Array.from({ length: f.max }, function (_, i) { return i + 1; }).map(function (n) {
-          return h('button', { type: 'button', class: 'opt' + (val === n ? ' on' : ''), onclick: function () { setv(val === n ? '' : n); rerender(); } }, n);
+        var opts = (f.none ? [{ v: 'n', t: f.none }] : []).concat(Array.from({ length: f.max }, function (_, i) { return { v: i + 1, t: i + 1 }; }));
+        return h('div', { class: 'seg', id: id }, opts.map(function (o) {
+          return h('button', { type: 'button', class: 'opt' + (o.v === 'n' ? ' none' : '') + (val === o.v ? ' on' : ''), onclick: function () { setv(val === o.v ? '' : o.v); rerender(); } }, o.t);
         }));
       case 'counter':
         var show = h('output', { class: 'count', id: id }, val);
@@ -109,7 +107,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         return h('div', { class: 'counter' }, btn, out,
           h('button', { type: 'button', class: 'btn small', onclick: function () { v[f.code] = 0; delete T[f.code]; rerender(); } }, 'Reset'));
       case 'field':
-        return V2.field.picker(val, f.mode, !!V2.ui.get('settings', {}).flip, function (pts) { setv(pts); });
+        return V2.field.picker(val, f.mode, String(v.r || '').charAt(0), !!V2.ui.get('settings', {}).flip, function (pts) { setv(pts); });
     }
   }
 
@@ -136,7 +134,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       if (d > 0 && s.page === 0) {
         var miss = missing(kind);
         if (miss.length) return V2.ui.toast('Fill in: ' + miss.map(function (f) { return f.name; }).join(', '), 'err');
-        if (kind === 'match') V2.ui.set('scout', { s: s.values.s, e: s.values.e, r: s.values.r });
+        if (kind === 'match') V2.ui.set('scout', { s: s.values.s, r: s.values.r });
       }
       if (d > 0 && s.page === pages.length - 1) stopTimers(kind);
       s.page = Math.max(0, Math.min(pages.length, s.page + d));
@@ -156,7 +154,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       var p = pages[s.page];
       body = h('section', { class: 'page ph-' + p.page },
         h('h2', null, p.title),
-        p.fields.map(function (f) {
+        s.page === 0 ? h('p', { class: 'eventline' }, 'Event: ', h('b', null, V2.CONFIG.event)) : null,
+        p.fields.filter(function (f) { return f.type !== 'event'; }).map(function (f) {
           return h('div', { class: 'item' + (f.type === 'field' ? ' wide' : '') },
             h('label', { class: 'iname', for: kind + '-' + f.code }, f.name, f.required ? h('span', { class: 'req' }, ' *') : null),
             control(kind, f, s.values, rerender));

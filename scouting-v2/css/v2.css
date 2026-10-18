@@ -21,6 +21,8 @@
   --ph-pit: #a5512c;
   --ph-qr: #12161c;
   --zone-us: #dbe9f8;
+  --zone-red: #f8dcdc;
+  --zone-blue: #dbe7f8;
   --zone-mid: #eef0f2;
   --wall: #8792a0;
   --fixture: #c6cfd9;
@@ -55,6 +57,8 @@
     --ph-pit: #d9805a;
     --ph-qr: #eef2f6;
     --zone-us: #1e3248;
+    --zone-red: #4a2226;
+    --zone-blue: #1e3248;
     --zone-mid: #20262d;
     --wall: #5c6774;
     --fixture: #3a4552;
@@ -86,6 +90,8 @@
   --ph-pit: #d9805a;
   --ph-qr: #eef2f6;
   --zone-us: #1e3248;
+  --zone-red: #4a2226;
+  --zone-blue: #1e3248;
   --zone-mid: #20262d;
   --wall: #5c6774;
   --fixture: #3a4552;
@@ -132,6 +138,8 @@ main { max-width: 760px; margin: 0 auto; padding-block: 16px 90px; padding-left:
 .item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .iname { font-weight: 700; font-size: .95rem; }
 .req { color: var(--danger); }
+.eventline { margin: 0; color: var(--ink-2); }
+.eventline b { color: var(--ink); }
 
 input, textarea { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; width: 100%; }
 input[type=checkbox] { width: auto; }
@@ -147,6 +155,7 @@ textarea { resize: vertical; }
 
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .opt { font: inherit; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; min-width: 48px; touch-action: manipulation; }
+.opt.none { font-size: .9rem; }
 .opt.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .stations { display: grid; grid-template-columns: repeat(3, 1fr); }
 .stations .opt.r { border-color: var(--red); color: var(--red); }

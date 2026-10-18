@@ -3,7 +3,8 @@
 var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
-  var TAGS = { match: 'RB26M', pit: 'RB26P' };
+  // Bump the tag whenever columns change, so rows from an older build are rejected
+  var TAGS = { match: 'RB26M2', pit: 'RB26P2' };
 
   function fields(kind) {
     var out = [];
@@ -18,6 +19,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   }
 
   function cell(f, v) {
+    if (f.type === 'event') return clean(v || V2.CONFIG.event);
     if (v == null || v === '') return '';
     switch (f.type) {
       case 'bool': return v ? '1' : '0';
@@ -32,7 +34,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     if (s === '' || s == null) return f.type === 'bool' ? false : f.type === 'multi' || f.type === 'field' ? [] : null;
     switch (f.type) {
       case 'bool': return s === '1';
-      case 'counter': case 'number': case 'match': case 'team': case 'rating': case 'timer': return Number(s);
+      case 'rating': return s === 'n' ? 'n' : Number(s);
+      case 'counter': case 'number': case 'match': case 'team': case 'timer': return Number(s);
       case 'multi': return s.split('');
       case 'field': return s.split(';').map(function (p) { return p.split(',').map(Number); });
       default: return s;

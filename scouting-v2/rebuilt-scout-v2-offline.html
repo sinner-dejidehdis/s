@@ -30,6 +30,8 @@
   --ph-pit: #a5512c;
   --ph-qr: #12161c;
   --zone-us: #dbe9f8;
+  --zone-red: #f8dcdc;
+  --zone-blue: #dbe7f8;
   --zone-mid: #eef0f2;
   --wall: #8792a0;
   --fixture: #c6cfd9;
@@ -64,6 +66,8 @@
     --ph-pit: #d9805a;
     --ph-qr: #eef2f6;
     --zone-us: #1e3248;
+    --zone-red: #4a2226;
+    --zone-blue: #1e3248;
     --zone-mid: #20262d;
     --wall: #5c6774;
     --fixture: #3a4552;
@@ -95,6 +99,8 @@
   --ph-pit: #d9805a;
   --ph-qr: #eef2f6;
   --zone-us: #1e3248;
+  --zone-red: #4a2226;
+  --zone-blue: #1e3248;
   --zone-mid: #20262d;
   --wall: #5c6774;
   --fixture: #3a4552;
@@ -141,6 +147,8 @@ main { max-width: 760px; margin: 0 auto; padding-block: 16px 90px; padding-left:
 .item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .iname { font-weight: 700; font-size: .95rem; }
 .req { color: var(--danger); }
+.eventline { margin: 0; color: var(--ink-2); }
+.eventline b { color: var(--ink); }
 
 input, textarea { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; width: 100%; }
 input[type=checkbox] { width: auto; }
@@ -156,6 +164,7 @@ textarea { resize: vertical; }
 
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
 .opt { font: inherit; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; min-width: 48px; touch-action: manipulation; }
+.opt.none { font-size: .9rem; }
 .opt.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .stations { display: grid; grid-template-columns: repeat(3, 1fr); }
 .stations .opt.r { border-color: var(--red); color: var(--red); }
@@ -2529,6 +2538,11 @@ var qrcode = function() {
 var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 V2.CONFIG = {
+  // The event every scout records for. The scouting lead sets it here once per event,
+  // then redeploys / rebuilds the offline file. Scouts cannot change it in the app.
+  // Use the TBA event key, e.g. '2026txhou'.
+  event: '2026test',
+
   id: 'rebuilt2026-v2',
   title: 'REBUILT Scout',
   season: 2026,
@@ -2539,7 +2553,7 @@ V2.CONFIG = {
     {
       page: 'prematch', title: 'Pre-match', fields: [
         { code: 's', name: 'Scout initials', type: 'text', max: 5, required: true, keep: true },
-        { code: 'e', name: 'Event key', type: 'event', required: true, keep: true },
+        { code: 'e', name: 'Event', type: 'event' },
         { code: 'l', name: 'Match level', type: 'radio', choices: { qm: 'Quals', sf: 'Semis', f: 'Finals' }, def: 'qm', required: true, keep: true },
         { code: 'm', name: 'Match #', type: 'match', required: true },
         { code: 'r', name: 'Station', type: 'station', required: true, keep: true },
@@ -2574,6 +2588,8 @@ V2.CONFIG = {
     },
     {
       page: 'endgame', title: 'Endgame', fields: [
+        { code: 'gf', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
+        { code: 'gm', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
         { code: 'el', name: 'Tower level', type: 'radio', choices: { None: 'None', L1: 'L1', L2: 'L2', L3: 'L3' }, def: 'None' },
         { code: 'ep', name: 'Tower position', type: 'radio', choices: { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E' } },
         { code: 'ef', name: 'Climb attempted but failed', type: 'bool' },
@@ -2583,8 +2599,8 @@ V2.CONFIG = {
     {
       page: 'postmatch', title: 'Post-match', fields: [
         { code: 'ds', name: 'Driver skill', type: 'rating', max: 5 },
-        { code: 'dr', name: 'Defense rating', type: 'rating', max: 5 },
-        { code: 'dd', name: 'Handled being defended', type: 'rating', max: 5 },
+        { code: 'dr', name: 'Defense they played', type: 'rating', max: 5, none: 'Did not play defense' },
+        { code: 'dd', name: 'Handled being defended', type: 'rating', max: 5, none: 'Was not defended' },
         { code: 'sa', name: 'Shooting accuracy', type: 'radio', choices: { l: '< 50%', m: '50–80%', h: '> 80%' } },
         { code: 'to', name: 'Tipped over', type: 'bool' },
         { code: 'dk', name: 'Died / disabled', type: 'bool' },
@@ -2599,7 +2615,7 @@ V2.CONFIG = {
     {
       page: 'pit', title: 'Pit', fields: [
         { code: 's', name: 'Scout initials', type: 'text', max: 5, required: true, keep: true },
-        { code: 'e', name: 'Event key', type: 'event', required: true, keep: true },
+        { code: 'e', name: 'Event', type: 'event' },
         { code: 't', name: 'Team #', type: 'number', required: true },
         { code: 'wt', name: 'Weight (lb)', type: 'number' },
         { code: 'dt', name: 'Drivetrain', type: 'radio', choices: { s: 'Swerve', t: 'Tank', m: 'Mecanum', o: 'Other' } },
@@ -2624,7 +2640,8 @@ V2.CONFIG = {
 var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
-  var TAGS = { match: 'RB26M', pit: 'RB26P' };
+  // Bump the tag whenever columns change, so rows from an older build are rejected
+  var TAGS = { match: 'RB26M2', pit: 'RB26P2' };
 
   function fields(kind) {
     var out = [];
@@ -2639,6 +2656,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   }
 
   function cell(f, v) {
+    if (f.type === 'event') return clean(v || V2.CONFIG.event);
     if (v == null || v === '') return '';
     switch (f.type) {
       case 'bool': return v ? '1' : '0';
@@ -2653,7 +2671,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     if (s === '' || s == null) return f.type === 'bool' ? false : f.type === 'multi' || f.type === 'field' ? [] : null;
     switch (f.type) {
       case 'bool': return s === '1';
-      case 'counter': case 'number': case 'match': case 'team': case 'rating': case 'timer': return Number(s);
+      case 'rating': return s === 'n' ? 'n' : Number(s);
+      case 'counter': case 'number': case 'match': case 'team': case 'timer': return Number(s);
       case 'multi': return s.split('');
       case 'field': return s.split(';').map(function (p) { return p.split(',').map(Number); });
       default: return s;
@@ -2704,7 +2723,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   function rowPoints(v) {
     var P = V2.CONFIG.points;
     if (v.ns) return 0;
-    return (v.af || 0) * P.fuel + (v.tf || 0) * P.fuel + (v.ac === 'y' ? P.autoL1 : 0) + (P.climb[v.el] || 0);
+    return ((v.af || 0) + (v.tf || 0) + (v.gf || 0)) * P.fuel + (v.ac === 'y' ? P.autoL1 : 0) + (P.climb[v.el] || 0);
   }
 
   function teams(rows) {
@@ -2716,13 +2735,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       var all = by[t];
       var rs = all.filter(function (v) { return !v.ns; });
       var col = function (k) { return rs.map(function (v) { return v[k] || 0; }); };
-      var shots = col('af').map(function (x, i) { return x + col('tf')[i]; });
-      var missed = col('am').map(function (x, i) { return x + col('tm')[i]; });
+      var shots = col('af').map(function (x, i) { return x + col('tf')[i] + col('gf')[i]; });
+      var missed = col('am').map(function (x, i) { return x + col('tm')[i] + col('gm')[i]; });
       var made = shots.reduce(function (a, b) { return a + b; }, 0);
       var tried = made + missed.reduce(function (a, b) { return a + b; }, 0);
       var lv = { None: 0, L1: 0, L2: 0, L3: 0 };
       rs.forEach(function (v) { lv[v.el || 'None']++; });
-      var ratings = function (k) { var a = rs.map(function (v) { return v[k]; }).filter(function (x) { return x > 0; }); return a.length ? r1(avg(a)) : null; };
+      // 'n' = did not play defense / was not defended: left out of the average, counted separately
+      var ratings = function (k) { var a = rs.map(function (v) { return v[k]; }).filter(function (x) { return typeof x === 'number' && x > 0; }); return a.length ? r1(avg(a)) : null; };
       var pts = rs.map(rowPoints);
       return {
         t: Number(t),
@@ -2730,6 +2750,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         noShow: all.length - rs.length,
         autoFuel: r1(avg(col('af'))),
         teleFuel: r1(avg(col('tf'))),
+        endFuel: r1(avg(col('gf'))),
         ferried: r1(avg(col('tp'))),
         accuracy: tried ? Math.round((made / tried) * 100) : null,
         autoL1: rs.length ? Math.round((rs.filter(function (v) { return v.ac === 'y'; }).length / rs.length) * 100) : 0,
@@ -2741,6 +2762,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         defense: r1(avg(col('td'))),
         driver: ratings('ds'),
         defRating: ratings('dr'),
+        defendedRating: ratings('dd'),
+        playedDefense: rs.filter(function (v) { return typeof v.dr === 'number' && v.dr > 0; }).length,
+        wasDefended: rs.filter(function (v) { return typeof v.dd === 'number' && v.dd > 0; }).length,
         problems: all.filter(function (v) { return v.to || v.dk || v.bf; }).length,
         comments: all.filter(function (v) { return v.co; }).map(function (v) { return { m: v.m, s: v.s, text: v.co }; }),
       };
@@ -2835,7 +2859,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 </script>
   <script>
 // Our own schematic of one alliance's half of the REBUILT field (not to scale).
-// Coordinates are stored 0–99 across (x: our wall → center line) and 0–99 down.
+// Points are stored relative to the scouted robot's alliance: x 0–99 from its own wall to the
+// center line, y 0–99 with that alliance's Outpost side at 0. The drawing turns 180° for the
+// Blue alliance, because from a seat in the stands the Blue end is the Red end rotated.
 var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
@@ -2845,45 +2871,54 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#888';
   }
 
-  function drawField(ctx, cw, ch, flip) {
+  // alliance: 'r' | 'b' | '' (unknown). flip: the scout sits on the other side of the field.
+  function rotated(alliance, flip) {
+    return (alliance === 'b') !== !!flip;
+  }
+
+  function drawField(ctx, cw, ch, alliance, flip) {
     var sx = cw / W, sy = ch / H;
-    function X(x) { return (flip ? W - x : x) * sx; }
-    function rect(x, y, w, h, fill, label) {
-      var x0 = flip ? X(x + w) : X(x);
+    var rot = rotated(alliance, flip);
+    function box(x, y, w, h) {
+      return rot ? [(W - x - w) * sx, (H - y - h) * sy, w * sx, h * sy] : [x * sx, y * sy, w * sx, h * sy];
+    }
+    function label(text, x, y, size) {
+      var px = (rot ? W - x : x) * sx, py = (rot ? H - y : y) * sy;
+      ctx.fillStyle = css('--ink-2');
+      ctx.font = Math.max(10, (size || 3) * sy) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, px, py);
+    }
+    function rect(x, y, w, h, fill, text) {
+      var b = box(x, y, w, h);
       ctx.fillStyle = fill;
-      ctx.fillRect(x0, y * sy, w * sx, h * sy);
-      if (label) {
-        ctx.fillStyle = css('--ink-2');
-        ctx.font = Math.max(10, 3 * sy) + 'px system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, x0 + (w * sx) / 2, (y + h / 2) * sy);
-      }
+      ctx.fillRect(b[0], b[1], b[2], b[3]);
+      if (text) label(text, x + w / 2, y + h / 2);
     }
     ctx.clearRect(0, 0, cw, ch);
-    rect(0, 0, 48, H, css('--zone-us'));
+    var zone = alliance === 'r' ? '--zone-red' : alliance === 'b' ? '--zone-blue' : '--zone-us';
+    rect(0, 0, 48, H, css(zone));
     rect(52, 0, 48, H, css('--zone-mid'));
     rect(0, 0, 3, H, css('--wall'));
+    rect(3, 3, 6, 9, css('--fixture'), 'Outpost');
     rect(3, 25, 7, 10, css('--fixture'), 'Tower');
     rect(3, 46, 9, 11, css('--fixture'), 'Depot');
-    rect(3, 3, 6, 9, css('--fixture'), 'Outpost');
     rect(48, 0, 4, 11, css('--trench'), '');
     rect(48, 49, 4, 11, css('--trench'), '');
     rect(48, 14, 4, 11, css('--bump'), '');
     rect(48, 35, 4, 11, css('--bump'), '');
     rect(46, 26, 8, 8, css('--hub'), 'Hub');
-    ctx.fillStyle = css('--ink-2');
-    ctx.font = Math.max(10, 2.6 * sy) + 'px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Our alliance zone', X(24), 4 * sy);
-    ctx.fillText('Neutral zone', X(76), 4 * sy);
-    ctx.fillText('Trench', X(50), 8.5 * sy);
-    ctx.fillText('Bump', X(50), 19.5 * sy);
+    var name = alliance === 'r' ? 'Red alliance zone' : alliance === 'b' ? 'Blue alliance zone' : 'Alliance zone';
+    label(name, 26, rot ? 56 : 4, 2.6);
+    label('Neutral zone', 76, rot ? 56 : 4, 2.6);
+    label('Trench', 50, 5.5, 2.4);
+    label('Bump', 50, 19.5, 2.4);
   }
 
-  function dot(ctx, cw, ch, p, flip, color, r) {
-    var x = ((flip ? 99 - p[0] : p[0]) / 99) * cw;
-    var y = (p[1] / 99) * ch;
+  function dot(ctx, cw, ch, p, rot, color, r) {
+    var x = ((rot ? 99 - p[0] : p[0]) / 99) * cw;
+    var y = ((rot ? 99 - p[1] : p[1]) / 99) * ch;
     ctx.beginPath();
     ctx.arc(x, y, r || 7, 0, Math.PI * 2);
     ctx.fillStyle = color;
@@ -2893,66 +2928,65 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     ctx.stroke();
   }
 
+  function sized(canvas) {
+    var cw = canvas.clientWidth || 340;
+    var ch = Math.round(cw * (H / W));
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = cw * dpr;
+    canvas.height = ch * dpr;
+    canvas.style.height = ch + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, cw: cw, ch: ch };
+  }
+
   // Interactive picker. mode: 'single' | 'multi'. Calls onChange(points).
-  function picker(points, mode, flip, onChange) {
+  function picker(points, mode, alliance, flip, onChange) {
     var h = V2.ui.h;
+    var rot = rotated(alliance, flip);
     var canvas = h('canvas', { class: 'fieldcanvas', role: 'img', 'aria-label': 'Field map, tap to mark a spot' });
+    var count = h('small', { class: 'muted' });
     function paint() {
-      var cw = canvas.clientWidth || 340;
-      var ch = Math.round(cw * (H / W));
-      var dpr = window.devicePixelRatio || 1;
-      canvas.width = cw * dpr;
-      canvas.height = ch * dpr;
-      canvas.style.height = ch + 'px';
-      var ctx = canvas.getContext('2d');
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawField(ctx, cw, ch, flip);
-      points.forEach(function (p, i) { dot(ctx, cw, ch, p, flip, css('--accent'), mode === 'multi' ? 6 : 9); });
-      count.textContent = mode === 'multi' ? points.length + ' marked' : points.length ? 'Marked' : 'Tap the field';
+      var c = sized(canvas);
+      drawField(c.ctx, c.cw, c.ch, alliance, flip);
+      points.forEach(function (p) { dot(c.ctx, c.cw, c.ch, p, rot, css('--accent'), mode === 'multi' ? 6 : 9); });
+      count.textContent = !alliance ? 'Pick a station first so the map matches your alliance' :
+        mode === 'multi' ? points.length + ' marked' : points.length ? 'Marked' : 'Tap the field';
     }
     canvas.addEventListener('click', function (e) {
       var b = canvas.getBoundingClientRect();
       var x = Math.round(((e.clientX - b.left) / b.width) * 99);
       var y = Math.round(((e.clientY - b.top) / b.height) * 99);
-      if (flip) x = 99 - x;
+      if (rot) { x = 99 - x; y = 99 - y; }
       if (mode === 'single') points.splice(0, points.length, [x, y]);
       else points.push([x, y]);
       onChange(points);
       paint();
     });
-    var count = h('small', { class: 'muted' });
     var undo = h('button', { type: 'button', class: 'btn small', onclick: function () { points.pop(); onChange(points); paint(); } }, 'Undo spot');
-    var wrap = h('div', { class: 'fieldwrap' }, canvas, h('div', { class: 'row between' }, count, undo));
     function onResize() {
       if (!document.body.contains(canvas)) return window.removeEventListener('resize', onResize);
       paint();
     }
     setTimeout(paint, 0);
     window.addEventListener('resize', onResize);
-    return wrap;
+    return h('div', { class: 'fieldwrap' }, canvas, h('div', { class: 'row between' }, count, undo));
   }
 
-  // Static heat map for the data page. sets: [{points, color}]
-  function heat(sets, flip) {
+  // Heat map on the data page, drawn in the shared alliance-relative frame. sets: [{points, color}]
+  function heat(sets) {
     var canvas = V2.ui.h('canvas', { class: 'fieldcanvas', role: 'img', 'aria-label': 'Shooting spots' });
     setTimeout(function () {
-      var cw = canvas.clientWidth || 340;
-      var ch = Math.round(cw * (H / W));
-      var dpr = window.devicePixelRatio || 1;
-      canvas.width = cw * dpr;
-      canvas.height = ch * dpr;
-      canvas.style.height = ch + 'px';
-      var ctx = canvas.getContext('2d');
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      drawField(ctx, cw, ch, flip);
-      ctx.globalAlpha = 0.65;
-      sets.forEach(function (s) { s.points.forEach(function (p) { dot(ctx, cw, ch, p, flip, s.color, 6); }); });
-      ctx.globalAlpha = 1;
+      var c = sized(canvas);
+      drawField(c.ctx, c.cw, c.ch, '', false);
+      c.ctx.globalAlpha = 0.65;
+      sets.forEach(function (s) { s.points.forEach(function (p) { dot(c.ctx, c.cw, c.ch, p, false, s.color, 6); }); });
+      c.ctx.globalAlpha = 1;
     }, 0);
     return canvas;
   }
 
-  V2.field = { picker: picker, heat: heat, css: css };
+  V2.field = { picker: picker, heat: heat, css: css, rotated: rotated };
 })();
 
 </script>
@@ -2979,18 +3013,18 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       else if (f.type === 'bool') v[f.code] = false;
       else v[f.code] = '';
     });
+    v.e = V2.CONFIG.event; // set by the scouting lead in config.js, never typed by scouts
     if (kind === 'match') {
       var saved = V2.ui.get('scout', {});
-      ['s', 'e', 'r'].forEach(function (k) { if (!v[k] && saved[k]) v[k] = saved[k]; });
-      if (!v.e) v.e = V2.ui.get('settings', {}).event || '';
+      ['s', 'r'].forEach(function (k) { if (!v[k] && saved[k]) v[k] = saved[k]; });
       if (prev.m) v.m = Number(prev.m) + 1;
       fillTeam(v);
-    } else if (!v.e) v.e = V2.ui.get('settings', {}).event || '';
+    }
     return v;
   }
 
   function fillTeam(v) {
-    var sch = V2.ui.get('schedule', {})[v.e] || [];
+    var sch = V2.ui.get('schedule', {})[V2.CONFIG.event] || [];
     var m = sch.filter(function (x) { return x.m === Number(v.m); })[0];
     var key = { r1: 'R1', r2: 'R2', r3: 'R3', b1: 'B1', b2: 'B2', b3: 'B3' }[v.r];
     if (m && key && m[key]) v.t = m[key];
@@ -3004,10 +3038,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     function setv(x) { v[f.code] = x; }
     switch (f.type) {
       case 'text':
-      case 'event':
-        return h('input', { id: id, value: val, maxlength: f.max || 40, placeholder: f.type === 'event' ? '2026txhou' : '', oninput: function (e) {
-          setv(f.type === 'event' ? e.target.value.trim().toLowerCase() : e.target.value);
-        } });
+        return h('input', { id: id, value: val, maxlength: f.max || 40, oninput: function (e) { setv(e.target.value); } });
       case 'number':
       case 'match':
       case 'team':
@@ -3038,8 +3069,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           } }, f.choices[k]);
         }));
       case 'rating':
-        return h('div', { class: 'seg', id: id }, Array.from({ length: f.max }, function (_, i) { return i + 1; }).map(function (n) {
-          return h('button', { type: 'button', class: 'opt' + (val === n ? ' on' : ''), onclick: function () { setv(val === n ? '' : n); rerender(); } }, n);
+        var opts = (f.none ? [{ v: 'n', t: f.none }] : []).concat(Array.from({ length: f.max }, function (_, i) { return { v: i + 1, t: i + 1 }; }));
+        return h('div', { class: 'seg', id: id }, opts.map(function (o) {
+          return h('button', { type: 'button', class: 'opt' + (o.v === 'n' ? ' none' : '') + (val === o.v ? ' on' : ''), onclick: function () { setv(val === o.v ? '' : o.v); rerender(); } }, o.t);
         }));
       case 'counter':
         var show = h('output', { class: 'count', id: id }, val);
@@ -3068,7 +3100,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         return h('div', { class: 'counter' }, btn, out,
           h('button', { type: 'button', class: 'btn small', onclick: function () { v[f.code] = 0; delete T[f.code]; rerender(); } }, 'Reset'));
       case 'field':
-        return V2.field.picker(val, f.mode, !!V2.ui.get('settings', {}).flip, function (pts) { setv(pts); });
+        return V2.field.picker(val, f.mode, String(v.r || '').charAt(0), !!V2.ui.get('settings', {}).flip, function (pts) { setv(pts); });
     }
   }
 
@@ -3095,7 +3127,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       if (d > 0 && s.page === 0) {
         var miss = missing(kind);
         if (miss.length) return V2.ui.toast('Fill in: ' + miss.map(function (f) { return f.name; }).join(', '), 'err');
-        if (kind === 'match') V2.ui.set('scout', { s: s.values.s, e: s.values.e, r: s.values.r });
+        if (kind === 'match') V2.ui.set('scout', { s: s.values.s, r: s.values.r });
       }
       if (d > 0 && s.page === pages.length - 1) stopTimers(kind);
       s.page = Math.max(0, Math.min(pages.length, s.page + d));
@@ -3115,7 +3147,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       var p = pages[s.page];
       body = h('section', { class: 'page ph-' + p.page },
         h('h2', null, p.title),
-        p.fields.map(function (f) {
+        s.page === 0 ? h('p', { class: 'eventline' }, 'Event: ', h('b', null, V2.CONFIG.event)) : null,
+        p.fields.filter(function (f) { return f.type !== 'event'; }).map(function (f) {
           return h('div', { class: 'item' + (f.type === 'field' ? ' wide' : '') },
             h('label', { class: 'iname', for: kind + '-' + f.code }, f.name, f.required ? h('span', { class: 'req' }, ' *') : null),
             control(kind, f, s.values, rerender));
@@ -3187,8 +3220,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
   function render(root) {
     h = V2.ui.h;
-    var settings = V2.ui.get('settings', {});
-    var ev = settings.event || '';
+    var ev = V2.CONFIG.event;
     var rows = rowsOf('match', ev);
     var pits = rowsOf('pit', ev);
     var stats = V2.stats.teams(rows).sort(function (a, b) {
@@ -3210,9 +3242,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     });
 
     var COLS = [
-      ['t', 'Team'], ['n', 'M'], ['points', 'Avg pts'], ['best', 'Best'], ['autoFuel', 'Auto Fuel'], ['teleFuel', 'Tele Fuel'],
+      ['t', 'Team'], ['n', 'M'], ['points', 'Avg pts'], ['best', 'Best'], ['autoFuel', 'Auto Fuel'], ['teleFuel', 'Tele Fuel'], ['endFuel', 'End Fuel'],
       ['ferried', 'Ferried'], ['accuracy', 'Acc %'], ['climbPts', 'Climb pts'], ['autoL1', 'Auto L1 %'], ['incap', 'Incap s'],
-      ['defense', 'Def. s'], ['driver', 'Driver'], ['problems', 'Issues'],
+      ['defense', 'Def. s'], ['defRating', 'Def. rating'], ['driver', 'Driver'], ['problems', 'Issues'],
     ];
 
     var table = stats.length ? h('div', { class: 'scroll' }, h('table', { class: 'data' },
@@ -3226,7 +3258,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           return h('td', { class: 'num' }, v == null ? '–' : v);
         }));
       }))
-    )) : h('p', { class: 'muted' }, 'No match data for ' + (ev || 'this event') + ' yet. Scan or paste rows above.');
+    )) : h('p', { class: 'muted' }, 'No match data for ' + ev + ' yet. Scan or paste rows above.');
 
     var detail = null;
     var t = stats.filter(function (s) { return s.t === heatTeam; })[0];
@@ -3237,9 +3269,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       var pit = pits.filter(function (v) { return v.t === t.t; })[0];
       detail = h('section', { class: 'card' },
         h('h3', null, 'Team ' + t.t),
-        h('p', { class: 'muted' }, t.n + ' matches · climbs L1/L2/L3: ' + t.levels.L1 + '/' + t.levels.L2 + '/' + t.levels.L3 + ' · no-shows ' + t.noShow),
+        h('p', { class: 'muted' }, t.n + ' matches · climbs L1/L2/L3: ' + t.levels.L1 + '/' + t.levels.L2 + '/' + t.levels.L3 + ' · no-shows ' + t.noShow +
+          ' · played defense in ' + t.playedDefense + ' · was defended in ' + t.wasDefended + (t.defendedRating != null ? ' (handled it ' + t.defendedRating + '/5)' : '')),
         h('div', { class: 'legend' }, h('span', null, h('i', { class: 'k-auto' }), 'Auto shots (' + auto.length + ')'), h('span', null, h('i', { class: 'k-tele' }), 'Teleop shots (' + tele.length + ')')),
-        V2.field.heat([{ points: auto, color: V2.field.css('--s1') }, { points: tele, color: V2.field.css('--s2') }], !!settings.flip),
+        h('small', { class: 'muted' }, 'Drawn from the robot\'s own alliance end, with its own wall on the left.'),
+        V2.field.heat([{ points: auto, color: V2.field.css('--s1') }, { points: tele, color: V2.field.css('--s2') }]),
         pit ? h('div', null, h('h4', null, 'Pit'), h('dl', { class: 'pit' }, V2.codec.fields('pit').filter(function (f) { return ['s', 'e', 't'].indexOf(f.code) < 0; }).map(function (f) {
           var v = pit[f.code];
           if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null;
@@ -3252,7 +3286,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
     var out = h('textarea', { class: 'raw', rows: 4, readonly: true, 'aria-label': 'Export' });
     root.appendChild(h('div', { class: 'datapage' },
-      h('h2', null, 'Data · ' + (ev || 'set the event in Settings')),
+      h('h2', null, 'Data · ' + ev),
       h('section', { class: 'card' }, h('h3', null, 'Import'), paste,
         h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () { importText(paste.value); paste.value = ''; redraw(); } }, 'Import'),
           h('small', { class: 'muted' }, records().length + ' records on this device'))),
@@ -3292,17 +3326,18 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var s = V2.ui.get('settings', {});
     function save() { V2.ui.set('settings', s); }
     var csv = h('textarea', { id: 'sched', rows: 4, placeholder: 'match,R1,R2,R3,B1,B2,B3\n1,254,1678,971,118,148,2056' });
-    var sch = (V2.ui.get('schedule', {})[s.event] || []).length;
+    var ev = V2.CONFIG.event;
+    var sch = (V2.ui.get('schedule', {})[ev] || []).length;
     root.appendChild(h('div', { class: 'settings' },
       h('h2', null, 'Settings'),
       h('section', { class: 'card' },
-        h('label', { class: 'iname', for: 'set-ev' }, 'Event key'),
-        h('input', { id: 'set-ev', value: s.event || '', placeholder: '2026txhou', oninput: function (e) { s.event = e.target.value.trim().toLowerCase(); save(); } }),
+        h('p', { class: 'eventline' }, 'Event: ', h('b', null, V2.CONFIG.event)),
+        h('small', { class: 'muted' }, 'Set by the scouting lead for every scout. To change it, edit event in js/config.js and update the app.'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'set-flip', checked: !!s.flip, onchange: function (e) { s.flip = e.target.checked; save(); } }),
           ' Flip the field map (our alliance on the right, as seen from your seat)')),
       h('section', { class: 'card' },
         h('h3', null, 'Match schedule'),
-        h('p', { class: 'muted' }, sch ? sch + ' matches loaded for ' + s.event + '. Team numbers fill in from the station.' : 'Paste the schedule so team numbers fill in automatically.'),
+        h('p', { class: 'muted' }, sch ? sch + ' matches loaded for ' + ev + '. Team numbers fill in from the station.' : 'Paste the schedule so team numbers fill in automatically.'),
         csv,
         h('button', { type: 'button', class: 'btn', onclick: function () {
           var rows = [];
@@ -3311,10 +3346,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
             if (c.length < 7 || !/^\d+$/.test(c[0])) return;
             rows.push({ m: Number(c[0]), R1: +c[1], R2: +c[2], R3: +c[3], B1: +c[4], B2: +c[5], B3: +c[6] });
           });
-          if (!s.event) return V2.ui.toast('Set the event key first', 'err');
           if (!rows.length) return V2.ui.toast('No matches found. Format: match,R1,R2,R3,B1,B2,B3', 'err');
           var all = V2.ui.get('schedule', {});
-          all[s.event] = rows;
+          all[ev] = rows;
           V2.ui.set('schedule', all);
           V2.ui.toast(rows.length + ' matches loaded', 'ok');
           root.textContent = '';

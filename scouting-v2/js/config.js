@@ -3,6 +3,11 @@
 var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 V2.CONFIG = {
+  // The event every scout records for. The scouting lead sets it here once per event,
+  // then redeploys / rebuilds the offline file. Scouts cannot change it in the app.
+  // Use the TBA event key, e.g. '2026txhou'.
+  event: '2026test',
+
   id: 'rebuilt2026-v2',
   title: 'REBUILT Scout',
   season: 2026,
@@ -13,7 +18,7 @@ V2.CONFIG = {
     {
       page: 'prematch', title: 'Pre-match', fields: [
         { code: 's', name: 'Scout initials', type: 'text', max: 5, required: true, keep: true },
-        { code: 'e', name: 'Event key', type: 'event', required: true, keep: true },
+        { code: 'e', name: 'Event', type: 'event' },
         { code: 'l', name: 'Match level', type: 'radio', choices: { qm: 'Quals', sf: 'Semis', f: 'Finals' }, def: 'qm', required: true, keep: true },
         { code: 'm', name: 'Match #', type: 'match', required: true },
         { code: 'r', name: 'Station', type: 'station', required: true, keep: true },
@@ -48,6 +53,8 @@ V2.CONFIG = {
     },
     {
       page: 'endgame', title: 'Endgame', fields: [
+        { code: 'gf', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
+        { code: 'gm', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
         { code: 'el', name: 'Tower level', type: 'radio', choices: { None: 'None', L1: 'L1', L2: 'L2', L3: 'L3' }, def: 'None' },
         { code: 'ep', name: 'Tower position', type: 'radio', choices: { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E' } },
         { code: 'ef', name: 'Climb attempted but failed', type: 'bool' },
@@ -57,8 +64,8 @@ V2.CONFIG = {
     {
       page: 'postmatch', title: 'Post-match', fields: [
         { code: 'ds', name: 'Driver skill', type: 'rating', max: 5 },
-        { code: 'dr', name: 'Defense rating', type: 'rating', max: 5 },
-        { code: 'dd', name: 'Handled being defended', type: 'rating', max: 5 },
+        { code: 'dr', name: 'Defense they played', type: 'rating', max: 5, none: 'Did not play defense' },
+        { code: 'dd', name: 'Handled being defended', type: 'rating', max: 5, none: 'Was not defended' },
         { code: 'sa', name: 'Shooting accuracy', type: 'radio', choices: { l: '< 50%', m: '50–80%', h: '> 80%' } },
         { code: 'to', name: 'Tipped over', type: 'bool' },
         { code: 'dk', name: 'Died / disabled', type: 'bool' },
@@ -73,7 +80,7 @@ V2.CONFIG = {
     {
       page: 'pit', title: 'Pit', fields: [
         { code: 's', name: 'Scout initials', type: 'text', max: 5, required: true, keep: true },
-        { code: 'e', name: 'Event key', type: 'event', required: true, keep: true },
+        { code: 'e', name: 'Event', type: 'event' },
         { code: 't', name: 'Team #', type: 'number', required: true },
         { code: 'wt', name: 'Weight (lb)', type: 'number' },
         { code: 'dt', name: 'Drivetrain', type: 'radio', choices: { s: 'Swerve', t: 'Tank', m: 'Mecanum', o: 'Other' } },

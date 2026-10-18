@@ -36,8 +36,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
   function render(root) {
     h = V2.ui.h;
-    var settings = V2.ui.get('settings', {});
-    var ev = settings.event || '';
+    var ev = V2.CONFIG.event;
     var rows = rowsOf('match', ev);
     var pits = rowsOf('pit', ev);
     var stats = V2.stats.teams(rows).sort(function (a, b) {
@@ -59,9 +58,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     });
 
     var COLS = [
-      ['t', 'Team'], ['n', 'M'], ['points', 'Avg pts'], ['best', 'Best'], ['autoFuel', 'Auto Fuel'], ['teleFuel', 'Tele Fuel'],
+      ['t', 'Team'], ['n', 'M'], ['points', 'Avg pts'], ['best', 'Best'], ['autoFuel', 'Auto Fuel'], ['teleFuel', 'Tele Fuel'], ['endFuel', 'End Fuel'],
       ['ferried', 'Ferried'], ['accuracy', 'Acc %'], ['climbPts', 'Climb pts'], ['autoL1', 'Auto L1 %'], ['incap', 'Incap s'],
-      ['defense', 'Def. s'], ['driver', 'Driver'], ['problems', 'Issues'],
+      ['defense', 'Def. s'], ['defRating', 'Def. rating'], ['driver', 'Driver'], ['problems', 'Issues'],
     ];
 
     var table = stats.length ? h('div', { class: 'scroll' }, h('table', { class: 'data' },
@@ -75,7 +74,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           return h('td', { class: 'num' }, v == null ? '–' : v);
         }));
       }))
-    )) : h('p', { class: 'muted' }, 'No match data for ' + (ev || 'this event') + ' yet. Scan or paste rows above.');
+    )) : h('p', { class: 'muted' }, 'No match data for ' + ev + ' yet. Scan or paste rows above.');
 
     var detail = null;
     var t = stats.filter(function (s) { return s.t === heatTeam; })[0];
@@ -86,9 +85,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       var pit = pits.filter(function (v) { return v.t === t.t; })[0];
       detail = h('section', { class: 'card' },
         h('h3', null, 'Team ' + t.t),
-        h('p', { class: 'muted' }, t.n + ' matches · climbs L1/L2/L3: ' + t.levels.L1 + '/' + t.levels.L2 + '/' + t.levels.L3 + ' · no-shows ' + t.noShow),
+        h('p', { class: 'muted' }, t.n + ' matches · climbs L1/L2/L3: ' + t.levels.L1 + '/' + t.levels.L2 + '/' + t.levels.L3 + ' · no-shows ' + t.noShow +
+          ' · played defense in ' + t.playedDefense + ' · was defended in ' + t.wasDefended + (t.defendedRating != null ? ' (handled it ' + t.defendedRating + '/5)' : '')),
         h('div', { class: 'legend' }, h('span', null, h('i', { class: 'k-auto' }), 'Auto shots (' + auto.length + ')'), h('span', null, h('i', { class: 'k-tele' }), 'Teleop shots (' + tele.length + ')')),
-        V2.field.heat([{ points: auto, color: V2.field.css('--s1') }, { points: tele, color: V2.field.css('--s2') }], !!settings.flip),
+        h('small', { class: 'muted' }, 'Drawn from the robot\'s own alliance end, with its own wall on the left.'),
+        V2.field.heat([{ points: auto, color: V2.field.css('--s1') }, { points: tele, color: V2.field.css('--s2') }]),
         pit ? h('div', null, h('h4', null, 'Pit'), h('dl', { class: 'pit' }, V2.codec.fields('pit').filter(function (f) { return ['s', 'e', 't'].indexOf(f.code) < 0; }).map(function (f) {
           var v = pit[f.code];
           if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null;
@@ -101,7 +102,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
     var out = h('textarea', { class: 'raw', rows: 4, readonly: true, 'aria-label': 'Export' });
     root.appendChild(h('div', { class: 'datapage' },
-      h('h2', null, 'Data · ' + (ev || 'set the event in Settings')),
+      h('h2', null, 'Data · ' + ev),
       h('section', { class: 'card' }, h('h3', null, 'Import'), paste,
         h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () { importText(paste.value); paste.value = ''; redraw(); } }, 'Import'),
           h('small', { class: 'muted' }, records().length + ' records on this device'))),

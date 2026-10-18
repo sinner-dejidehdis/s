@@ -13,7 +13,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   function rowPoints(v) {
     var P = V2.CONFIG.points;
     if (v.ns) return 0;
-    return (v.af || 0) * P.fuel + (v.tf || 0) * P.fuel + (v.ac === 'y' ? P.autoL1 : 0) + (P.climb[v.el] || 0);
+    return ((v.af || 0) + (v.tf || 0) + (v.gf || 0)) * P.fuel + (v.ac === 'y' ? P.autoL1 : 0) + (P.climb[v.el] || 0);
   }
 
   function teams(rows) {
@@ -25,13 +25,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       var all = by[t];
       var rs = all.filter(function (v) { return !v.ns; });
       var col = function (k) { return rs.map(function (v) { return v[k] || 0; }); };
-      var shots = col('af').map(function (x, i) { return x + col('tf')[i]; });
-      var missed = col('am').map(function (x, i) { return x + col('tm')[i]; });
+      var shots = col('af').map(function (x, i) { return x + col('tf')[i] + col('gf')[i]; });
+      var missed = col('am').map(function (x, i) { return x + col('tm')[i] + col('gm')[i]; });
       var made = shots.reduce(function (a, b) { return a + b; }, 0);
       var tried = made + missed.reduce(function (a, b) { return a + b; }, 0);
       var lv = { None: 0, L1: 0, L2: 0, L3: 0 };
       rs.forEach(function (v) { lv[v.el || 'None']++; });
-      var ratings = function (k) { var a = rs.map(function (v) { return v[k]; }).filter(function (x) { return x > 0; }); return a.length ? r1(avg(a)) : null; };
+      // 'n' = did not play defense / was not defended: left out of the average, counted separately
+      var ratings = function (k) { var a = rs.map(function (v) { return v[k]; }).filter(function (x) { return typeof x === 'number' && x > 0; }); return a.length ? r1(avg(a)) : null; };
       var pts = rs.map(rowPoints);
       return {
         t: Number(t),
@@ -39,6 +40,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         noShow: all.length - rs.length,
         autoFuel: r1(avg(col('af'))),
         teleFuel: r1(avg(col('tf'))),
+        endFuel: r1(avg(col('gf'))),
         ferried: r1(avg(col('tp'))),
         accuracy: tried ? Math.round((made / tried) * 100) : null,
         autoL1: rs.length ? Math.round((rs.filter(function (v) { return v.ac === 'y'; }).length / rs.length) * 100) : 0,
@@ -50,6 +52,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         defense: r1(avg(col('td'))),
         driver: ratings('ds'),
         defRating: ratings('dr'),
+        defendedRating: ratings('dd'),
+        playedDefense: rs.filter(function (v) { return typeof v.dr === 'number' && v.dr > 0; }).length,
+        wasDefended: rs.filter(function (v) { return typeof v.dd === 'number' && v.dd > 0; }).length,
         problems: all.filter(function (v) { return v.to || v.dk || v.bf; }).length,
         comments: all.filter(function (v) { return v.co; }).map(function (v) { return { m: v.m, s: v.s, text: v.co }; }),
       };
