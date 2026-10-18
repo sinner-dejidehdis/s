@@ -63,6 +63,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       ['defense', 'Def. s'], ['defRating', 'Def. rating'], ['driver', 'Driver'], ['problems', 'Issues'],
     ];
 
+    var topPts = Math.max.apply(null, stats.map(function (s) { return s.points; }).concat([1]));
     var table = stats.length ? h('div', { class: 'scroll' }, h('table', { class: 'data' },
       h('thead', null, h('tr', null, COLS.map(function (c) {
         return h('th', { class: 'sort' + (sortKey === c[0] ? ' on' : ''), onclick: function () { sortKey = c[0]; redraw(); } }, c[1]);
@@ -71,6 +72,10 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         return h('tr', { class: heatTeam === s.t ? 'sel' : '' }, COLS.map(function (c) {
           if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { heatTeam = s.t; redraw(); } }, s.t));
           var v = s[c[0]];
+          if (c[0] === 'points') {
+            // Bar length = share of the event's best average, so strong teams stand out at a glance
+            return h('td', { class: 'num barcell' }, h('span', { class: 'bar', style: 'width:' + Math.round((v / topPts) * 100) + '%' }), h('span', { class: 'barval' }, v));
+          }
           return h('td', { class: 'num' }, v == null ? '–' : v);
         }));
       }))

@@ -3,139 +3,204 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>REBUILT Scout</title>
+  <title>Earthquakers Scout</title>
   <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9Ijk2IiBmaWxsPSIjMGY2ZmQxIi8+PHJlY3QgeD0iOTYiIHk9IjEyMCIgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyNzIiIHJ4PSIyNCIgZmlsbD0iI2VlZjFmNCIvPjxyZWN0IHg9Ijk2IiB5PSIxMjAiIHdpZHRoPSIxNTAiIGhlaWdodD0iMjcyIiByeD0iMjQiIGZpbGw9IiNkYmU5ZjgiLz48cmVjdCB4PSIyMzYiIHk9IjIzMCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjZjJjMTRlIi8+PGNpcmNsZSBjeD0iMTgwIiBjeT0iMTkwIiByPSIxOCIgZmlsbD0iI2ViNjgzNCIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjMwMCIgcj0iMTgiIGZpbGw9IiNlYjY4MzQiLz48L3N2Zz4K">
-  <meta name="theme-color" content="#0f6fd1">
+  <meta name="theme-color" content="#17151a">
   <style>
-/* Layout: one column form, a phase stripe per page, sticky tabs on top. */
+/* Earthquakers Scout.
+   Layout: a basalt brand band with a live seismograph trace on top, then one form page at a time
+   on warm stone, each page marked by a phase stripe; magma orange is the single loud color. */
 :root {
   color-scheme: light;
-  --bg: #eef1f4;
-  --surface: #ffffff;
-  --surface-2: #e3e8ee;
-  --ink: #12161c;
-  --ink-2: #4c5866;
-  --line: #cfd6de;
-  --accent: #0f6fd1;
+  --bg: #f2efea;
+  --surface: #fffdfa;
+  --surface-2: #ebe6df;
+  --ink: #17141a;
+  --ink-2: #5b544e;
+  --line: #dcd4ca;
+  --accent: #c2410c;          /* magma: buttons, selected options */
   --accent-ink: #ffffff;
-  --danger: #c4312b;
-  --ok: #1a8a52;
-  --red: #d23a3a;
-  --blue: #2367d1;
-  --ph-prematch: #5d6b7a;
-  --ph-auto: #c78300;
-  --ph-teleop: #1a8a52;
-  --ph-endgame: #7b54c9;
-  --ph-postmatch: #2f6fa8;
-  --ph-pit: #a5512c;
-  --ph-qr: #12161c;
-  --zone-us: #dbe9f8;
-  --zone-red: #f8dcdc;
-  --zone-blue: #dbe7f8;
-  --zone-mid: #eef0f2;
-  --wall: #8792a0;
-  --fixture: #c6cfd9;
-  --hub: #f2c14e;
-  --bump: #b9c4cf;
-  --trench: #9fb4c9;
+  --accent-soft: #fbe3d6;
+  --band: #17151a;            /* basalt brand band, same in both themes */
+  --band-ink: #f4eee8;
+  --band-ink-2: #a79f98;
+  --band-line: #2c2830;
+  --trace: #ff6b2c;
+  --danger: #b42318;
+  --ok: #18794e;
+  --red: #c8322f;
+  --blue: #2563c9;
+  --ph-prematch: #6b625a;
+  --ph-auto: #b45309;
+  --ph-teleop: #18794e;
+  --ph-endgame: #6d4bb8;
+  --ph-postmatch: #2f6596;
+  --ph-pit: #a1441f;
+  --ph-qr: #c2410c;
+  --zone-us: #e9e2d8;
+  --zone-red: #f6dcd8;
+  --zone-blue: #dce6f5;
+  --zone-mid: #efebe5;
+  --wall: #8a817a;
+  --fixture: #cfc6bb;
+  --hub: #f2b84b;
+  --bump: #bdb4aa;
+  --trench: #a9b7c6;
   --s1: #2a78d6;
   --s2: #eb6834;
-  --radius: 12px;
+  --radius: 14px;
+  --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
   --font: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-num: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0f1318;
-    --surface: #181e25;
-    --surface-2: #232b34;
-    --ink: #eef2f6;
-    --ink-2: #a9b4c0;
-    --line: #313b46;
-    --accent: #4a97ea;
-    --danger: #ef5a52;
+    --bg: #0f0e11;
+    --surface: #1a181d;
+    --surface-2: #26232a;
+    --ink: #f3eee9;
+    --ink-2: #b0a79f;
+    --line: #35303a;
+    --accent: #ff6b2c;
+    --accent-ink: #1a0d06;
+    --accent-soft: #3a1d10;
+    --band: #0b0a0d;
+    --band-line: #25212a;
+    --danger: #f2554a;
     --ok: #3fbf7a;
-    --red: #ef6a6a;
-    --blue: #6aa6f2;
-    --ph-prematch: #8a98a7;
-    --ph-auto: #e0a030;
+    --red: #f06a66;
+    --blue: #6aa2f2;
+    --ph-prematch: #a39a91;
+    --ph-auto: #f0a33a;
     --ph-teleop: #3fbf7a;
-    --ph-endgame: #a487e6;
-    --ph-postmatch: #5d9bd2;
-    --ph-pit: #d9805a;
-    --ph-qr: #eef2f6;
-    --zone-us: #1e3248;
-    --zone-red: #4a2226;
-    --zone-blue: #1e3248;
-    --zone-mid: #20262d;
-    --wall: #5c6774;
-    --fixture: #3a4552;
-    --hub: #b88f2a;
-    --bump: #3d4854;
-    --trench: #34506b;
+    --ph-endgame: #a58ae8;
+    --ph-postmatch: #6aa6dc;
+    --ph-pit: #e2875f;
+    --ph-qr: #ff6b2c;
+    --zone-us: #2a2620;
+    --zone-red: #45201f;
+    --zone-blue: #1c2c45;
+    --zone-mid: #1f1d22;
+    --wall: #5f5750;
+    --fixture: #3d3832;
+    --hub: #b88a2a;
+    --bump: #403a35;
+    --trench: #34495e;
     --s1: #3987e5;
     --s2: #d95926;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0f1318;
-  --surface: #181e25;
-  --surface-2: #232b34;
-  --ink: #eef2f6;
-  --ink-2: #a9b4c0;
-  --line: #313b46;
-  --accent: #4a97ea;
-  --danger: #ef5a52;
+  --bg: #0f0e11;
+  --surface: #1a181d;
+  --surface-2: #26232a;
+  --ink: #f3eee9;
+  --ink-2: #b0a79f;
+  --line: #35303a;
+  --accent: #ff6b2c;
+  --accent-ink: #1a0d06;
+  --accent-soft: #3a1d10;
+  --band: #0b0a0d;
+  --band-line: #25212a;
+  --danger: #f2554a;
   --ok: #3fbf7a;
-  --red: #ef6a6a;
-  --blue: #6aa6f2;
-  --ph-prematch: #8a98a7;
-  --ph-auto: #e0a030;
+  --red: #f06a66;
+  --blue: #6aa2f2;
+  --ph-prematch: #a39a91;
+  --ph-auto: #f0a33a;
   --ph-teleop: #3fbf7a;
-  --ph-endgame: #a487e6;
-  --ph-postmatch: #5d9bd2;
-  --ph-pit: #d9805a;
-  --ph-qr: #eef2f6;
-  --zone-us: #1e3248;
-  --zone-red: #4a2226;
-  --zone-blue: #1e3248;
-  --zone-mid: #20262d;
-  --wall: #5c6774;
-  --fixture: #3a4552;
-  --hub: #b88f2a;
-  --bump: #3d4854;
-  --trench: #34506b;
+  --ph-endgame: #a58ae8;
+  --ph-postmatch: #6aa6dc;
+  --ph-pit: #e2875f;
+  --ph-qr: #ff6b2c;
+  --zone-us: #2a2620;
+  --zone-red: #45201f;
+  --zone-blue: #1c2c45;
+  --zone-mid: #1f1d22;
+  --wall: #5f5750;
+  --fixture: #3d3832;
+  --hub: #b88a2a;
+  --bump: #403a35;
+  --trench: #34495e;
   --s1: #3987e5;
   --s2: #d95926;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-body { background: var(--bg); color: var(--ink); font: 16px/1.45 var(--font); -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-h2 { margin: 0 0 12px; font-size: 1.35rem; text-wrap: balance; }
-h3 { margin: 0 0 8px; font-size: 1.05rem; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.45 var(--font);
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--band); }
+h2 { margin: 0; font: 900 1.9rem/1 var(--font-display); letter-spacing: .02em; text-transform: uppercase; text-wrap: balance; }
+h3 { margin: 0; font: 700 1.25rem/1.1 var(--font-display); letter-spacing: .03em; text-transform: uppercase; }
 h4 { margin: 12px 0 6px; font-size: .95rem; }
 .muted { color: var(--ink-2); }
 .small, small { font-size: .82rem; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
-.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); padding: 8px max(16px, env(safe-area-inset-left, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
-.brand { font-weight: 800; letter-spacing: .02em; }
-.brand small { color: var(--ink-2); font-weight: 600; }
-.tabs { display: flex; gap: 4px; overflow-x: auto; }
-.tabs a { padding: 10px 14px; color: var(--ink-2); text-decoration: none; border-bottom: 3px solid transparent; font-weight: 600; white-space: nowrap; }
-.tabs a.on { color: var(--ink); border-color: var(--accent); }
-.tabs a:focus-visible, .btn:focus-visible, .opt:focus-visible, .toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* ---------- Brand band ---------- */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--band); color: var(--band-ink);
+  padding-top: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--band-line);
+}
+.brandrow { display: flex; align-items: center; gap: 10px; max-width: 760px; margin: 0 auto; }
+.mark { width: 38px; height: 38px; display: block; flex: none; }
+.mark-tile { fill: #26222b; }
+.mark-wave { fill: none; stroke: var(--trace); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.mark-fault { fill: none; stroke: var(--band-ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.wordmark { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.teamname { font: 900 1.55rem/0.95 var(--font-display); letter-spacing: .06em; text-transform: uppercase; }
+.sub { font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; color: var(--band-ink-2); margin-top: 3px; }
+.eventchip {
+  font: 600 .78rem var(--font-num); letter-spacing: .06em; color: var(--band-ink);
+  border: 1px solid var(--band-line); background: #221f26; border-radius: 999px; padding: 4px 10px; white-space: nowrap;
+}
+#quake { max-width: 760px; margin: 6px auto 0; }
+.quake { display: block; width: 100%; height: 28px; }
+.quake-base { stroke: var(--band-line); stroke-width: 1; }
+.quake-line { fill: none; stroke: var(--trace); stroke-width: 1.6; stroke-linejoin: round; opacity: .85; transition: opacity .3s; }
+.quake-line.hit { opacity: 1; stroke-width: 2; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; max-width: 760px; margin: 0 auto; scrollbar-width: none; }
+.tabs a {
+  padding: 10px 14px 9px; color: var(--band-ink-2); text-decoration: none; white-space: nowrap;
+  font: 700 1rem var(--font-display); letter-spacing: .08em; text-transform: uppercase;
+  border-bottom: 3px solid transparent;
+}
+.tabs a.on { color: var(--band-ink); border-color: var(--trace); }
 
-main { max-width: 760px; margin: 0 auto; padding-block: 16px 90px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main {
+  max-width: 760px; margin: 0 auto; padding-block: 18px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
 
-.steps { list-style: none; display: flex; gap: 4px; padding: 0; margin: 0 0 12px; overflow-x: auto; }
-.steps li { flex: 1; min-width: 64px; text-align: center; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); border-top: 4px solid var(--line); padding-top: 6px; }
-.steps li.done { border-color: var(--ok); }
-.steps li.on { border-color: var(--accent); color: var(--ink); }
+/* ---------- Steps: ticks on a seismograph baseline ---------- */
+.steps { list-style: none; display: flex; padding: 0; margin: 0 0 14px; position: relative; }
+.steps::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 2px; background: var(--line); }
+.steps li { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.steps i { width: 2px; height: 16px; background: var(--line); display: block; position: relative; }
+.steps li.done i { background: var(--ink-2); }
+.steps li.on i { width: 4px; height: 16px; background: var(--accent); box-shadow: 0 -6px 0 -1px var(--accent), 0 6px 0 -1px var(--accent); }
+.steps span { font: 700 .72rem var(--font-num); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.steps li.on span { color: var(--ink); }
 
-.page { background: var(--surface); border: 1px solid var(--line); border-left: 8px solid var(--ph, var(--line)); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+/* ---------- Form page ---------- */
+.page {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 16px; display: flex; flex-direction: column; gap: 16px; position: relative; overflow: hidden;
+}
+.page::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--ph, var(--line)); }
 .ph-prematch { --ph: var(--ph-prematch); }
 .ph-auto { --ph: var(--ph-auto); }
 .ph-teleop { --ph: var(--ph-teleop); }
@@ -144,17 +209,25 @@ main { max-width: 760px; margin: 0 auto; padding-block: 16px 90px; padding-left:
 .ph-pit { --ph: var(--ph-pit); }
 .ph-qr { --ph: var(--ph-qr); }
 .page h2 { color: var(--ph); }
-.item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.iname { font-weight: 700; font-size: .95rem; }
-.req { color: var(--danger); }
-.eventline { margin: 0; color: var(--ink-2); }
-.eventline b { color: var(--ink); }
+.item { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.iname { font: 700 .8rem var(--font-num); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.req { color: var(--accent); }
+.eventline { margin: -6px 0 0; color: var(--ink-2); font-size: .9rem; }
+.eventline b { color: var(--ink); font-family: var(--font-num); letter-spacing: .04em; }
 
-input, textarea { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; width: 100%; }
-input[type=checkbox] { width: auto; }
+input, textarea {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 10px; padding: 11px 12px; width: 100%;
+}
+input:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+input[type=checkbox] { width: auto; accent-color: var(--accent); }
 textarea { resize: vertical; }
 
-.btn { font: inherit; font-weight: 600; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 10px; padding: 10px 16px; cursor: pointer; touch-action: manipulation; }
+.btn {
+  font: 600 1rem var(--font); border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+  border-radius: 10px; padding: 10px 16px; cursor: pointer; touch-action: manipulation;
+}
+.btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: .4; cursor: default; }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
 .btn.danger { background: var(--danger); color: #fff; border-color: transparent; }
@@ -163,45 +236,69 @@ textarea { resize: vertical; }
 .link { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--accent); cursor: pointer; }
 
 .seg { display: flex; flex-wrap: wrap; gap: 6px; }
-.opt { font: inherit; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; min-width: 48px; touch-action: manipulation; }
-.opt.none { font-size: .9rem; }
+.opt {
+  font: 500 1rem var(--font); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; min-width: 48px; touch-action: manipulation;
+}
+.opt.none { font-size: .9rem; color: var(--ink-2); }
 .opt.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .stations { display: grid; grid-template-columns: repeat(3, 1fr); }
 .stations .opt.r { border-color: var(--red); color: var(--red); }
 .stations .opt.b { border-color: var(--blue); color: var(--blue); }
 .stations .opt.r.on { background: var(--red); color: #fff; }
 .stations .opt.b.on { background: var(--blue); color: #fff; }
-.toggle { font: inherit; font-weight: 700; width: 96px; padding: 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); cursor: pointer; }
+.toggle {
+  font: 700 .95rem var(--font); width: 96px; padding: 10px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); cursor: pointer;
+}
 .toggle.on { background: var(--ok); border-color: var(--ok); color: #fff; }
 
 .counter { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.counter .count { min-width: 64px; text-align: center; font: 700 1.6rem var(--font-num); font-variant-numeric: tabular-nums; }
-.counter .plus { min-width: 56px; padding: 12px 10px; }
-.counter .minus { min-width: 48px; padding: 12px 10px; }
+.counter .count {
+  min-width: 72px; text-align: center; font: 700 2.1rem/1 var(--font-num); font-variant-numeric: tabular-nums;
+  padding: 6px 4px; border-bottom: 2px solid var(--line);
+}
+.counter .plus { min-width: 58px; padding: 13px 10px; font-family: var(--font-num); font-weight: 700; }
+.counter .minus { min-width: 48px; padding: 13px 10px; }
 
 .fieldwrap { display: flex; flex-direction: column; gap: 6px; }
-.fieldcanvas { width: 100%; max-width: 100%; display: block; border-radius: 8px; border: 1px solid var(--line); cursor: crosshair; touch-action: manipulation; }
+.fieldcanvas { width: 100%; max-width: 100%; display: block; border-radius: 10px; border: 1px solid var(--line); cursor: crosshair; touch-action: manipulation; }
 
-.pager { display: flex; justify-content: space-between; gap: 10px; margin-top: 12px; }
-.pager .btn { flex: 1; padding: 14px; font-size: 1.05rem; }
+.pager { display: flex; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.pager .btn { flex: 1; padding: 15px; font: 700 1.15rem var(--font-display); letter-spacing: .08em; text-transform: uppercase; }
 
-.qr { background: #fff; padding: 8px; border-radius: 8px; max-width: 420px; width: 100%; margin: 0 auto; }
+/* ---------- QR / reading ---------- */
+.reading { display: flex; flex-direction: column; gap: 6px; background: var(--bg); border-radius: 12px; padding: 12px 14px; }
+.readout { display: flex; flex-direction: column; }
+.readout small { font: 700 .7rem var(--font-num); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.readout b { font: 900 3rem/1 var(--font-display); color: var(--accent); }
+.seismo { width: 100%; height: auto; display: block; max-height: 140px; }
+.seismo-line { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; }
+.seismo-div { stroke: var(--line); stroke-dasharray: 2 3; }
+.seismo-val { fill: var(--ink); font: 700 14px var(--font-num); }
+.seismo-label { fill: var(--ink-2); font: 600 10px var(--font-num); letter-spacing: .08em; text-transform: uppercase; }
+.qr { background: #fff; padding: 10px; border-radius: 12px; max-width: 420px; width: 100%; margin: 0 auto; border: 1px solid var(--line); }
 .qr svg { display: block; width: 100%; height: auto; }
 .raw { font: .8rem ui-monospace, Menlo, monospace; }
 .row { display: flex; gap: 8px; align-items: center; }
 .row.wrap { flex-wrap: wrap; }
 .row.between { justify-content: space-between; }
 
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+/* ---------- Data / settings ---------- */
+.datapage > h2, .settings > h2 { margin-bottom: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .check { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
 .scroll { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: .88rem; }
-th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
-th { color: var(--ink-2); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { padding: 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { font: 700 .72rem var(--font-num); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
 th.sort { cursor: pointer; }
-th.sort.on { color: var(--ink); text-decoration: underline; }
+th.sort.on { color: var(--accent); }
 td.num { text-align: right; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
-tr.sel td { background: var(--surface-2); }
+tr.sel td { background: var(--accent-soft); }
+.barcell { position: relative; min-width: 90px; }
+.barcell .bar { position: absolute; left: 8px; top: 50%; height: 8px; margin-top: -4px; max-width: calc(100% - 52px); background: var(--accent); border-radius: 0 4px 4px 0; opacity: .85; }
+.barcell .barval { position: relative; font-weight: 700; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .85rem; color: var(--ink-2); }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
 .legend .k-auto { background: var(--s1); }
@@ -211,21 +308,37 @@ dl.pit dt { color: var(--ink-2); }
 dl.pit dd { margin: 0; }
 .notes { margin: 0; padding-left: 18px; }
 
-.modal { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .45); display: flex; align-items: center; justify-content: center; padding: 16px; }
-.modal-card { background: var(--surface); color: var(--ink); border-radius: var(--radius); padding: 16px; max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.modal { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal-card { background: var(--surface); color: var(--ink); border-radius: var(--radius); padding: 18px; max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .modal-card p { margin: 0; }
 
-.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; max-width: calc(100% - 32px); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 30; }
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--band); color: var(--band-ink); padding: 10px 16px; border-radius: 10px; max-width: calc(100% - 32px);
+  opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 30; border-left: 4px solid var(--trace);
+}
 .toast.show { opacity: 1; }
-.toast.ok { background: var(--ok); color: #fff; }
-.toast.err { background: var(--danger); color: #fff; }
+.toast.ok { border-left-color: var(--ok); }
+.toast.err { border-left-color: var(--danger); }
 
+@media (max-width: 380px) {
+  .teamname { font-size: 1.3rem; }
+  .eventchip { display: none; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
   <header class="top">
-    <div class="brand">REBUILT Scout <small>v2</small></div>
+    <div class="brandrow">
+      <span id="mark"></span>
+      <div class="wordmark">
+        <span class="teamname" id="teamname">Earthquakers</span>
+        <span class="sub" id="teamsub">FRC 9094 · REBUILT Scout</span>
+      </div>
+      <span class="eventchip" id="eventchip"></span>
+    </div>
+    <div id="quake"></div>
     <nav class="tabs" id="tabs"></nav>
   </header>
   <main id="app"></main>
@@ -2543,6 +2656,9 @@ V2.CONFIG = {
   // Use the TBA event key, e.g. '2026txhou'.
   event: '2026test',
 
+  // Shown in the header
+  team: { number: 9094, name: 'Earthquakers' },
+
   id: 'rebuilt2026-v2',
   title: 'REBUILT Scout',
   season: 2026,
@@ -2551,7 +2667,7 @@ V2.CONFIG = {
 
   match: [
     {
-      page: 'prematch', title: 'Pre-match', fields: [
+      page: 'prematch', title: 'Pre-match', short: 'Pre', fields: [
         { code: 's', name: 'Scout initials', type: 'text', max: 5, required: true, keep: true },
         { code: 'e', name: 'Event', type: 'event' },
         { code: 'l', name: 'Match level', type: 'radio', choices: { qm: 'Quals', sf: 'Semis', f: 'Finals' }, def: 'qm', required: true, keep: true },
@@ -2587,7 +2703,7 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'endgame', title: 'Endgame', fields: [
+      page: 'endgame', title: 'Endgame', short: 'End', fields: [
         { code: 'gf', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
         { code: 'gm', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
         { code: 'el', name: 'Tower level', type: 'radio', choices: { None: 'None', L1: 'L1', L2: 'L2', L3: 'L3' }, def: 'None' },
@@ -2597,7 +2713,7 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'postmatch', title: 'Post-match', fields: [
+      page: 'postmatch', title: 'Post-match', short: 'Post', fields: [
         { code: 'ds', name: 'Driver skill', type: 'rating', max: 5 },
         { code: 'dr', name: 'Defense they played', type: 'rating', max: 5, none: 'Did not play defense' },
         { code: 'dd', name: 'Handled being defended', type: 'rating', max: 5, none: 'Was not defended' },
@@ -2858,6 +2974,110 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 </script>
   <script>
+// Earthquakers visual motif: seismograph traces drawn as inline SVG.
+// strip(): the live trace in the header, which jolts when a scout taps a counter.
+// seismogram(): one match's Fuel by phase, drawn as a reading on the QR page.
+var V2 = (globalThis.V2 = globalThis.V2 || {});
+
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function svg(tag, attrs) {
+    var el = document.createElementNS(NS, tag);
+    Object.keys(attrs || {}).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+    return el;
+  }
+
+  // Deterministic noise so the trace looks the same on every load
+  function noise(seed) {
+    var s = seed;
+    return function () {
+      s = (s * 16807) % 2147483647;
+      return s / 2147483647 - 0.5;
+    };
+  }
+
+  // Points for a trace: quiet baseline with a few tremors, plus an optional quake at `at`
+  function trace(width, height, seed, quake) {
+    var rnd = noise(seed);
+    var mid = height / 2;
+    var pts = [];
+    for (var x = 0; x <= width; x += 4) {
+      var amp = 1.2;
+      [0.18, 0.46, 0.71].forEach(function (c) { amp += 7 * Math.exp(-Math.pow((x / width - c) * 18, 2)); });
+      if (quake) amp += quake.size * Math.exp(-Math.pow((x - quake.at) / 18, 2));
+      pts.push(x + ',' + (mid + rnd() * amp * 2).toFixed(1));
+    }
+    return pts.join(' ');
+  }
+
+  var stripLine = null, stripW = 600, stripH = 28, joltTimer = null;
+
+  function strip(host) {
+    var el = svg('svg', { viewBox: '0 0 ' + stripW + ' ' + stripH, preserveAspectRatio: 'none', class: 'quake', 'aria-hidden': 'true' });
+    el.appendChild(svg('line', { x1: 0, x2: stripW, y1: stripH / 2, y2: stripH / 2, class: 'quake-base' }));
+    stripLine = svg('polyline', { points: trace(stripW, stripH, 9094), class: 'quake-line' });
+    el.appendChild(stripLine);
+    host.appendChild(el);
+  }
+
+  // A small tremor on the header trace as tactile feedback for a tap
+  function jolt(size) {
+    if (!stripLine || reduce) return;
+    var at = stripW * (0.55 + Math.random() * 0.4);
+    stripLine.setAttribute('points', trace(stripW, stripH, 9094, { at: at, size: Math.min(13, 4 + (size || 1) * 0.9) }));
+    stripLine.classList.add('hit');
+    clearTimeout(joltTimer);
+    joltTimer = setTimeout(function () {
+      stripLine.setAttribute('points', trace(stripW, stripH, 9094));
+      stripLine.classList.remove('hit');
+    }, 420);
+  }
+
+  // phases: [{label, value}] → a seismogram whose bursts scale with each value
+  function seismogram(phases) {
+    var W = 320, H = 96, base = 58;
+    var max = Math.max.apply(null, phases.map(function (p) { return p.value; }).concat([10]));
+    var el = svg('svg', { viewBox: '0 0 ' + W + ' ' + H, class: 'seismo', role: 'img',
+      'aria-label': 'Fuel scored by phase: ' + phases.map(function (p) { return p.label + ' ' + p.value; }).join(', ') });
+    el.appendChild(svg('line', { x1: 0, x2: W, y1: base, y2: base, class: 'quake-base' }));
+    var rnd = noise(17);
+    var seg = W / phases.length;
+    var pts = [];
+    phases.forEach(function (p, i) {
+      var amp = 2 + (p.value / max) * 40;
+      for (var x = 0; x <= seg; x += 3) {
+        var env = Math.sin((x / seg) * Math.PI);
+        pts.push((i * seg + x).toFixed(1) + ',' + (base + rnd() * 2 * amp * env).toFixed(1));
+      }
+      var cx = i * seg + seg / 2;
+      var t = svg('text', { x: cx, y: H - 18, class: 'seismo-val', 'text-anchor': 'middle' });
+      t.textContent = p.value;
+      el.appendChild(t);
+      var l = svg('text', { x: cx, y: H - 4, class: 'seismo-label', 'text-anchor': 'middle' });
+      l.textContent = p.label;
+      el.appendChild(l);
+      if (i) el.appendChild(svg('line', { x1: i * seg, x2: i * seg, y1: 8, y2: H - 30, class: 'seismo-div' }));
+    });
+    el.appendChild(svg('polyline', { points: pts.join(' '), class: 'seismo-line' }));
+    return el;
+  }
+
+  // Brand mark: a spike crossing a fault line, inside a rounded tile
+  function mark() {
+    var el = svg('svg', { viewBox: '0 0 48 48', class: 'mark', 'aria-hidden': 'true' });
+    el.appendChild(svg('rect', { x: 1, y: 1, width: 46, height: 46, rx: 11, class: 'mark-tile' }));
+    el.appendChild(svg('path', { d: 'M6 27 L15 27 L19 19 L24 36 L29 10 L33 27 L42 27', class: 'mark-wave' }));
+    el.appendChild(svg('path', { d: 'M8 40 L20 33 L27 37 L40 30', class: 'mark-fault' }));
+    return el;
+  }
+
+  V2.quake = { strip: strip, jolt: jolt, seismogram: seismogram, mark: mark };
+})();
+
+</script>
+  <script>
 // Our own schematic of one alliance's half of the REBUILT field (not to scale).
 // Points are stored relative to the scouted robot's alliance: x 0–99 from its own wall to the
 // center line, y 0–99 with that alliance's Outpost side at 0. The drawing turns 180° for the
@@ -3075,7 +3295,12 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         }));
       case 'counter':
         var show = h('output', { class: 'count', id: id }, val);
-        function bump(d) { v[f.code] = Math.max(0, (v[f.code] || 0) + d); show.textContent = v[f.code]; if (navigator.vibrate) navigator.vibrate(10); }
+        function bump(d) {
+          v[f.code] = Math.max(0, (v[f.code] || 0) + d);
+          show.textContent = v[f.code];
+          if (d > 0) V2.quake.jolt(d);
+          if (navigator.vibrate) navigator.vibrate(10);
+        }
         return h('div', { class: 'counter' },
           h('button', { type: 'button', class: 'btn minus', 'aria-label': 'minus 1', onclick: function () { bump(-1); } }, '−'),
           show,
@@ -3135,9 +3360,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       window.scrollTo(0, 0);
     }
 
-    var steps = h('ol', { class: 'steps' }, pages.map(function (p, i) {
-      return h('li', { class: i === s.page ? 'on' : i < s.page ? 'done' : '' }, p.title);
-    }).concat(kind === 'match' || pages.length > 1 ? [h('li', { class: last ? 'on' : '' }, 'QR')] : []));
+    var steps = h('ol', { class: 'steps', 'aria-label': 'Progress' }, pages.map(function (p, i) {
+      return h('li', { class: i === s.page ? 'on' : i < s.page ? 'done' : '', 'aria-current': i === s.page ? 'step' : null }, h('i'), h('span', null, p.short || p.title));
+    }).concat(kind === 'match' || pages.length > 1 ? [h('li', { class: last ? 'on' : '' }, h('i'), h('span', null, 'QR'))] : []));
     var nav = h('div', { class: 'pager' },
       h('button', { type: 'button', class: 'btn', disabled: s.page === 0, onclick: function () { go(-1); } }, '← Prev'),
       last ? null : h('button', { type: 'button', class: 'btn primary', onclick: function () { go(1); } }, s.page === pages.length - 1 ? 'Finish →' : 'Next →'));
@@ -3162,9 +3387,17 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         s.saved = true;
       }
       var label = kind === 'match' ? 'Q' + s.values.m + ' · ' + s.values.t + ' · ' + (STATIONS[s.values.r] || '') : 'Pit · ' + s.values.t;
+      var reading = kind === 'match' && !s.values.ns ? h('div', { class: 'reading' },
+        h('div', { class: 'readout' }, h('small', null, 'Points by your counts'), h('b', null, V2.stats.rowPoints(s.values))),
+        V2.quake.seismogram([
+          { label: 'Auto', value: s.values.af || 0 },
+          { label: 'Teleop', value: s.values.tf || 0 },
+          { label: 'Endgame', value: s.values.gf || 0 },
+        ])) : null;
       body = h('section', { class: 'page ph-qr' },
         h('h2', null, label),
-        h('p', { class: 'muted' }, 'Show this to the data lead. Points by your counts: ' + (kind === 'match' ? V2.stats.rowPoints(s.values) : '–')),
+        reading,
+        h('p', { class: 'muted' }, 'Show this QR code to the data lead.'),
         V2.ui.qr(row),
         h('textarea', { class: 'raw', rows: 3, readonly: true, value: row, 'aria-label': 'Data row' }),
         h('div', { class: 'row' },
@@ -3247,6 +3480,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       ['defense', 'Def. s'], ['defRating', 'Def. rating'], ['driver', 'Driver'], ['problems', 'Issues'],
     ];
 
+    var topPts = Math.max.apply(null, stats.map(function (s) { return s.points; }).concat([1]));
     var table = stats.length ? h('div', { class: 'scroll' }, h('table', { class: 'data' },
       h('thead', null, h('tr', null, COLS.map(function (c) {
         return h('th', { class: 'sort' + (sortKey === c[0] ? ' on' : ''), onclick: function () { sortKey = c[0]; redraw(); } }, c[1]);
@@ -3255,6 +3489,10 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         return h('tr', { class: heatTeam === s.t ? 'sel' : '' }, COLS.map(function (c) {
           if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { heatTeam = s.t; redraw(); } }, s.t));
           var v = s[c[0]];
+          if (c[0] === 'points') {
+            // Bar length = share of the event's best average, so strong teams stand out at a glance
+            return h('td', { class: 'num barcell' }, h('span', { class: 'bar', style: 'width:' + Math.round((v / topPts) * 100) + '%' }), h('span', { class: 'barval' }, v));
+          }
           return h('td', { class: 'num' }, v == null ? '–' : v);
         }));
       }))
@@ -3355,7 +3593,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           settingsPage(root);
         } }, 'Load schedule')),
       offlineCard(),
-      h('p', { class: 'muted small' }, 'REBUILT Scout v2 · ' + V2.CONFIG.season + ' · fields are defined in js/config.js')
+      h('p', { class: 'muted small' }, V2.CONFIG.team.name + ' · FRC ' + V2.CONFIG.team.number + ' · REBUILT Scout v2 · fields are defined in js/config.js')
     ));
   }
 
@@ -3404,6 +3642,13 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     else if (tab === 'data') V2.data.render(root);
     else settingsPage(root);
   }
+
+  var T = V2.CONFIG.team;
+  document.getElementById('teamname').textContent = T.name;
+  document.getElementById('teamsub').textContent = 'FRC ' + T.number + ' · REBUILT Scout';
+  document.getElementById('eventchip').textContent = V2.CONFIG.event;
+  document.getElementById('mark').appendChild(V2.quake.mark());
+  V2.quake.strip(document.getElementById('quake'));
 
   var nav = document.getElementById('tabs');
   Object.keys(TABS).forEach(function (k) { nav.appendChild(h('a', { href: '#' + k }, TABS[k])); });

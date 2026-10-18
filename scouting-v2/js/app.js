@@ -40,7 +40,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           settingsPage(root);
         } }, 'Load schedule')),
       offlineCard(),
-      h('p', { class: 'muted small' }, 'REBUILT Scout v2 · ' + V2.CONFIG.season + ' · fields are defined in js/config.js')
+      h('p', { class: 'muted small' }, V2.CONFIG.team.name + ' · FRC ' + V2.CONFIG.team.number + ' · REBUILT Scout v2 · fields are defined in js/config.js')
     ));
   }
 
@@ -89,6 +89,13 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     else if (tab === 'data') V2.data.render(root);
     else settingsPage(root);
   }
+
+  var T = V2.CONFIG.team;
+  document.getElementById('teamname').textContent = T.name;
+  document.getElementById('teamsub').textContent = 'FRC ' + T.number + ' · REBUILT Scout';
+  document.getElementById('eventchip').textContent = V2.CONFIG.event;
+  document.getElementById('mark').appendChild(V2.quake.mark());
+  V2.quake.strip(document.getElementById('quake'));
 
   var nav = document.getElementById('tabs');
   Object.keys(TABS).forEach(function (k) { nav.appendChild(h('a', { href: '#' + k }, TABS[k])); });

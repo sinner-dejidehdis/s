@@ -8,6 +8,9 @@ V2.CONFIG = {
   // Use the TBA event key, e.g. '2026txhou'.
   event: '2026test',
 
+  // Shown in the header
+  team: { number: 9094, name: 'Earthquakers' },
+
   id: 'rebuilt2026-v2',
   title: 'REBUILT Scout',
   season: 2026,
@@ -16,7 +19,7 @@ V2.CONFIG = {
 
   match: [
     {
-      page: 'prematch', title: 'Pre-match', fields: [
+      page: 'prematch', title: 'Pre-match', short: 'Pre', fields: [
         { code: 's', name: 'Scout initials', type: 'text', max: 5, required: true, keep: true },
         { code: 'e', name: 'Event', type: 'event' },
         { code: 'l', name: 'Match level', type: 'radio', choices: { qm: 'Quals', sf: 'Semis', f: 'Finals' }, def: 'qm', required: true, keep: true },
@@ -52,7 +55,7 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'endgame', title: 'Endgame', fields: [
+      page: 'endgame', title: 'Endgame', short: 'End', fields: [
         { code: 'gf', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
         { code: 'gm', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
         { code: 'el', name: 'Tower level', type: 'radio', choices: { None: 'None', L1: 'L1', L2: 'L2', L3: 'L3' }, def: 'None' },
@@ -62,7 +65,7 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'postmatch', title: 'Post-match', fields: [
+      page: 'postmatch', title: 'Post-match', short: 'Post', fields: [
         { code: 'ds', name: 'Driver skill', type: 'rating', max: 5 },
         { code: 'dr', name: 'Defense they played', type: 'rating', max: 5, none: 'Did not play defense' },
         { code: 'dd', name: 'Handled being defended', type: 'rating', max: 5, none: 'Was not defended' },

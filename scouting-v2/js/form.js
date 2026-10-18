@@ -82,7 +82,12 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         }));
       case 'counter':
         var show = h('output', { class: 'count', id: id }, val);
-        function bump(d) { v[f.code] = Math.max(0, (v[f.code] || 0) + d); show.textContent = v[f.code]; if (navigator.vibrate) navigator.vibrate(10); }
+        function bump(d) {
+          v[f.code] = Math.max(0, (v[f.code] || 0) + d);
+          show.textContent = v[f.code];
+          if (d > 0) V2.quake.jolt(d);
+          if (navigator.vibrate) navigator.vibrate(10);
+        }
         return h('div', { class: 'counter' },
           h('button', { type: 'button', class: 'btn minus', 'aria-label': 'minus 1', onclick: function () { bump(-1); } }, '−'),
           show,
@@ -142,9 +147,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       window.scrollTo(0, 0);
     }
 
-    var steps = h('ol', { class: 'steps' }, pages.map(function (p, i) {
-      return h('li', { class: i === s.page ? 'on' : i < s.page ? 'done' : '' }, p.title);
-    }).concat(kind === 'match' || pages.length > 1 ? [h('li', { class: last ? 'on' : '' }, 'QR')] : []));
+    var steps = h('ol', { class: 'steps', 'aria-label': 'Progress' }, pages.map(function (p, i) {
+      return h('li', { class: i === s.page ? 'on' : i < s.page ? 'done' : '', 'aria-current': i === s.page ? 'step' : null }, h('i'), h('span', null, p.short || p.title));
+    }).concat(kind === 'match' || pages.length > 1 ? [h('li', { class: last ? 'on' : '' }, h('i'), h('span', null, 'QR'))] : []));
     var nav = h('div', { class: 'pager' },
       h('button', { type: 'button', class: 'btn', disabled: s.page === 0, onclick: function () { go(-1); } }, '← Prev'),
       last ? null : h('button', { type: 'button', class: 'btn primary', onclick: function () { go(1); } }, s.page === pages.length - 1 ? 'Finish →' : 'Next →'));
@@ -169,9 +174,17 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         s.saved = true;
       }
       var label = kind === 'match' ? 'Q' + s.values.m + ' · ' + s.values.t + ' · ' + (STATIONS[s.values.r] || '') : 'Pit · ' + s.values.t;
+      var reading = kind === 'match' && !s.values.ns ? h('div', { class: 'reading' },
+        h('div', { class: 'readout' }, h('small', null, 'Points by your counts'), h('b', null, V2.stats.rowPoints(s.values))),
+        V2.quake.seismogram([
+          { label: 'Auto', value: s.values.af || 0 },
+          { label: 'Teleop', value: s.values.tf || 0 },
+          { label: 'Endgame', value: s.values.gf || 0 },
+        ])) : null;
       body = h('section', { class: 'page ph-qr' },
         h('h2', null, label),
-        h('p', { class: 'muted' }, 'Show this to the data lead. Points by your counts: ' + (kind === 'match' ? V2.stats.rowPoints(s.values) : '–')),
+        reading,
+        h('p', { class: 'muted' }, 'Show this QR code to the data lead.'),
         V2.ui.qr(row),
         h('textarea', { class: 'raw', rows: 3, readonly: true, value: row, 'aria-label': 'Data row' }),
         h('div', { class: 'row' },

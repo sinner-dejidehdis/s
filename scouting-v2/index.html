@@ -3,17 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>REBUILT Scout</title>
+  <title>Earthquakers Scout</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800&family=Barlow+Semi+Condensed:wght@700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&family=Big+Shoulders+Display:wght@700;900&display=swap">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <meta name="theme-color" content="#0f6fd1">
+  <meta name="theme-color" content="#17151a">
   <link rel="stylesheet" href="css/v2.css">
 </head>
 <body>
   <header class="top">
-    <div class="brand">REBUILT Scout <small>v2</small></div>
+    <div class="brandrow">
+      <span id="mark"></span>
+      <div class="wordmark">
+        <span class="teamname" id="teamname">Earthquakers</span>
+        <span class="sub" id="teamsub">FRC 9094 · REBUILT Scout</span>
+      </div>
+      <span class="eventchip" id="eventchip"></span>
+    </div>
+    <div id="quake"></div>
     <nav class="tabs" id="tabs"></nav>
   </header>
   <main id="app"></main>
@@ -24,6 +32,7 @@
   <script src="js/codec.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/quake.js"></script>
   <script src="js/field.js"></script>
   <script src="js/form.js"></script>
   <script src="js/data.js"></script>
