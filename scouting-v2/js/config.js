@@ -9,7 +9,7 @@ V2.CONFIG = {
   event: '2026test',
 
   // Shown in the header
-  team: { number: 9094, name: 'Earthquakers' },
+  team: { number: 9094, name: 'Earthquakers', logo: 'logo.png' },
 
   id: 'rebuilt2026-v2',
   title: 'REBUILT Scout',

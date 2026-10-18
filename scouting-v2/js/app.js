@@ -94,7 +94,12 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   document.getElementById('teamname').textContent = T.name;
   document.getElementById('teamsub').textContent = 'FRC ' + T.number + ' · REBUILT Scout';
   document.getElementById('eventchip').textContent = V2.CONFIG.event;
-  document.getElementById('mark').appendChild(V2.quake.mark());
+  // Team logo (the offline file carries it inline as V2.LOGO_SRC); fall back to the seismograph mark
+  var logoSrc = V2.LOGO_SRC || T.logo;
+  if (V2.LOGO_SRC) document.head.appendChild(h('link', { rel: 'icon', href: V2.LOGO_SRC }));
+  document.getElementById('mark').appendChild(logoSrc
+    ? h('img', { src: logoSrc, alt: T.name + ' logo', class: 'teamlogo', width: 44, height: 44 })
+    : V2.quake.mark());
   V2.quake.strip(document.getElementById('quake'));
 
   var nav = document.getElementById('tabs');

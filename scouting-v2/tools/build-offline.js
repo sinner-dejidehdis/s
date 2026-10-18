@@ -12,12 +12,14 @@ function build() {
   // Web fonts, manifest and service worker need a server; the file falls back to system fonts.
   html = html.replace(/\s*<link rel="(preconnect|manifest)"[^>]*>/g, '');
   html = html.replace(/\s*<link rel="stylesheet" href="https:[^>]*>/g, '');
-  html = html.replace(/<link rel="icon" href="icon.svg"[^>]*>/,
-    '<link rel="icon" href="data:image/svg+xml;base64,' + Buffer.from(read('icon.svg')).toString('base64') + '">');
+  // The team logo travels inside the file so it shows with no network
+  const logo = 'data:image/png;base64,' + fs.readFileSync(path.join(ROOT, 'logo.png')).toString('base64');
+  html = html.replace(/\s*<link rel="icon" href="logo.png"[^>]*>/, ''); // app.js sets the tab icon from V2.LOGO_SRC
+  html = html.replace(/\s*<link rel="apple-touch-icon"[^>]*>/, '');
   html = html.replace(/<link rel="stylesheet" href="([^"]+)">/g, (_, href) => '<style>\n' + read(href) + '</style>');
   let first = true;
   html = html.replace(/<script src="([^"]+)"><\/script>/g, (_, src) => {
-    const flag = first ? '<script>var V2 = (globalThis.V2 = globalThis.V2 || {}); V2.OFFLINE_BUILD = true;</script>\n  ' : '';
+    const flag = first ? '<script>var V2 = (globalThis.V2 = globalThis.V2 || {}); V2.OFFLINE_BUILD = true; V2.LOGO_SRC = "' + logo + '";</script>\n  ' : '';
     first = false;
     return flag + '<script>\n' + read(src).replace(/<\/script/gi, '<\\/script') + '\n</script>';
   });
