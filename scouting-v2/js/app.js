@@ -5,7 +5,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   var h = V2.ui.h;
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 
-  var TABS = { scout: 'Match', pit: 'Pit', data: 'Data', settings: 'Settings' };
+  var TABS = { scout: 'Match', pit: 'Pit', data: 'Data', rank: 'Rank', settings: 'Settings' };
 
   function settingsPage(root) {
     var s = V2.ui.get('settings', {});
@@ -79,6 +79,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   }
 
   function route() {
+    if (V2.data.stopCamera) V2.data.stopCamera();
     var tab = location.hash.replace('#', '');
     if (!TABS[tab]) tab = 'scout';
     document.querySelectorAll('.tabs a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + tab); });
@@ -87,6 +88,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     if (tab === 'scout') V2.form.render(root, 'match');
     else if (tab === 'pit') V2.form.render(root, 'pit');
     else if (tab === 'data') V2.data.render(root);
+    else if (tab === 'rank') V2.rank.render(root);
     else settingsPage(root);
   }
 

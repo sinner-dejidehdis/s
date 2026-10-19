@@ -76,3 +76,31 @@ test('chunk splits rows into QR-sized blocks without cutting a row', () => {
   // every line of every code decodes on its own
   codes.forEach((c) => c.split('\n').forEach((line) => assert.ok(V2.codec.decode(line))));
 });
+
+test('two scouts on the same robot and match are averaged into one row', () => {
+  const m = V2.stats.mergeDuplicates([match({ s: 'A', tf: 40, td: 0 }), match({ s: 'B', tf: 30, td: 10, ts: [[1, 1]] }), match({ m: 4 })]);
+  assert.strictEqual(m.length, 2);
+  assert.strictEqual(m[0].tf, 35);
+  assert.strictEqual(m[0].td, 5);
+  assert.strictEqual(m[0].s, 'A/B');
+  assert.strictEqual(m[0].scouts, 2);
+  assert.strictEqual(m[0].ts.length, 2); // shooting spots from both scouts
+  const s = V2.stats.teams([match({ s: 'A', tf: 40 }), match({ s: 'B', tf: 30 })])[0];
+  assert.strictEqual(s.n, 1);
+  assert.strictEqual(s.teleFuel, 35);
+});
+
+test('rank splits offense and defense robots and scores each group', () => {
+  const rows = [];
+  for (let m = 1; m <= 5; m++) {
+    rows.push(match({ t: 1, m, tf: 60, dr: 'n', td: 0 }));
+    rows.push(match({ t: 2, m, tf: 20, dr: 'n', td: 0 }));
+    rows.push(match({ t: 3, m, tf: 5, dr: 4, td: 45 }));
+    rows.push(match({ t: 4, m, tf: 10, dr: m < 3 ? 2 : 'n', td: m < 3 ? 10 : 0 }));
+  }
+  const r = V2.stats.rank(V2.stats.teams(rows));
+  assert.deepStrictEqual(r.offense.map((s) => s.t), [1, 2]);
+  assert.deepStrictEqual(r.defense.map((s) => s.t), [3, 4]); // 4 defended in 2 of 5 matches = 40%
+  assert.strictEqual(r.offense[0].offenseScore, 100);
+  assert.ok(r.defense[0].defenseScore > r.defense[1].defenseScore);
+});

@@ -24,6 +24,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     });
     V2.ui.set('records', all);
     V2.ui.toast(added + ' added, ' + same + ' already had' + (bad ? ', ' + bad + ' not recognized' : ''), bad ? 'err' : 'ok');
+    return { added: added, same: same, bad: bad };
   }
 
   // ---------- Send several records as a sequence of QR codes ----------
@@ -97,6 +98,54 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       } }, keys.length ? 'Show QR codes for ' + keys.length + (keys.length === 1 ? ' record' : ' records') : 'Nothing to send'));
   }
 
+  // ---------- Phone camera scanning ----------
+  // Uses the browser's built-in BarcodeDetector when present, otherwise the bundled jsQR.
+  // A code that holds several rows (batch export) imports every row.
+  var cam = null; // { stream, stopped }
+  function stopCamera() {
+    if (!cam) return;
+    cam.stopped = true;
+    cam.stream.getTracks().forEach(function (t) { t.stop(); });
+    cam = null;
+  }
+  function startCamera(video, status, onImport) {
+    var detector = 'BarcodeDetector' in globalThis ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d', { willReadFrequently: true });
+    var last = '', lastAt = 0;
+    function handle(text) {
+      if (!text || (text === last && Date.now() - lastAt < 4000)) return;
+      last = text;
+      lastAt = Date.now();
+      var res = importText(text);
+      status.textContent = res.added || res.same ? '✓ ' + res.added + ' added, ' + res.same + ' already had' + (res.bad ? ', ' + res.bad + ' not recognized' : '') : 'Not a REBUILT Scout code';
+      if (navigator.vibrate) navigator.vibrate(60);
+      onImport();
+    }
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function (stream) {
+      cam = { stream: stream, stopped: false };
+      var me = cam;
+      video.srcObject = stream;
+      video.play();
+      (function loop() {
+        if (me.stopped) return;
+        if (video.readyState >= 2) {
+          if (detector) {
+            detector.detect(video).then(function (codes) { if (codes[0]) handle(codes[0].rawValue); }).catch(function () {});
+          } else if (globalThis.jsQR) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+            if (code) handle(code.data);
+          }
+        }
+        setTimeout(loop, 250);
+      })();
+    });
+  }
+
   function rowsOf(kind, ev) {
     return records().filter(function (r) { return r.kind === kind && (!ev || r.values.e === ev); }).map(function (r) { return r.values; });
   }
@@ -139,10 +188,29 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }
     });
 
+    var video = h('video', { class: 'camview', playsinline: true, muted: true, hidden: true });
+    var camStatus = h('div', { class: 'camstatus', role: 'status' });
+    var camBtn = h('button', { type: 'button', class: 'btn primary', onclick: function () {
+      if (cam) {
+        stopCamera();
+        video.hidden = true;
+        camBtn.textContent = 'Scan with phone camera';
+        return;
+      }
+      video.hidden = false;
+      camBtn.textContent = 'Stop camera';
+      camStatus.textContent = 'Point the camera at a QR code';
+      startCamera(video, camStatus, redraw).catch(function (e) {
+        video.hidden = true;
+        camBtn.textContent = 'Scan with phone camera';
+        camStatus.textContent = 'Could not open the camera (' + e.name + '). Allow camera access, or use the box below with a USB scanner.';
+      });
+    } }, 'Scan with phone camera');
+
     root.appendChild(h('div', { class: 'datapage' },
       h('h2', null, 'Data · ' + ev),
       top,
-      h('section', { class: 'card' }, h('h3', null, 'Import'), paste,
+      h('section', { class: 'card' }, h('h3', null, 'Import'), camBtn, video, camStatus, paste,
         h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () { importText(paste.value); paste.value = ''; redraw(); } }, 'Import'), count)),
       bottom));
     redraw();
@@ -224,5 +292,5 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         out));
   }
 
-  V2.data = { render: render, importText: importText };
+  V2.data = { render: render, importText: importText, stopCamera: stopCamera };
 })();

@@ -17,6 +17,10 @@ V2.CONFIG = {
   // Point values from the 2026 manual, Table 6-4
   points: { fuel: 1, autoL1: 15, climb: { None: 0, L1: 10, L2: 20, L3: 30 } },
 
+  // Automatic Offense / Defense split. A team counts as a defense robot when it played defense
+  // in at least `share` of its matches, or averaged at least `seconds` of defense per match.
+  roles: { share: 0.4, seconds: 20 },
+
   match: [
     {
       page: 'prematch', title: 'Pre-match', short: 'Pre', fields: [

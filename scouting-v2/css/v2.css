@@ -292,6 +292,8 @@ tr.sel td { background: var(--accent-soft); }
 .barcell .bar { position: absolute; left: 8px; top: 50%; height: 8px; margin-top: -4px; max-width: calc(100% - 52px); background: var(--accent); border-radius: 0 4px 4px 0; opacity: .85; }
 .barcell .barval { position: relative; font-weight: 700; }
 .sendcard .qr { max-width: 380px; }
+.camview { width: 100%; max-height: 340px; border-radius: 12px; background: #000; object-fit: cover; }
+.camstatus { font-weight: 700; min-height: 1.3em; }
 .dots { display: flex; gap: 6px; justify-content: center; }
 .dots i { width: 22px; height: 4px; border-radius: 2px; background: var(--line); }
 .dots i.done { background: var(--ink-2); }
@@ -304,6 +306,36 @@ dl.pit { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; m
 dl.pit dt { color: var(--ink-2); }
 dl.pit dd { margin: 0; }
 .notes { margin: 0; padding-left: 18px; }
+
+/* ---------- Rankings ---------- */
+.rankpage { display: flex; flex-direction: column; gap: 12px; }
+.roleswitch .opt { flex: 1; }
+.ranklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rankrow {
+  width: 100%; display: grid; grid-template-columns: 34px 64px minmax(0, 1fr) 44px; grid-template-areas: "pos who meter score" "pos who facts facts";
+  align-items: center; gap: 4px 10px; text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+}
+.rankrow:hover { border-color: var(--accent); }
+.rankrow .pos { grid-area: pos; font: 900 1.6rem/1 var(--font-display); color: var(--ink-2); text-align: center; }
+.ranklist li:nth-child(-n+3) .pos { color: var(--accent); }
+.rankrow .who { grid-area: who; display: flex; flex-direction: column; }
+.rankrow .who b { font: 700 1.25rem/1 var(--font-num); }
+.rankrow .who small { color: var(--ink-2); font-size: .72rem; }
+.rankrow .meter { grid-area: meter; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.rankrow .meter i { display: block; height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
+.rankrow .score { grid-area: score; font: 700 1.2rem var(--font-num); text-align: right; font-variant-numeric: tabular-nums; }
+.rankrow .facts { grid-area: facts; font-size: .8rem; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.back { align-self: flex-start; }
+.teamhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.rolechip { font: 700 .8rem var(--font-num); letter-spacing: .06em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; }
+.rolechip.offense { background: var(--accent-soft); color: var(--accent); }
+.rolechip.defense { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tile small { font: 700 .68rem var(--font-num); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.tile b { font: 700 1.5rem/1.1 var(--font-num); font-variant-numeric: tabular-nums; }
+.tile span { font-size: .78rem; }
 
 .modal { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .modal-card { background: var(--surface); color: var(--ink); border-radius: var(--radius); padding: 18px; max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
@@ -318,6 +350,9 @@ dl.pit dd { margin: 0; }
 .toast.ok { border-left-color: var(--ok); }
 .toast.err { border-left-color: var(--danger); }
 
+@media (max-width: 440px) {
+  .tabs a { padding: 10px 9px 9px; font-size: .92rem; letter-spacing: .05em; }
+}
 @media (max-width: 380px) {
   .teamname { font-size: 1.3rem; }
   .eventchip { display: none; }
