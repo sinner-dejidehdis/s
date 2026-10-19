@@ -23,6 +23,16 @@
   - 「Copy match data」复制带表头的 TSV，可以直接粘贴进 Google Sheets 或 Excel。
 - **Settings**：赛程 CSV、场地图左右翻转。赛事代码由负责人统一设定，队员改不了（见下）。
 
+## 一次交多场（批量二维码）
+
+队员不用每场都去找负责人：
+1. 队员打开 **Data** 页，在「Send records by QR」里选范围：**Not sent yet**（还没交的）、**All on this device**（本机全部）或 **Match range**（指定场次，比如 1–12）。
+2. 点「Show QR codes for N records」，记录会自动分成几个二维码（每个大约 3 场），显示「QR 1 of 4」。
+3. 负责人在自己设备的 Data 页点一下 Import 文本框，用扫码枪逐个扫；队员每扫完一个点「Next QR →」。用摄像头扫的话可以勾选自动翻页（每 2.5 秒一个）。
+4. 全部扫完后，队员点「Done, all scanned」，这些记录会标记为已交，下次「Not sent yet」就不会再出现。
+
+同一条记录重复扫不会重复计入，所以漏扫或多扫都没关系，重新显示再扫一遍即可。
+
 ## 离线使用
 
 有两种方式，都不需要网络：

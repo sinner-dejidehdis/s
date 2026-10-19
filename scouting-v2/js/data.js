@@ -20,10 +20,81 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       var k = V2.codec.key(d.kind, d.values);
       if (all[k]) same++;
       else added++;
-      all[k] = { kind: d.kind, values: d.values, ts: Date.now() };
+      all[k] = { kind: d.kind, values: d.values, ts: Date.now(), sent: true };
     });
     V2.ui.set('records', all);
     V2.ui.toast(added + ' added, ' + same + ' already had' + (bad ? ', ' + bad + ' not recognized' : ''), bad ? 'err' : 'ok');
+  }
+
+  // ---------- Send several records as a sequence of QR codes ----------
+  var sendScope = 'unsent', sendFrom = '', sendTo = '', show = null; // show: { keys, codes, i, auto }
+
+  function pickForSend(ev) {
+    var all = V2.ui.get('records', {});
+    return Object.keys(all).filter(function (k) {
+      var r = all[k], v = r.values;
+      if (v.e && v.e !== ev) return false;
+      if (sendScope === 'unsent') return r.sent === false;
+      if (sendScope === 'range') {
+        if (r.kind !== 'match') return false;
+        var lo = Number(sendFrom) || 1, hi = Number(sendTo) || 999;
+        return v.m >= lo && v.m <= hi;
+      }
+      return true;
+    }).sort(function (a, b) {
+      var x = all[a], y = all[b];
+      return (x.kind === y.kind ? 0 : x.kind === 'match' ? -1 : 1) || (x.values.m || 0) - (y.values.m || 0) || (x.values.t || 0) - (y.values.t || 0);
+    });
+  }
+
+  function sendCard(redraw, ev) {
+    var all = V2.ui.get('records', {});
+    if (show) {
+      var code = show.codes[show.i];
+      var n = code.split('\n').length;
+      var go = function (d) { show.i = Math.max(0, Math.min(show.codes.length - 1, show.i + d)); redraw(); };
+      var timer = null;
+      if (show.auto && show.i < show.codes.length - 1) timer = setTimeout(function () { if (show && show.auto) go(1); }, 2500);
+      return h('section', { class: 'card sendcard' },
+        h('div', { class: 'row between' },
+          h('h3', null, 'QR ' + (show.i + 1) + ' of ' + show.codes.length),
+          h('small', { class: 'muted' }, n + (n === 1 ? ' record' : ' records') + ' in this code')),
+        h('div', { class: 'dots', 'aria-hidden': 'true' }, show.codes.map(function (_, i) { return h('i', { class: i === show.i ? 'on' : i < show.i ? 'done' : '' }); })),
+        V2.ui.qr(code),
+        h('div', { class: 'row' },
+          h('button', { type: 'button', class: 'btn', disabled: show.i === 0, onclick: function () { clearTimeout(timer); go(-1); } }, '← Prev'),
+          h('button', { type: 'button', class: 'btn primary', disabled: show.i === show.codes.length - 1, onclick: function () { clearTimeout(timer); go(1); } }, 'Next QR →')),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!show.auto, onchange: function (e) { show.auto = e.target.checked; redraw(); } }), ' Advance automatically every 2.5 s (for camera scanning)'),
+        h('div', { class: 'row between' },
+          h('button', { type: 'button', class: 'btn', onclick: function () { clearTimeout(timer); show = null; redraw(); } }, 'Cancel'),
+          h('button', { type: 'button', class: 'btn primary', onclick: function () {
+            clearTimeout(timer);
+            var cur = V2.ui.get('records', {});
+            show.keys.forEach(function (k) { if (cur[k]) cur[k].sent = true; });
+            V2.ui.set('records', cur);
+            V2.ui.toast(show.keys.length + ' records marked as sent', 'ok');
+            show = null;
+            redraw();
+          } }, 'Done, all scanned')));
+    }
+    var keys = pickForSend(ev);
+    var unsent = Object.keys(all).filter(function (k) { return all[k].sent === false; }).length;
+    var from = h('input', { id: 'send-from', type: 'number', inputmode: 'numeric', placeholder: 'From', value: sendFrom, oninput: function (e) { sendFrom = e.target.value; } });
+    var to = h('input', { id: 'send-to', type: 'number', inputmode: 'numeric', placeholder: 'To', value: sendTo, oninput: function (e) { sendTo = e.target.value; } });
+    return h('section', { class: 'card sendcard' },
+      h('h3', null, 'Send records by QR'),
+      h('p', { class: 'muted' }, 'Hand over many matches at once. The records are split into a few QR codes; the data lead scans them one after another.'),
+      h('div', { class: 'seg' },
+        [['unsent', 'Not sent yet (' + unsent + ')'], ['all', 'All on this device'], ['range', 'Match range']].map(function (o) {
+          return h('button', { type: 'button', class: 'opt' + (sendScope === o[0] ? ' on' : ''), onclick: function () { sendScope = o[0]; redraw(); } }, o[1]);
+        })),
+      sendScope === 'range' ? h('div', { class: 'row' }, from, h('span', { class: 'muted' }, 'to'), to,
+        h('button', { type: 'button', class: 'btn', onclick: redraw }, 'Apply')) : null,
+      h('button', { type: 'button', class: 'btn primary', disabled: !keys.length, onclick: function () {
+        var rows = keys.map(function (k) { return V2.codec.encode(all[k].kind, all[k].values); });
+        show = { keys: keys, codes: V2.codec.chunk(rows), i: 0, auto: false };
+        redraw();
+      } }, keys.length ? 'Show QR codes for ' + keys.length + (keys.length === 1 ? ' record' : ' records') : 'Nothing to send'));
   }
 
   function rowsOf(kind, ev) {
@@ -37,24 +108,53 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   function render(root) {
     h = V2.ui.h;
     var ev = V2.CONFIG.event;
-    var rows = rowsOf('match', ev);
-    var pits = rowsOf('pit', ev);
-    var stats = V2.stats.teams(rows).sort(function (a, b) {
-      var x = a[sortKey], y = b[sortKey];
-      return sortKey === 't' ? x - y : (y == null ? -1 : y) - (x == null ? -1 : x);
-    });
-    var redraw = function () { root.textContent = ''; render(root); };
+    // The import box is built once per visit and never replaced, so a scanner typing many rows
+    // in a burst keeps its focus; only the parts around it are refreshed after each row.
+    var top = h('div'), bottom = h('div');
+    var count = h('small', { class: 'muted' });
+    function redraw() {
+      top.textContent = '';
+      top.appendChild(sendCard(redraw, ev));
+      bottom.textContent = '';
+      bottom.appendChild(analysis(redraw, ev));
+      count.textContent = records().length + ' records on this device';
+    }
 
     var paste = h('textarea', { id: 'paste', rows: 4, placeholder: 'Click here, then scan QR codes with a USB scanner. Or paste rows (one per line).' });
     paste.addEventListener('keydown', function (e) {
-      // Most USB scanners end each code with Enter: import as soon as a full row arrives
+      // Scanners type the tabs between columns as Tab key presses: keep them in the box
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var a = paste.selectionStart, b = paste.selectionEnd;
+        paste.value = paste.value.slice(0, a) + '\t' + paste.value.slice(b);
+        paste.selectionStart = paste.selectionEnd = a + 1;
+        return;
+      }
+      // Most USB scanners end each line with Enter: import as soon as a full row arrives
       if (e.key === 'Enter' && !e.shiftKey && paste.value.trim()) {
         e.preventDefault();
         importText(paste.value);
         paste.value = '';
         redraw();
-        setTimeout(function () { var p = document.getElementById('paste'); if (p) p.focus(); }, 0);
       }
+    });
+
+    root.appendChild(h('div', { class: 'datapage' },
+      h('h2', null, 'Data · ' + ev),
+      top,
+      h('section', { class: 'card' }, h('h3', null, 'Import'), paste,
+        h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () { importText(paste.value); paste.value = ''; redraw(); } }, 'Import'), count)),
+      bottom));
+    redraw();
+  }
+
+  // Team table, team detail and export
+  function analysis(redraw, ev) {
+    var rows = rowsOf('match', ev);
+    var pits = rowsOf('pit', ev);
+    var stats = V2.stats.teams(rows).sort(function (a, b) {
+      var x = a[sortKey], y = b[sortKey];
+      return sortKey === 't' ? x - y : (y == null ? -1 : y) - (x == null ? -1 : x);
     });
 
     var COLS = [
@@ -106,11 +206,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     }
 
     var out = h('textarea', { class: 'raw', rows: 4, readonly: true, 'aria-label': 'Export' });
-    root.appendChild(h('div', { class: 'datapage' },
-      h('h2', null, 'Data · ' + ev),
-      h('section', { class: 'card' }, h('h3', null, 'Import'), paste,
-        h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () { importText(paste.value); paste.value = ''; redraw(); } }, 'Import'),
-          h('small', { class: 'muted' }, records().length + ' records on this device'))),
+    return h('div', null,
       h('section', { class: 'card' }, h('h3', null, 'Teams'), h('p', { class: 'muted' }, 'Tap a team number for its shooting map, pit info and comments.'), table),
       detail,
       h('section', { class: 'card' }, h('h3', null, 'Export'),
@@ -125,8 +221,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
               redraw();
             });
           } }, 'Delete all')),
-        out)
-    ));
+        out));
   }
 
   V2.data = { render: render, importText: importText };

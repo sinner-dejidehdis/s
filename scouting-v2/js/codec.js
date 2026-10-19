@@ -62,6 +62,24 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       fs.forEach(function (f, i) { values[f.code] = parseCell(f, cols[i + 1]); });
       return { kind: kind, values: values };
     },
+    // Groups rows into QR-sized blocks (one row per line). Rows are never split, so a USB scanner
+    // that presses Enter after each line imports every row whole. A small limit keeps each code
+    // sparse enough to scan quickly off a phone screen.
+    chunk: function (rows, maxChars) {
+      maxChars = maxChars || 650;
+      var out = [], cur = [], len = 0;
+      rows.forEach(function (r) {
+        if (cur.length && len + r.length + 1 > maxChars) {
+          out.push(cur.join('\n'));
+          cur = [];
+          len = 0;
+        }
+        cur.push(r);
+        len += r.length + 1;
+      });
+      if (cur.length) out.push(cur.join('\n'));
+      return out;
+    },
     // Key that identifies a record, so re-scanning the same QR does not duplicate it
     key: function (kind, v) {
       return kind === 'pit' ? ['p', v.e, v.t].join('|') : ['m', v.e, v.l, v.m, v.t, v.s].join('|');

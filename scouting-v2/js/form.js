@@ -169,7 +169,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       var row = V2.codec.encode(kind, s.values);
       if (!s.saved) {
         var all = V2.ui.get('records', {});
-        all[V2.codec.key(kind, s.values)] = { kind: kind, values: s.values, ts: Date.now() };
+        all[V2.codec.key(kind, s.values)] = { kind: kind, values: s.values, ts: Date.now(), sent: false };
         V2.ui.set('records', all);
         s.saved = true;
       }

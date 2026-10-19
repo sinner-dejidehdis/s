@@ -66,3 +66,13 @@ test('offline file is built from the current sources', () => {
   assert.strictEqual(committed, build(), 'run: node scouting-v2/tools/build-offline.js');
   assert.ok(!/<script src=|<link rel="stylesheet"/.test(committed), 'offline file must not load external files');
 });
+
+test('chunk splits rows into QR-sized blocks without cutting a row', () => {
+  const rows = Array.from({ length: 10 }, (_, i) => V2.codec.encode('match', match({ m: i + 1 })));
+  const codes = V2.codec.chunk(rows, 900);
+  assert.ok(codes.length > 1);
+  assert.ok(codes.every((c) => c.length <= 900 || !c.includes('\n')));
+  assert.deepStrictEqual(codes.join('\n').split('\n'), rows);
+  // every line of every code decodes on its own
+  codes.forEach((c) => c.split('\n').forEach((line) => assert.ok(V2.codec.decode(line))));
+});
