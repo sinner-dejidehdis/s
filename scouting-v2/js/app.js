@@ -5,7 +5,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   var h = V2.ui.h;
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 
-  var TABS = { scout: 'Match', pit: 'Pit', data: 'Data', rank: 'Rank', settings: 'Settings' };
+  var TABS = { scout: 'Match', pit: 'Pit', data: 'Data', rank: 'Rank', guide: 'Guide', settings: 'Setup' };
 
   function settingsPage(root) {
     var s = V2.ui.get('settings', {});
@@ -14,12 +14,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var ev = V2.CONFIG.event;
     var sch = (V2.ui.get('schedule', {})[ev] || []).length;
     root.appendChild(h('div', { class: 'settings' },
-      h('h2', null, 'Settings'),
+      h('h2', null, 'Setup'),
       h('section', { class: 'card' },
         h('p', { class: 'eventline' }, 'Event: ', h('b', null, V2.CONFIG.event)),
         h('small', { class: 'muted' }, 'Set by the scouting lead for every scout. To change it, edit event in js/config.js and update the app.'),
         h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'set-flip', checked: !!s.flip, onchange: function (e) { s.flip = e.target.checked; save(); } }),
-          ' Flip the field map (our alliance on the right, as seen from your seat)')),
+          ' Flip the field map (our alliance on the right, as seen from your seat)'),
+        h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'set-tips', checked: s.tips !== false, onchange: function (e) { s.tips = e.target.checked; save(); } }),
+          ' Show tips under each question (turn off once you know the form)')),
       h('section', { class: 'card' },
         h('h3', null, 'Match schedule'),
         h('p', { class: 'muted' }, sch ? sch + ' matches loaded for ' + ev + '. Team numbers fill in from the station.' : 'Paste the schedule so team numbers fill in automatically.'),
@@ -85,10 +87,15 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     document.querySelectorAll('.tabs a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + tab); });
     var root = document.getElementById('app');
     root.textContent = '';
-    if (tab === 'scout') V2.form.render(root, 'match');
+    if (tab === 'scout') {
+      var w = V2.guide.welcome();
+      if (w) root.appendChild(w);
+      V2.form.render(root, 'match');
+    }
     else if (tab === 'pit') V2.form.render(root, 'pit');
     else if (tab === 'data') V2.data.render(root);
     else if (tab === 'rank') V2.rank.render(root);
+    else if (tab === 'guide') V2.guide.render(root);
     else settingsPage(root);
   }
 

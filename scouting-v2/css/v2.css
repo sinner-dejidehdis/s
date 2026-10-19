@@ -204,6 +204,8 @@ main {
 .item { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
 .iname { font: 700 .8rem var(--font-num); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
 .req { color: var(--accent); }
+.intro { margin: -4px 0 0; padding: 10px 12px; background: var(--bg); border-radius: 10px; font-size: .92rem; color: var(--ink); border-left: 3px solid var(--ph); }
+.hint { display: block; margin-top: -3px; font-size: .82rem; line-height: 1.35; color: var(--ink-2); }
 .eventline { margin: -6px 0 0; color: var(--ink-2); font-size: .9rem; }
 .eventline b { color: var(--ink); font-family: var(--font-num); letter-spacing: .04em; }
 
@@ -337,6 +339,27 @@ dl.pit dd { margin: 0; }
 .tile b { font: 700 1.5rem/1.1 var(--font-num); font-variant-numeric: tabular-nums; }
 .tile span { font-size: .78rem; }
 
+/* ---------- Guide ---------- */
+.guidepage { display: flex; flex-direction: column; gap: 12px; }
+.guidepage > h2 + p { margin: -4px 0 0; }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+.toc .opt { font-size: .88rem; padding: 8px 12px; }
+.guide { scroll-margin-top: 200px; }
+.scales { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.scale h4 { margin: 0 0 6px; font: 700 .78rem var(--font-num); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.scalelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.scalelist li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: baseline; font-size: .92rem; }
+.scalelist b { font: 700 1rem var(--font-num); color: var(--accent); text-align: center; }
+.guide p { margin: 0; line-height: 1.5; }
+.gsteps { margin: 0; padding-left: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 8px; }
+.gsteps li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: 10px; line-height: 1.45; }
+.gsteps li::before { content: counter(step); font: 700 .9rem/26px var(--font-num); text-align: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); }
+.gtable td { white-space: normal; vertical-align: top; line-height: 1.4; }
+.gtable td:first-child { font-weight: 700; white-space: nowrap; }
+.welcome { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; margin-bottom: 14px; border-radius: var(--radius); background: var(--accent-soft); border: 1px solid var(--accent); }
+.welcome p { margin: 2px 0 0; }
+.welcome a.btn { text-decoration: none; }
+
 .modal { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .modal-card { background: var(--surface); color: var(--ink); border-radius: var(--radius); padding: 18px; max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .modal-card p { margin: 0; }
@@ -350,8 +373,10 @@ dl.pit dd { margin: 0; }
 .toast.ok { border-left-color: var(--ok); }
 .toast.err { border-left-color: var(--danger); }
 
-@media (max-width: 440px) {
-  .tabs a { padding: 10px 9px 9px; font-size: .92rem; letter-spacing: .05em; }
+@media (max-width: 520px) {
+  /* six tabs share the width evenly so all of them stay visible on a phone */
+  .tabs { gap: 0; }
+  .tabs a { flex: 1 1 0; min-width: 0; text-align: center; padding: 10px 1px 9px; font-size: .84rem; letter-spacing: .02em; }
 }
 @media (max-width: 380px) {
   .teamname { font-size: 1.3rem; }

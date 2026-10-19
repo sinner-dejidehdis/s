@@ -1,8 +1,8 @@
 // Offline cache for the hosted version. Bump VERSION whenever a file changes.
-var VERSION = 'rbscout-v2-6';
+var VERSION = 'rbscout-v2-7';
 var FILES = [
   './', 'index.html', 'manifest.webmanifest', 'logo.png', 'css/v2.css', 'vendor/qrcode.js', 'vendor/jsQR.js',
-  'js/config.js', 'js/codec.js', 'js/stats.js', 'js/ui.js', 'js/quake.js', 'js/field.js', 'js/form.js', 'js/data.js', 'js/rank.js', 'js/app.js',
+  'js/config.js', 'js/codec.js', 'js/stats.js', 'js/ui.js', 'js/quake.js', 'js/field.js', 'js/form.js', 'js/data.js', 'js/rank.js', 'js/guide.js', 'js/app.js',
   'rebuilt-scout-v2-offline.html',
 ];
 

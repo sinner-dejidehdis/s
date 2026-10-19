@@ -157,12 +157,15 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var body;
     if (!last) {
       var p = pages[s.page];
+      var tips = V2.ui.get('settings', {}).tips !== false; // on unless a scout turns tips off
       body = h('section', { class: 'page ph-' + p.page },
         h('h2', null, p.title),
+        tips && p.intro ? h('p', { class: 'intro' }, p.intro) : null,
         s.page === 0 ? h('p', { class: 'eventline' }, 'Event: ', h('b', null, V2.CONFIG.event)) : null,
         p.fields.filter(function (f) { return f.type !== 'event'; }).map(function (f) {
           return h('div', { class: 'item' + (f.type === 'field' ? ' wide' : '') },
             h('label', { class: 'iname', for: kind + '-' + f.code }, f.name, f.required ? h('span', { class: 'req' }, ' *') : null),
+            tips && f.hint ? h('small', { class: 'hint' }, f.hint) : null,
             control(kind, f, s.values, rerender));
         }));
     } else {
