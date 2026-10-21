@@ -33,7 +33,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           return h('button', { type: 'button', role: 'tab', 'aria-selected': group === o[0] ? 'true' : 'false', class: 'opt' + (group === o[0] ? ' on' : ''), onclick: function () { group = o[0]; redraw(); } }, o[1] + ' (' + o[2] + ')');
         })),
       h('p', { class: 'muted small' }, isOff
-        ? 'Score = average points by scout counts (Fuel + climb), scaled so the best team is 100.'
+        ? 'Score = average offense index: 70% Fuel scoring (1–10 ratings, Teleop counts most) + 30% climbing. 100 = scored a lot and climbed L3 every match.'
         : 'Score = 50% defense rating, 30% time spent defending (60 s per match = full), 20% reliability. A team is a defense robot when it defended in at least ' +
           Math.round(R.share * 100) + '% of its matches or ' + R.seconds + ' s per match.'),
       list.length ? h('ol', { class: 'ranklist' }, list.map(function (s, i) {
@@ -44,8 +44,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           h('span', { class: 'meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + score + '%' })),
           h('span', { class: 'score' }, score),
           h('span', { class: 'facts' }, isOff
-            ? fmt(s.points) + ' pts · climb ' + fmt(s.climbPts) + ' · acc ' + fmt(s.accuracy, '%')
-            : 'rating ' + fmt(s.defRating, '/5') + ' · ' + fmt(s.defense, ' s') + ' · ' + fmt(s.points) + ' pts')));
+            ? 'Teleop ' + fmt(s.teleFuel, '/10') + ' · climb ' + fmt(s.climbPts) + ' pts · acc ≈' + fmt(s.accuracy, '%')
+            : 'rating ' + fmt(s.defRating, '/5') + ' · ' + fmt(s.defense, ' s') + ' · offense ' + fmt(s.offense))));
       })) : h('p', { class: 'muted' }, 'No ' + group + ' robots yet. Import match data on the Data page.')));
   }
 
@@ -72,11 +72,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       h('p', { class: 'muted small' }, s.roleReason + '. All numbers are averages over ' + s.n + (s.n === 1 ? ' match' : ' matches') +
         '; when two scouts watched the same match, their numbers were averaged first.'),
       h('div', { class: 'tiles' },
-        tile('Avg points', fmt(s.points), 'best ' + fmt(s.best)),
-        tile('Offense score', s.offenseScore, 'of 100'),
+        tile('Offense index', fmt(s.offense), 'of 100 · best match ' + fmt(s.best)),
         tile('Defense score', s.defenseScore, 'of 100'),
-        tile('Accuracy', fmt(s.accuracy, '%'), 'made / attempted'),
-        tile('Fuel / match', fmt(Math.round((s.autoFuel + s.teleFuel + s.endFuel) * 10) / 10), 'A ' + s.autoFuel + ' · T ' + s.teleFuel + ' · E ' + s.endFuel),
+        tile('Accuracy', '≈' + fmt(s.accuracy, '%'), 'scouts\' estimate'),
+        tile('Fuel scored', fmt(s.teleFuel, '/10'), 'Teleop · Auto ' + s.autoFuel + ' · End ' + s.endFuel + ' (1–10)'),
+        tile('Fuel missed', fmt(s.missed, '/10'), 'average of the three phases'),
         tile('Climb', fmt(s.climbPts) + ' pts', 'L1 ' + s.levels.L1 + ' · L2 ' + s.levels.L2 + ' · L3 ' + s.levels.L3),
         tile('Auto L1', fmt(s.autoL1, '%'), 'of matches'),
         tile('Ferried', fmt(s.ferried), 'Fuel per match'),
@@ -90,12 +90,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         h('small', { class: 'muted' }, 'Drawn from the robot\'s own alliance end, with its own wall on the left.')),
       h('section', { class: 'card' }, h('h3', null, 'Match by match'),
         h('div', { class: 'scroll' }, h('table', { class: 'data' },
-          h('thead', null, h('tr', null, ['Match', 'Pts', 'Auto', 'Tele', 'End', 'Climb', 'Def. s', 'Def.', 'Driver', 'Scout'].map(function (c) { return h('th', null, c); }))),
+          h('thead', null, h('tr', null, ['Match', 'Index', 'Auto', 'Tele', 'End', 'Miss', 'Climb', 'Def. s', 'Def.', 'Driver', 'Scout'].map(function (c) { return h('th', null, c); }))),
           h('tbody', null, rows.map(function (v) {
-            if (v.ns) return h('tr', null, h('td', null, 'Q' + v.m), h('td', { colspan: 9, class: 'muted' }, 'No show'));
+            if (v.ns) return h('tr', null, h('td', null, 'Q' + v.m), h('td', { colspan: 10, class: 'muted' }, 'No show'));
+            var r10 = function (x) { return typeof x === 'number' ? x : '–'; };
             return h('tr', null,
-              h('td', null, 'Q' + v.m), h('td', { class: 'num' }, V2.stats.rowPoints(v)), h('td', { class: 'num' }, v.af || 0),
-              h('td', { class: 'num' }, v.tf || 0), h('td', { class: 'num' }, v.gf || 0), h('td', null, v.el || 'None'),
+              h('td', null, 'Q' + v.m), h('td', { class: 'num' }, V2.stats.matchIndex(v)), h('td', { class: 'num' }, r10(v.af)),
+              h('td', { class: 'num' }, r10(v.tf)), h('td', { class: 'num' }, r10(v.gf)),
+              h('td', { class: 'num' }, r10(v.tm)), h('td', null, v.el || 'None'),
               h('td', { class: 'num' }, v.td || 0), h('td', { class: 'num' }, typeof v.dr === 'number' ? v.dr : '–'),
               h('td', { class: 'num' }, v.ds || '–'), h('td', null, v.s + (v.scouts > 1 ? ' (avg)' : '')));
           }))))),

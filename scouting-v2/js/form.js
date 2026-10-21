@@ -77,7 +77,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         }));
       case 'rating':
         var opts = (f.none ? [{ v: 'n', t: f.none }] : []).concat(Array.from({ length: f.max }, function (_, i) { return { v: i + 1, t: i + 1 }; }));
-        return h('div', { class: 'seg', id: id }, opts.map(function (o) {
+        return h('div', { class: 'seg' + (f.max === 10 ? ' scale10' : ''), id: id }, opts.map(function (o) {
           return h('button', { type: 'button', class: 'opt' + (o.v === 'n' ? ' none' : '') + (val === o.v ? ' on' : ''), onclick: function () { setv(val === o.v ? '' : o.v); rerender(); } }, o.t);
         }));
       case 'counter':
@@ -178,11 +178,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }
       var label = kind === 'match' ? 'Q' + s.values.m + ' · ' + s.values.t + ' · ' + (STATIONS[s.values.r] || '') : 'Pit · ' + s.values.t;
       var reading = kind === 'match' && !s.values.ns ? h('div', { class: 'reading' },
-        h('div', { class: 'readout' }, h('small', null, 'Points by your counts'), h('b', null, V2.stats.rowPoints(s.values))),
+        h('div', { class: 'readout' }, h('small', null, 'Offense index (0–100)'), h('b', null, V2.stats.matchIndex(s.values))),
         V2.quake.seismogram([
-          { label: 'Auto', value: s.values.af || 0 },
-          { label: 'Teleop', value: s.values.tf || 0 },
-          { label: 'Endgame', value: s.values.gf || 0 },
+          { label: 'Auto', value: typeof s.values.af === 'number' ? s.values.af : 0 },
+          { label: 'Teleop', value: typeof s.values.tf === 'number' ? s.values.tf : 0 },
+          { label: 'Endgame', value: typeof s.values.gf === 'number' ? s.values.gf : 0 },
         ])) : null;
       body = h('section', { class: 'page ph-qr' },
         h('h2', null, label),

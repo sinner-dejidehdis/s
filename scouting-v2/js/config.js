@@ -15,7 +15,11 @@ V2.CONFIG = {
   title: 'REBUILT Scout',
   season: 2026,
   // Point values from the 2026 manual, Table 6-4
-  points: { fuel: 1, autoL1: 15, climb: { None: 0, L1: 10, L2: 20, L3: 30 } },
+  points: { autoL1: 15, climb: { None: 0, L1: 10, L2: 20, L3: 30 } },
+
+  // Offense index (0-100) for one match. Fuel is rated 1-10 per phase, so it is weighted by how
+  // long each phase lasts; climbing (Auto L1 + Tower level, 45 points max) makes up the rest.
+  offense: { auto: 0.2, teleop: 0.6, endgame: 0.2, scoring: 0.7, climb: 0.3 },
 
   // Automatic Offense / Defense split. A team counts as a defense robot when it played defense
   // in at least `share` of its matches, or averaged at least `seconds` of defense per match.
@@ -36,9 +40,9 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'auto', intro: 'The first 20 seconds, robots drive themselves. Watch only your robot and count as it happens.', title: 'Auto', fields: [
-        { code: 'af', hint: 'Every Fuel this robot gets into the Hub. Use +5 / +10 when it unloads a burst; − fixes a mistake.', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
-        { code: 'am', hint: 'Shots that bounce out or miss the Hub. A good guess is fine.', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
+      page: 'auto', intro: 'The first 20 seconds, robots drive themselves. Watch only your robot, then rate its Fuel on the 1–10 scale.', title: 'Auto', fields: [
+        { code: 'af', hint: 'How much Fuel it got into the Hub in Auto, 1 = a few, 10 = a lot. None if it scored nothing.', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
+        { code: 'am', hint: 'How much it missed in Auto, 1 = a few misses, 10 = a lot. None if it never missed.', name: 'Fuel missed (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'an', hint: 'Yes if it drove past the Hub line into the middle of the field.', name: 'Went to neutral zone', type: 'bool' },
         { code: 'ai', hint: 'Where it picked up Fuel during Auto. Tap all that apply.', name: 'Collected from', type: 'multi', choices: { d: 'Depot', o: 'Outpost', n: 'Neutral zone' } },
         { code: 'as', hint: 'Tap each spot where it stopped to shoot. Several taps are fine.', name: 'Shooting spots', type: 'field', mode: 'multi' },
@@ -46,9 +50,9 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'teleop', intro: 'Drivers take over for 2 minutes 20 seconds. Keep counting Fuel; start a timer when your robot breaks down or plays defense.', title: 'Teleop', fields: [
-        { code: 'tf', hint: 'Every Fuel this robot gets into the Hub during Teleop.', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
-        { code: 'tm', hint: 'Shots that miss or bounce out.', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
+      page: 'teleop', intro: 'Drivers take over for 2 minutes 20 seconds. Rate its Fuel for the whole period; start a timer when your robot breaks down or plays defense.', title: 'Teleop', fields: [
+        { code: 'tf', hint: 'How much Fuel it got into the Hub in Teleop, 1 = a few, 10 = a lot. See the scale on the Guide tab.', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
+        { code: 'tm', hint: 'How much it missed in Teleop, 1 = a few misses, 10 = a lot.', name: 'Fuel missed (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'tp', hint: 'Fuel it pushed or shot from the middle back into its own zone for teammates. Not scoring.', name: 'Fuel ferried to our zone', type: 'counter', steps: [1, 5, 10] },
         { code: 'ts', hint: 'Tap the places it usually shoots from.', name: 'Shooting spots', type: 'field', mode: 'multi' },
         { code: 'tx', hint: 'How it moves between zones: over the Bump, under the Trench, or both.', name: 'Crossed through', type: 'multi', choices: { b: 'Bump', t: 'Trench' } },
@@ -59,9 +63,9 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'endgame', intro: 'The last 30 seconds. Most robots keep shooting while others climb the Tower: count both.', title: 'Endgame', short: 'End', fields: [
-        { code: 'gf', hint: 'Fuel scored in the last 30 seconds. Many robots keep shooting here.', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
-        { code: 'gm', hint: 'Missed shots in the last 30 seconds.', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
+      page: 'endgame', intro: 'The last 30 seconds. Most robots keep shooting while others climb the Tower: rate the Fuel and record the climb.', title: 'Endgame', short: 'End', fields: [
+        { code: 'gf', hint: 'How much Fuel it scored in the last 30 seconds, 1 = a few, 10 = a lot. Many robots keep shooting here.', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
+        { code: 'gm', hint: 'How much it missed in the last 30 seconds, 1 = a few, 10 = a lot.', name: 'Fuel missed (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'el', hint: 'Highest level it was hanging on when the match ended. L1 = 10, L2 = 20, L3 = 30 points.', name: 'Tower level', type: 'radio', choices: { None: 'None', L1: 'L1', L2: 'L2', L3: 'L3' }, def: 'None' },
         { code: 'ep', hint: 'Which part of the Tower it climbed, A to E from left to right as you see it.', name: 'Tower position', type: 'radio', choices: { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E' } },
         { code: 'ef', hint: 'Yes if it tried to climb but fell off or ran out of time.', name: 'Climb attempted but failed', type: 'bool' },

@@ -4,7 +4,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
   // Bump the tag whenever columns change, so rows from an older build are rejected
-  var TAGS = { match: 'RB26M2', pit: 'RB26P2' };
+  var TAGS = { match: 'RB26M3', pit: 'RB26P3' };
 
   function fields(kind) {
     var out = [];

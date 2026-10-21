@@ -235,6 +235,10 @@ textarea { resize: vertical; }
   background: var(--surface); color: var(--ink); cursor: pointer; min-width: 48px; touch-action: manipulation;
 }
 .opt.none { font-size: .9rem; color: var(--ink-2); }
+/* 1-10 scale: None on its own row, then two rows of five equal buttons */
+.seg.scale10 { display: grid; grid-template-columns: repeat(5, 1fr); }
+.seg.scale10 .opt { min-width: 0; padding: 11px 0; font-family: var(--font-num); font-weight: 700; }
+.seg.scale10 .opt.none { grid-column: 1 / -1; font-family: var(--font); font-weight: 500; }
 .opt.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .stations { display: grid; grid-template-columns: repeat(3, 1fr); }
 .stations .opt.r { border-color: var(--red); color: var(--red); }
@@ -350,6 +354,7 @@ dl.pit dd { margin: 0; }
 .scalelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .scalelist li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: baseline; font-size: .92rem; }
 .scalelist b { font: 700 1rem var(--font-num); color: var(--accent); text-align: center; }
+.fuelscale li { grid-template-columns: 44px 1fr; }
 .guide p { margin: 0; line-height: 1.5; }
 .gsteps { margin: 0; padding-left: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 8px; }
 .gsteps li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: 10px; line-height: 1.45; }

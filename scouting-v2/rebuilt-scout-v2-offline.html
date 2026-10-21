@@ -243,6 +243,10 @@ textarea { resize: vertical; }
   background: var(--surface); color: var(--ink); cursor: pointer; min-width: 48px; touch-action: manipulation;
 }
 .opt.none { font-size: .9rem; color: var(--ink-2); }
+/* 1-10 scale: None on its own row, then two rows of five equal buttons */
+.seg.scale10 { display: grid; grid-template-columns: repeat(5, 1fr); }
+.seg.scale10 .opt { min-width: 0; padding: 11px 0; font-family: var(--font-num); font-weight: 700; }
+.seg.scale10 .opt.none { grid-column: 1 / -1; font-family: var(--font); font-weight: 500; }
 .opt.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .stations { display: grid; grid-template-columns: repeat(3, 1fr); }
 .stations .opt.r { border-color: var(--red); color: var(--red); }
@@ -358,6 +362,7 @@ dl.pit dd { margin: 0; }
 .scalelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .scalelist li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: baseline; font-size: .92rem; }
 .scalelist b { font: 700 1rem var(--font-num); color: var(--accent); text-align: center; }
+.fuelscale li { grid-template-columns: 44px 1fr; }
 .guide p { margin: 0; line-height: 1.5; }
 .gsteps { margin: 0; padding-left: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 8px; }
 .gsteps li { counter-increment: step; display: grid; grid-template-columns: 28px 1fr; gap: 10px; line-height: 1.45; }
@@ -12832,7 +12837,11 @@ V2.CONFIG = {
   title: 'REBUILT Scout',
   season: 2026,
   // Point values from the 2026 manual, Table 6-4
-  points: { fuel: 1, autoL1: 15, climb: { None: 0, L1: 10, L2: 20, L3: 30 } },
+  points: { autoL1: 15, climb: { None: 0, L1: 10, L2: 20, L3: 30 } },
+
+  // Offense index (0-100) for one match. Fuel is rated 1-10 per phase, so it is weighted by how
+  // long each phase lasts; climbing (Auto L1 + Tower level, 45 points max) makes up the rest.
+  offense: { auto: 0.2, teleop: 0.6, endgame: 0.2, scoring: 0.7, climb: 0.3 },
 
   // Automatic Offense / Defense split. A team counts as a defense robot when it played defense
   // in at least `share` of its matches, or averaged at least `seconds` of defense per match.
@@ -12853,9 +12862,9 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'auto', intro: 'The first 20 seconds, robots drive themselves. Watch only your robot and count as it happens.', title: 'Auto', fields: [
-        { code: 'af', hint: 'Every Fuel this robot gets into the Hub. Use +5 / +10 when it unloads a burst; − fixes a mistake.', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
-        { code: 'am', hint: 'Shots that bounce out or miss the Hub. A good guess is fine.', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
+      page: 'auto', intro: 'The first 20 seconds, robots drive themselves. Watch only your robot, then rate its Fuel on the 1–10 scale.', title: 'Auto', fields: [
+        { code: 'af', hint: 'How much Fuel it got into the Hub in Auto, 1 = a few, 10 = a lot. None if it scored nothing.', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
+        { code: 'am', hint: 'How much it missed in Auto, 1 = a few misses, 10 = a lot. None if it never missed.', name: 'Fuel missed (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'an', hint: 'Yes if it drove past the Hub line into the middle of the field.', name: 'Went to neutral zone', type: 'bool' },
         { code: 'ai', hint: 'Where it picked up Fuel during Auto. Tap all that apply.', name: 'Collected from', type: 'multi', choices: { d: 'Depot', o: 'Outpost', n: 'Neutral zone' } },
         { code: 'as', hint: 'Tap each spot where it stopped to shoot. Several taps are fine.', name: 'Shooting spots', type: 'field', mode: 'multi' },
@@ -12863,9 +12872,9 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'teleop', intro: 'Drivers take over for 2 minutes 20 seconds. Keep counting Fuel; start a timer when your robot breaks down or plays defense.', title: 'Teleop', fields: [
-        { code: 'tf', hint: 'Every Fuel this robot gets into the Hub during Teleop.', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
-        { code: 'tm', hint: 'Shots that miss or bounce out.', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
+      page: 'teleop', intro: 'Drivers take over for 2 minutes 20 seconds. Rate its Fuel for the whole period; start a timer when your robot breaks down or plays defense.', title: 'Teleop', fields: [
+        { code: 'tf', hint: 'How much Fuel it got into the Hub in Teleop, 1 = a few, 10 = a lot. See the scale on the Guide tab.', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
+        { code: 'tm', hint: 'How much it missed in Teleop, 1 = a few misses, 10 = a lot.', name: 'Fuel missed (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'tp', hint: 'Fuel it pushed or shot from the middle back into its own zone for teammates. Not scoring.', name: 'Fuel ferried to our zone', type: 'counter', steps: [1, 5, 10] },
         { code: 'ts', hint: 'Tap the places it usually shoots from.', name: 'Shooting spots', type: 'field', mode: 'multi' },
         { code: 'tx', hint: 'How it moves between zones: over the Bump, under the Trench, or both.', name: 'Crossed through', type: 'multi', choices: { b: 'Bump', t: 'Trench' } },
@@ -12876,9 +12885,9 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'endgame', intro: 'The last 30 seconds. Most robots keep shooting while others climb the Tower: count both.', title: 'Endgame', short: 'End', fields: [
-        { code: 'gf', hint: 'Fuel scored in the last 30 seconds. Many robots keep shooting here.', name: 'Fuel scored', type: 'counter', steps: [1, 5, 10] },
-        { code: 'gm', hint: 'Missed shots in the last 30 seconds.', name: 'Fuel missed', type: 'counter', steps: [1, 5] },
+      page: 'endgame', intro: 'The last 30 seconds. Most robots keep shooting while others climb the Tower: rate the Fuel and record the climb.', title: 'Endgame', short: 'End', fields: [
+        { code: 'gf', hint: 'How much Fuel it scored in the last 30 seconds, 1 = a few, 10 = a lot. Many robots keep shooting here.', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
+        { code: 'gm', hint: 'How much it missed in the last 30 seconds, 1 = a few, 10 = a lot.', name: 'Fuel missed (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'el', hint: 'Highest level it was hanging on when the match ended. L1 = 10, L2 = 20, L3 = 30 points.', name: 'Tower level', type: 'radio', choices: { None: 'None', L1: 'L1', L2: 'L2', L3: 'L3' }, def: 'None' },
         { code: 'ep', hint: 'Which part of the Tower it climbed, A to E from left to right as you see it.', name: 'Tower position', type: 'radio', choices: { A: 'A', B: 'B', C: 'C', D: 'D', E: 'E' } },
         { code: 'ef', hint: 'Yes if it tried to climb but fell off or ran out of time.', name: 'Climb attempted but failed', type: 'bool' },
@@ -12930,7 +12939,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
   // Bump the tag whenever columns change, so rows from an older build are rejected
-  var TAGS = { match: 'RB26M2', pit: 'RB26P2' };
+  var TAGS = { match: 'RB26M3', pit: 'RB26P3' };
 
   function fields(kind) {
     var out = [];
@@ -13052,11 +13061,24 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     });
   }
 
-  // Points one match row is worth by the scout's counts
-  function rowPoints(v) {
+  // A 1-10 rating as a number; 'None' (n) and blank count as 0
+  function lvl(x) {
+    return typeof x === 'number' ? x : 0;
+  }
+
+  // Climb points the robot earned: Auto Level 1 plus its Tower level at the end
+  function climbPoints(v) {
     var P = V2.CONFIG.points;
+    return (v.ac === 'y' ? P.autoL1 : 0) + (P.climb[v.el] || 0);
+  }
+
+  // Offense index 0-100 for one match: phase-weighted Fuel ratings plus climbing (see config.offense)
+  function matchIndex(v) {
     if (v.ns) return 0;
-    return ((v.af || 0) + (v.tf || 0) + (v.gf || 0)) * P.fuel + (v.ac === 'y' ? P.autoL1 : 0) + (P.climb[v.el] || 0);
+    var O = V2.CONFIG.offense, P = V2.CONFIG.points;
+    var scoring = (lvl(v.af) * O.auto + lvl(v.tf) * O.teleop + lvl(v.gf) * O.endgame) / 10;
+    var climb = Math.min(1, climbPoints(v) / (P.autoL1 + P.climb.L3));
+    return Math.round(100 * (O.scoring * scoring + O.climb * climb));
   }
 
   function teams(rows) {
@@ -13068,16 +13090,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     return Object.keys(by).map(function (t) {
       var all = by[t];
       var rs = all.filter(function (v) { return !v.ns; });
-      var col = function (k) { return rs.map(function (v) { return v[k] || 0; }); };
-      var shots = col('af').map(function (x, i) { return x + col('tf')[i] + col('gf')[i]; });
-      var missed = col('am').map(function (x, i) { return x + col('tm')[i] + col('gm')[i]; });
-      var made = shots.reduce(function (a, b) { return a + b; }, 0);
-      var tried = made + missed.reduce(function (a, b) { return a + b; }, 0);
+      var col = function (k) { return rs.map(function (v) { return lvl(v[k]); }); };
+      // Shooting accuracy comes from the post-match estimate: midpoints of < 50%, 50-80%, > 80%
+      var acc = rs.map(function (v) { return { l: 35, m: 65, h: 90 }[v.sa]; }).filter(function (x) { return x != null; });
       var lv = { None: 0, L1: 0, L2: 0, L3: 0 };
       rs.forEach(function (v) { lv[v.el || 'None']++; });
       // 'n' = did not play defense / was not defended: left out of the average, counted separately
       var ratings = function (k) { var a = rs.map(function (v) { return v[k]; }).filter(function (x) { return typeof x === 'number' && x > 0; }); return a.length ? r1(avg(a)) : null; };
-      var pts = rs.map(rowPoints);
+      var idx = rs.map(matchIndex);
       return {
         t: Number(t),
         n: all.length,
@@ -13085,13 +13105,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         autoFuel: r1(avg(col('af'))),
         teleFuel: r1(avg(col('tf'))),
         endFuel: r1(avg(col('gf'))),
+        missed: r1(avg(rs.map(function (v) { return (lvl(v.am) + lvl(v.tm) + lvl(v.gm)) / 3; }))),
         ferried: r1(avg(col('tp'))),
-        accuracy: tried ? Math.round((made / tried) * 100) : null,
+        accuracy: acc.length ? Math.round(avg(acc)) : null,
         autoL1: rs.length ? Math.round((rs.filter(function (v) { return v.ac === 'y'; }).length / rs.length) * 100) : 0,
         levels: lv,
         climbPts: r1(avg(rs.map(function (v) { return V2.CONFIG.points.climb[v.el] || 0; }))),
-        points: r1(avg(pts)),
-        best: pts.length ? Math.max.apply(null, pts) : 0,
+        offense: r1(avg(idx)),
+        best: idx.length ? Math.max.apply(null, idx) : 0,
         incap: r1(avg(col('ti'))),
         defense: r1(avg(col('td'))),
         driver: ratings('ds'),
@@ -13108,11 +13129,10 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   }
 
   // Splits teams into offense and defense robots and gives each a 0-100 score within its group.
-  // Offense score: average points by scout counts, scaled to the event's best.
+  // Offense score: the team's average offense index (0-100).
   // Defense score: 50% defense rating, 30% time spent defending (60 s = full), 20% reliability.
   function rank(stats) {
     var R = V2.CONFIG.roles;
-    var top = Math.max.apply(null, stats.map(function (s) { return s.points; }).concat([1]));
     var out = { offense: [], defense: [] };
     stats.forEach(function (s) {
       var isDef = s.defenseShare >= R.share || s.defense >= R.seconds;
@@ -13122,16 +13142,16 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         ? 'Played defense in ' + Math.round(s.defenseShare * 100) + '% of matches, ' + s.defense + ' s per match on average'
         : 'Played defense in ' + Math.round(s.defenseShare * 100) + '% of matches';
       s.reliability = Math.round(reliability * 100);
-      s.offenseScore = Math.round((s.points / top) * 100);
+      s.offenseScore = Math.round(s.offense);
       s.defenseScore = Math.round(((s.defRating || 0) / 5 * 0.5 + Math.min(1, s.defense / 60) * 0.3 + reliability * 0.2) * 100);
       out[s.role].push(s);
     });
-    out.offense.sort(function (a, b) { return b.offenseScore - a.offenseScore || b.points - a.points; });
-    out.defense.sort(function (a, b) { return b.defenseScore - a.defenseScore || b.points - a.points; });
+    out.offense.sort(function (a, b) { return b.offenseScore - a.offenseScore || b.climbPts - a.climbPts; });
+    out.defense.sort(function (a, b) { return b.defenseScore - a.defenseScore || b.offense - a.offense; });
     return out;
   }
 
-  V2.stats = { rowPoints: rowPoints, teams: teams, mergeDuplicates: mergeDuplicates, rank: rank };
+  V2.stats = { matchIndex: matchIndex, climbPoints: climbPoints, teams: teams, mergeDuplicates: mergeDuplicates, rank: rank };
 })();
 
 </script>
@@ -13534,7 +13554,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         }));
       case 'rating':
         var opts = (f.none ? [{ v: 'n', t: f.none }] : []).concat(Array.from({ length: f.max }, function (_, i) { return { v: i + 1, t: i + 1 }; }));
-        return h('div', { class: 'seg', id: id }, opts.map(function (o) {
+        return h('div', { class: 'seg' + (f.max === 10 ? ' scale10' : ''), id: id }, opts.map(function (o) {
           return h('button', { type: 'button', class: 'opt' + (o.v === 'n' ? ' none' : '') + (val === o.v ? ' on' : ''), onclick: function () { setv(val === o.v ? '' : o.v); rerender(); } }, o.t);
         }));
       case 'counter':
@@ -13635,11 +13655,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }
       var label = kind === 'match' ? 'Q' + s.values.m + ' · ' + s.values.t + ' · ' + (STATIONS[s.values.r] || '') : 'Pit · ' + s.values.t;
       var reading = kind === 'match' && !s.values.ns ? h('div', { class: 'reading' },
-        h('div', { class: 'readout' }, h('small', null, 'Points by your counts'), h('b', null, V2.stats.rowPoints(s.values))),
+        h('div', { class: 'readout' }, h('small', null, 'Offense index (0–100)'), h('b', null, V2.stats.matchIndex(s.values))),
         V2.quake.seismogram([
-          { label: 'Auto', value: s.values.af || 0 },
-          { label: 'Teleop', value: s.values.tf || 0 },
-          { label: 'Endgame', value: s.values.gf || 0 },
+          { label: 'Auto', value: typeof s.values.af === 'number' ? s.values.af : 0 },
+          { label: 'Teleop', value: typeof s.values.tf === 'number' ? s.values.tf : 0 },
+          { label: 'Endgame', value: typeof s.values.gf === 'number' ? s.values.gf : 0 },
         ])) : null;
       body = h('section', { class: 'page ph-qr' },
         h('h2', null, label),
@@ -13667,7 +13687,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
   var h;
-  var sortKey = 'points', heatTeam = null;
+  var sortKey = 'offense', heatTeam = null;
 
   function records() {
     var all = V2.ui.get('records', {});
@@ -13890,12 +13910,12 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     });
 
     var COLS = [
-      ['t', 'Team'], ['n', 'M'], ['points', 'Avg pts'], ['best', 'Best'], ['autoFuel', 'Auto Fuel'], ['teleFuel', 'Tele Fuel'], ['endFuel', 'End Fuel'],
-      ['ferried', 'Ferried'], ['accuracy', 'Acc %'], ['climbPts', 'Climb pts'], ['autoL1', 'Auto L1 %'], ['incap', 'Incap s'],
+      ['t', 'Team'], ['n', 'M'], ['offense', 'Offense'], ['best', 'Best'], ['autoFuel', 'Auto 1–10'], ['teleFuel', 'Tele 1–10'], ['endFuel', 'End 1–10'],
+      ['missed', 'Miss 1–10'], ['ferried', 'Ferried'], ['accuracy', 'Acc ≈%'], ['climbPts', 'Climb pts'], ['autoL1', 'Auto L1 %'], ['incap', 'Incap s'],
       ['defense', 'Def. s'], ['defRating', 'Def. rating'], ['driver', 'Driver'], ['problems', 'Issues'],
     ];
 
-    var topPts = Math.max.apply(null, stats.map(function (s) { return s.points; }).concat([1]));
+    var topPts = 100; // offense index is already 0-100
     var table = stats.length ? h('div', { class: 'scroll' }, h('table', { class: 'data' },
       h('thead', null, h('tr', null, COLS.map(function (c) {
         return h('th', { class: 'sort' + (sortKey === c[0] ? ' on' : ''), onclick: function () { sortKey = c[0]; redraw(); } }, c[1]);
@@ -13904,8 +13924,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         return h('tr', { class: heatTeam === s.t ? 'sel' : '' }, COLS.map(function (c) {
           if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { heatTeam = s.t; redraw(); } }, s.t));
           var v = s[c[0]];
-          if (c[0] === 'points') {
-            // Bar length = share of the event's best average, so strong teams stand out at a glance
+          if (c[0] === 'offense') {
+            // Bar length = offense index out of 100, so strong teams stand out at a glance
             return h('td', { class: 'num barcell' }, h('span', { class: 'bar', style: 'width:' + Math.round((v / topPts) * 100) + '%' }), h('span', { class: 'barval' }, v));
           }
           return h('td', { class: 'num' }, v == null ? '–' : v);
@@ -13996,7 +14016,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           return h('button', { type: 'button', role: 'tab', 'aria-selected': group === o[0] ? 'true' : 'false', class: 'opt' + (group === o[0] ? ' on' : ''), onclick: function () { group = o[0]; redraw(); } }, o[1] + ' (' + o[2] + ')');
         })),
       h('p', { class: 'muted small' }, isOff
-        ? 'Score = average points by scout counts (Fuel + climb), scaled so the best team is 100.'
+        ? 'Score = average offense index: 70% Fuel scoring (1–10 ratings, Teleop counts most) + 30% climbing. 100 = scored a lot and climbed L3 every match.'
         : 'Score = 50% defense rating, 30% time spent defending (60 s per match = full), 20% reliability. A team is a defense robot when it defended in at least ' +
           Math.round(R.share * 100) + '% of its matches or ' + R.seconds + ' s per match.'),
       list.length ? h('ol', { class: 'ranklist' }, list.map(function (s, i) {
@@ -14007,8 +14027,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           h('span', { class: 'meter', 'aria-hidden': 'true' }, h('i', { style: 'width:' + score + '%' })),
           h('span', { class: 'score' }, score),
           h('span', { class: 'facts' }, isOff
-            ? fmt(s.points) + ' pts · climb ' + fmt(s.climbPts) + ' · acc ' + fmt(s.accuracy, '%')
-            : 'rating ' + fmt(s.defRating, '/5') + ' · ' + fmt(s.defense, ' s') + ' · ' + fmt(s.points) + ' pts')));
+            ? 'Teleop ' + fmt(s.teleFuel, '/10') + ' · climb ' + fmt(s.climbPts) + ' pts · acc ≈' + fmt(s.accuracy, '%')
+            : 'rating ' + fmt(s.defRating, '/5') + ' · ' + fmt(s.defense, ' s') + ' · offense ' + fmt(s.offense))));
       })) : h('p', { class: 'muted' }, 'No ' + group + ' robots yet. Import match data on the Data page.')));
   }
 
@@ -14035,11 +14055,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       h('p', { class: 'muted small' }, s.roleReason + '. All numbers are averages over ' + s.n + (s.n === 1 ? ' match' : ' matches') +
         '; when two scouts watched the same match, their numbers were averaged first.'),
       h('div', { class: 'tiles' },
-        tile('Avg points', fmt(s.points), 'best ' + fmt(s.best)),
-        tile('Offense score', s.offenseScore, 'of 100'),
+        tile('Offense index', fmt(s.offense), 'of 100 · best match ' + fmt(s.best)),
         tile('Defense score', s.defenseScore, 'of 100'),
-        tile('Accuracy', fmt(s.accuracy, '%'), 'made / attempted'),
-        tile('Fuel / match', fmt(Math.round((s.autoFuel + s.teleFuel + s.endFuel) * 10) / 10), 'A ' + s.autoFuel + ' · T ' + s.teleFuel + ' · E ' + s.endFuel),
+        tile('Accuracy', '≈' + fmt(s.accuracy, '%'), 'scouts\' estimate'),
+        tile('Fuel scored', fmt(s.teleFuel, '/10'), 'Teleop · Auto ' + s.autoFuel + ' · End ' + s.endFuel + ' (1–10)'),
+        tile('Fuel missed', fmt(s.missed, '/10'), 'average of the three phases'),
         tile('Climb', fmt(s.climbPts) + ' pts', 'L1 ' + s.levels.L1 + ' · L2 ' + s.levels.L2 + ' · L3 ' + s.levels.L3),
         tile('Auto L1', fmt(s.autoL1, '%'), 'of matches'),
         tile('Ferried', fmt(s.ferried), 'Fuel per match'),
@@ -14053,12 +14073,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         h('small', { class: 'muted' }, 'Drawn from the robot\'s own alliance end, with its own wall on the left.')),
       h('section', { class: 'card' }, h('h3', null, 'Match by match'),
         h('div', { class: 'scroll' }, h('table', { class: 'data' },
-          h('thead', null, h('tr', null, ['Match', 'Pts', 'Auto', 'Tele', 'End', 'Climb', 'Def. s', 'Def.', 'Driver', 'Scout'].map(function (c) { return h('th', null, c); }))),
+          h('thead', null, h('tr', null, ['Match', 'Index', 'Auto', 'Tele', 'End', 'Miss', 'Climb', 'Def. s', 'Def.', 'Driver', 'Scout'].map(function (c) { return h('th', null, c); }))),
           h('tbody', null, rows.map(function (v) {
-            if (v.ns) return h('tr', null, h('td', null, 'Q' + v.m), h('td', { colspan: 9, class: 'muted' }, 'No show'));
+            if (v.ns) return h('tr', null, h('td', null, 'Q' + v.m), h('td', { colspan: 10, class: 'muted' }, 'No show'));
+            var r10 = function (x) { return typeof x === 'number' ? x : '–'; };
             return h('tr', null,
-              h('td', null, 'Q' + v.m), h('td', { class: 'num' }, V2.stats.rowPoints(v)), h('td', { class: 'num' }, v.af || 0),
-              h('td', { class: 'num' }, v.tf || 0), h('td', { class: 'num' }, v.gf || 0), h('td', null, v.el || 'None'),
+              h('td', null, 'Q' + v.m), h('td', { class: 'num' }, V2.stats.matchIndex(v)), h('td', { class: 'num' }, r10(v.af)),
+              h('td', { class: 'num' }, r10(v.tf)), h('td', { class: 'num' }, r10(v.gf)),
+              h('td', { class: 'num' }, r10(v.tm)), h('td', null, v.el || 'None'),
               h('td', { class: 'num' }, v.td || 0), h('td', { class: 'num' }, typeof v.dr === 'number' ? v.dr : '–'),
               h('td', { class: 'num' }, v.ds || '–'), h('td', null, v.s + (v.scouts > 1 ? ' (avg)' : '')));
           }))))),
@@ -14105,10 +14127,10 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
   function render(root) {
     h = V2.ui.h;
-    var R = V2.CONFIG.roles, P = V2.CONFIG.points;
+    var R = V2.CONFIG.roles, P = V2.CONFIG.points, O = V2.CONFIG.offense;
     var toc = [
       ['start', 'First time here'], ['match', 'Scouting a match'], ['send', 'Handing in your data'],
-      ['scale', 'Rating scale'], ['lead', 'For the data lead'], ['rank', 'How rankings work'], ['words', 'Game words'],
+      ['fuel', 'Fuel scale'], ['scale', 'Rating scale'], ['lead', 'For the data lead'], ['rank', 'How rankings work'], ['words', 'Game words'],
     ];
     root.appendChild(h('div', { class: 'guidepage' },
       h('h2', null, 'Guide'),
@@ -14134,12 +14156,12 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       section('match', 'Scouting a match, page by page', [
         table(['Page', 'When', 'What you do'], [
           ['Pre-match', 'Before the start', 'Initials, match number, station, starting spot on the map, preload. Mark No show if the robot never comes out.'],
-          ['Auto', 'First 20 s', 'Tap +1 for every Fuel that goes in the Hub; +5 / +10 when it dumps a load. Tap the map where it shoots. Climbed if it hangs on Tower Level 1.'],
-          ['Teleop', 'Next 2 min 20 s', 'Keep counting Fuel. Start the Incap timer when it breaks down, and the Defense timer when it blocks opponents; stop them when that ends.'],
-          ['Endgame', 'Last 30 s', 'Keep counting Fuel, then record the highest Tower level it was hanging on at the buzzer.'],
+          ['Auto', 'First 20 s', 'Rate how much Fuel it scored and missed on the 1–10 scale below. Tap the map where it shoots. Climbed if it hangs on Tower Level 1.'],
+          ['Teleop', 'Next 2 min 20 s', 'Rate Fuel scored and missed for the whole Teleop period. Start the Incap timer when it breaks down, and the Defense timer when it blocks opponents; stop them when that ends.'],
+          ['Endgame', 'Last 30 s', 'Rate Fuel scored and missed in the last 30 s, then record the highest Tower level it was hanging on at the buzzer.'],
           ['Post-match', 'Right after', 'Rate driver and defense with the 1–5 scale below, tick any problems, add a comment.'],
         ]),
-        h('p', null, h('b', null, 'Counting tips: '), 'Watch only your robot. If you lose count, make your best guess and say so in Comments; a close guess is far more useful than a blank.'),
+        h('p', null, h('b', null, 'Rating tips: '), 'Watch only your robot and pick the number at the end of each phase. Compare it with the scale, not with the other robots in this match; a quick honest guess is far more useful than a blank.'),
         h('p', null, h('b', null, 'The field map: '), 'it turns to match Red or Blue once you pick a station. If it looks mirrored from where you sit, turn on Flip the field map on the Setup tab.'),
       ]),
 
@@ -14153,6 +14175,18 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           'When the last one is scanned, tap Done, all scanned.',
         ]),
         h('p', { class: 'muted' }, 'Scanning the same code twice never creates duplicates, so if you are unsure whether one was scanned, just show it again.'),
+      ]),
+
+      section('fuel', 'Fuel scale (1–10)', [
+        h('p', null, 'Used for Fuel scored and Fuel missed in Auto, Teleop and Endgame. Pick None if it scored (or missed) nothing at all.'),
+        h('ol', { class: 'scalelist fuelscale' }, [
+          ['1–2', 'A handful: one or two shots the whole phase'],
+          ['3–4', 'Some: a few small bursts'],
+          ['5–6', 'Steady: scored throughout, an average robot'],
+          ['7–8', 'A lot: big loads, kept the Hub busy'],
+          ['9–10', 'Nonstop: one of the best shooters at the event'],
+        ].map(function (r) { return h('li', null, h('b', null, r[0]), h('span', null, r[1])); })),
+        h('p', { class: 'muted' }, 'Same idea for misses: 1 = barely missed, 10 = most of its shots missed.'),
       ]),
 
       section('scale', 'Rating scale (1–5)', [
@@ -14179,11 +14213,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       section('rank', 'How rankings work', [
         h('p', null, 'Every number is an average over all of a team\'s matches. If two scouts watched the same robot in the same match, their two records are averaged first, so that match counts once.'),
         table(['', 'How it is worked out'], [
-          ['Points per match', 'Fuel scored (Auto + Teleop + Endgame) × ' + P.fuel + ', + ' + P.autoL1 + ' for an Auto Level 1 climb, + Tower level at the end (L1 ' + P.climb.L1 + ', L2 ' + P.climb.L2 + ', L3 ' + P.climb.L3 + ').'],
+          ['Offense index (per match)', Math.round(O.scoring * 100) + '% Fuel scoring + ' + Math.round(O.climb * 100) + '% climbing, 0–100. Fuel scoring = the 1–10 ratings weighted Auto ' + Math.round(O.auto * 100) + '%, Teleop ' + Math.round(O.teleop * 100) + '%, Endgame ' + Math.round(O.endgame * 100) + '% (Teleop is the longest). Climbing = Auto Level 1 (' + P.autoL1 + ') + Tower level at the end (L1 ' + P.climb.L1 + ', L2 ' + P.climb.L2 + ', L3 ' + P.climb.L3 + '), out of ' + (P.autoL1 + P.climb.L3) + ' points.'],
           ['Defense robot', 'Played defense in at least ' + Math.round(R.share * 100) + '% of its matches, or ' + R.seconds + ' s or more of defense per match. Everyone else is an offense robot.'],
-          ['Offense score', 'Average points ÷ the best team\'s average points × 100. The top offense robot is 100.'],
+          ['Offense score', 'The team\'s average offense index over all its matches.'],
           ['Defense score', '50% defense rating (5/5 = full) + 30% time defending (60 s per match = full) + 20% reliability (no breakdowns, no-shows).'],
-          ['Accuracy', 'Fuel scored ÷ (Fuel scored + Fuel missed).'],
+          ['Accuracy', 'Average of the scouts\' Shooting accuracy answers (< 50% counts as 35%, 50–80% as 65%, > 80% as 90%).'],
           ['Reliability', 'Share of matches without tipping, dying, getting beached, or not showing up.'],
         ]),
         h('p', { class: 'muted' }, 'Tap any team in the Rank tab to see all of its averages, its shooting map and each match.'),

@@ -35,11 +35,24 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     });
   }
 
-  // Points one match row is worth by the scout's counts
-  function rowPoints(v) {
+  // A 1-10 rating as a number; 'None' (n) and blank count as 0
+  function lvl(x) {
+    return typeof x === 'number' ? x : 0;
+  }
+
+  // Climb points the robot earned: Auto Level 1 plus its Tower level at the end
+  function climbPoints(v) {
     var P = V2.CONFIG.points;
+    return (v.ac === 'y' ? P.autoL1 : 0) + (P.climb[v.el] || 0);
+  }
+
+  // Offense index 0-100 for one match: phase-weighted Fuel ratings plus climbing (see config.offense)
+  function matchIndex(v) {
     if (v.ns) return 0;
-    return ((v.af || 0) + (v.tf || 0) + (v.gf || 0)) * P.fuel + (v.ac === 'y' ? P.autoL1 : 0) + (P.climb[v.el] || 0);
+    var O = V2.CONFIG.offense, P = V2.CONFIG.points;
+    var scoring = (lvl(v.af) * O.auto + lvl(v.tf) * O.teleop + lvl(v.gf) * O.endgame) / 10;
+    var climb = Math.min(1, climbPoints(v) / (P.autoL1 + P.climb.L3));
+    return Math.round(100 * (O.scoring * scoring + O.climb * climb));
   }
 
   function teams(rows) {
@@ -51,16 +64,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     return Object.keys(by).map(function (t) {
       var all = by[t];
       var rs = all.filter(function (v) { return !v.ns; });
-      var col = function (k) { return rs.map(function (v) { return v[k] || 0; }); };
-      var shots = col('af').map(function (x, i) { return x + col('tf')[i] + col('gf')[i]; });
-      var missed = col('am').map(function (x, i) { return x + col('tm')[i] + col('gm')[i]; });
-      var made = shots.reduce(function (a, b) { return a + b; }, 0);
-      var tried = made + missed.reduce(function (a, b) { return a + b; }, 0);
+      var col = function (k) { return rs.map(function (v) { return lvl(v[k]); }); };
+      // Shooting accuracy comes from the post-match estimate: midpoints of < 50%, 50-80%, > 80%
+      var acc = rs.map(function (v) { return { l: 35, m: 65, h: 90 }[v.sa]; }).filter(function (x) { return x != null; });
       var lv = { None: 0, L1: 0, L2: 0, L3: 0 };
       rs.forEach(function (v) { lv[v.el || 'None']++; });
       // 'n' = did not play defense / was not defended: left out of the average, counted separately
       var ratings = function (k) { var a = rs.map(function (v) { return v[k]; }).filter(function (x) { return typeof x === 'number' && x > 0; }); return a.length ? r1(avg(a)) : null; };
-      var pts = rs.map(rowPoints);
+      var idx = rs.map(matchIndex);
       return {
         t: Number(t),
         n: all.length,
@@ -68,13 +79,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         autoFuel: r1(avg(col('af'))),
         teleFuel: r1(avg(col('tf'))),
         endFuel: r1(avg(col('gf'))),
+        missed: r1(avg(rs.map(function (v) { return (lvl(v.am) + lvl(v.tm) + lvl(v.gm)) / 3; }))),
         ferried: r1(avg(col('tp'))),
-        accuracy: tried ? Math.round((made / tried) * 100) : null,
+        accuracy: acc.length ? Math.round(avg(acc)) : null,
         autoL1: rs.length ? Math.round((rs.filter(function (v) { return v.ac === 'y'; }).length / rs.length) * 100) : 0,
         levels: lv,
         climbPts: r1(avg(rs.map(function (v) { return V2.CONFIG.points.climb[v.el] || 0; }))),
-        points: r1(avg(pts)),
-        best: pts.length ? Math.max.apply(null, pts) : 0,
+        offense: r1(avg(idx)),
+        best: idx.length ? Math.max.apply(null, idx) : 0,
         incap: r1(avg(col('ti'))),
         defense: r1(avg(col('td'))),
         driver: ratings('ds'),
@@ -91,11 +103,10 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   }
 
   // Splits teams into offense and defense robots and gives each a 0-100 score within its group.
-  // Offense score: average points by scout counts, scaled to the event's best.
+  // Offense score: the team's average offense index (0-100).
   // Defense score: 50% defense rating, 30% time spent defending (60 s = full), 20% reliability.
   function rank(stats) {
     var R = V2.CONFIG.roles;
-    var top = Math.max.apply(null, stats.map(function (s) { return s.points; }).concat([1]));
     var out = { offense: [], defense: [] };
     stats.forEach(function (s) {
       var isDef = s.defenseShare >= R.share || s.defense >= R.seconds;
@@ -105,14 +116,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         ? 'Played defense in ' + Math.round(s.defenseShare * 100) + '% of matches, ' + s.defense + ' s per match on average'
         : 'Played defense in ' + Math.round(s.defenseShare * 100) + '% of matches';
       s.reliability = Math.round(reliability * 100);
-      s.offenseScore = Math.round((s.points / top) * 100);
+      s.offenseScore = Math.round(s.offense);
       s.defenseScore = Math.round(((s.defRating || 0) / 5 * 0.5 + Math.min(1, s.defense / 60) * 0.3 + reliability * 0.2) * 100);
       out[s.role].push(s);
     });
-    out.offense.sort(function (a, b) { return b.offenseScore - a.offenseScore || b.points - a.points; });
-    out.defense.sort(function (a, b) { return b.defenseScore - a.defenseScore || b.points - a.points; });
+    out.offense.sort(function (a, b) { return b.offenseScore - a.offenseScore || b.climbPts - a.climbPts; });
+    out.defense.sort(function (a, b) { return b.defenseScore - a.defenseScore || b.offense - a.offense; });
     return out;
   }
 
-  V2.stats = { rowPoints: rowPoints, teams: teams, mergeDuplicates: mergeDuplicates, rank: rank };
+  V2.stats = { matchIndex: matchIndex, climbPoints: climbPoints, teams: teams, mergeDuplicates: mergeDuplicates, rank: rank };
 })();

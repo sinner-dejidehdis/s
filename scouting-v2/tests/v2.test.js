@@ -8,13 +8,13 @@ const V2 = globalThis.V2;
 function match(over) {
   return Object.assign({ s: 'AB', e: '2026test', l: 'qm', m: 3, r: 'r2', t: 1678, sp: [[10, 40]], pl: true, ns: false,
     af: 8, am: 2, an: true, ai: ['d'], as: [[30, 20], [35, 50]], ac: 'y',
-    tf: 40, tm: 10, tp: 12, gf: 6, gm: 1, ts: [[20, 30]], tx: ['b', 't'], tq: 'f', tc: ['g'], ti: 0, td: 4.25,
+    tf: 7, tm: 3, tp: 12, gf: 6, gm: 1, ts: [[20, 30]], tx: ['b', 't'], tq: 'f', tc: ['g'], ti: 0, td: 4.25,
     el: 'L3', ep: 'C', ef: false, et: 6.5, ds: 4, dr: 'n', dd: 3, sa: 'h', to: false, dk: false, bf: false, cd: 'n', co: 'fast\tcycler\nnice' }, over);
 }
 
 test('encode/decode round trip, tabs and newlines in text are flattened', () => {
   const row = V2.codec.encode('match', match());
-  assert.ok(row.startsWith('RB26M2\t'));
+  assert.ok(row.startsWith('RB26M3\t'));
   assert.strictEqual(row.split('\n').length, 1);
   const d = V2.codec.decode(row);
   assert.strictEqual(d.kind, 'match');
@@ -37,20 +37,24 @@ test('header has one column per value', () => {
 
 test('decode rejects foreign or truncated rows', () => {
   assert.strictEqual(V2.codec.decode('hello\tworld'), null);
-  assert.strictEqual(V2.codec.decode('RB26M2\t1\t2'), null);
+  assert.strictEqual(V2.codec.decode('RB26M3\t1\t2'), null);
   // a row from the previous build (old tag) is rejected
   assert.strictEqual(V2.codec.decode('RB26M' + V2.codec.encode('match', match()).slice(6)), null);
 });
 
-test('rowPoints and team stats', () => {
-  assert.strictEqual(V2.stats.rowPoints(match()), 8 + 40 + 6 + 15 + 30);
-  assert.strictEqual(V2.stats.rowPoints(match({ ns: true })), 0);
-  const s = V2.stats.teams([match(), match({ m: 4, tf: 20, af: 2, am: 0, tm: 0, gf: 0, gm: 0, el: 'None', ac: 'n', dr: 4, dd: 'n' }), match({ m: 5, ns: true })])[0];
+test('offense index and team stats from 1-10 Fuel ratings', () => {
+  // Fuel (8*.2 + 7*.6 + 6*.2)/10 = 0.7, climb (15 + 30)/45 = 1  ->  100 * (0.7*0.7 + 0.3*1) = 79
+  assert.strictEqual(V2.stats.matchIndex(match()), 79);
+  assert.strictEqual(V2.stats.matchIndex(match({ ns: true })), 0);
+  // 'None' counts as 0: (2*.2 + 4*.6 + 0)/10 = 0.28, no climb -> 19.6 -> 20
+  assert.strictEqual(V2.stats.matchIndex(match({ af: 2, tf: 4, gf: 'n', el: 'None', ac: 'n' })), 20);
+  const s = V2.stats.teams([match(), match({ m: 4, tf: 4, af: 2, am: 'n', tm: 'n', gf: 'n', gm: 'n', el: 'None', ac: 'n', dr: 4, dd: 'n' }), match({ m: 5, ns: true })])[0];
   assert.strictEqual(s.n, 3);
   assert.strictEqual(s.noShow, 1);
-  assert.strictEqual(s.teleFuel, 30);
-  assert.strictEqual(s.points, (99 + 22) / 2);
-  assert.strictEqual(s.accuracy, Math.round((76 / 89) * 100));
+  assert.strictEqual(s.teleFuel, 5.5);
+  assert.strictEqual(s.offense, (79 + 20) / 2);
+  assert.strictEqual(s.best, 79);
+  assert.strictEqual(s.accuracy, 90); // both matches answered > 80%
   assert.strictEqual(s.endFuel, 3);
   assert.strictEqual(s.defRating, 4);
   assert.strictEqual(s.playedDefense, 1);
@@ -78,29 +82,30 @@ test('chunk splits rows into QR-sized blocks without cutting a row', () => {
 });
 
 test('two scouts on the same robot and match are averaged into one row', () => {
-  const m = V2.stats.mergeDuplicates([match({ s: 'A', tf: 40, td: 0 }), match({ s: 'B', tf: 30, td: 10, ts: [[1, 1]] }), match({ m: 4 })]);
+  const m = V2.stats.mergeDuplicates([match({ s: 'A', tf: 8, td: 0 }), match({ s: 'B', tf: 6, td: 10, ts: [[1, 1]] }), match({ m: 4 })]);
   assert.strictEqual(m.length, 2);
-  assert.strictEqual(m[0].tf, 35);
+  assert.strictEqual(m[0].tf, 7);
   assert.strictEqual(m[0].td, 5);
   assert.strictEqual(m[0].s, 'A/B');
   assert.strictEqual(m[0].scouts, 2);
   assert.strictEqual(m[0].ts.length, 2); // shooting spots from both scouts
-  const s = V2.stats.teams([match({ s: 'A', tf: 40 }), match({ s: 'B', tf: 30 })])[0];
+  const s = V2.stats.teams([match({ s: 'A', tf: 8 }), match({ s: 'B', tf: 6 })])[0];
   assert.strictEqual(s.n, 1);
-  assert.strictEqual(s.teleFuel, 35);
+  assert.strictEqual(s.teleFuel, 7);
 });
 
 test('rank splits offense and defense robots and scores each group', () => {
   const rows = [];
   for (let m = 1; m <= 5; m++) {
-    rows.push(match({ t: 1, m, tf: 60, dr: 'n', td: 0 }));
-    rows.push(match({ t: 2, m, tf: 20, dr: 'n', td: 0 }));
-    rows.push(match({ t: 3, m, tf: 5, dr: 4, td: 45 }));
-    rows.push(match({ t: 4, m, tf: 10, dr: m < 3 ? 2 : 'n', td: m < 3 ? 10 : 0 }));
+    rows.push(match({ t: 1, m, tf: 9, dr: 'n', td: 0 }));
+    rows.push(match({ t: 2, m, tf: 4, dr: 'n', td: 0 }));
+    rows.push(match({ t: 3, m, tf: 1, dr: 4, td: 45 }));
+    rows.push(match({ t: 4, m, tf: 2, dr: m < 3 ? 2 : 'n', td: m < 3 ? 10 : 0 }));
   }
   const r = V2.stats.rank(V2.stats.teams(rows));
   assert.deepStrictEqual(r.offense.map((s) => s.t), [1, 2]);
   assert.deepStrictEqual(r.defense.map((s) => s.t), [3, 4]); // 4 defended in 2 of 5 matches = 40%
-  assert.strictEqual(r.offense[0].offenseScore, 100);
+  assert.ok(r.offense[0].offenseScore > r.offense[1].offenseScore);
+  assert.ok(r.offense[0].offenseScore <= 100);
   assert.ok(r.defense[0].defenseScore > r.defense[1].defenseScore);
 });

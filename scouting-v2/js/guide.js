@@ -18,10 +18,10 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
   function render(root) {
     h = V2.ui.h;
-    var R = V2.CONFIG.roles, P = V2.CONFIG.points;
+    var R = V2.CONFIG.roles, P = V2.CONFIG.points, O = V2.CONFIG.offense;
     var toc = [
       ['start', 'First time here'], ['match', 'Scouting a match'], ['send', 'Handing in your data'],
-      ['scale', 'Rating scale'], ['lead', 'For the data lead'], ['rank', 'How rankings work'], ['words', 'Game words'],
+      ['fuel', 'Fuel scale'], ['scale', 'Rating scale'], ['lead', 'For the data lead'], ['rank', 'How rankings work'], ['words', 'Game words'],
     ];
     root.appendChild(h('div', { class: 'guidepage' },
       h('h2', null, 'Guide'),
@@ -47,12 +47,12 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       section('match', 'Scouting a match, page by page', [
         table(['Page', 'When', 'What you do'], [
           ['Pre-match', 'Before the start', 'Initials, match number, station, starting spot on the map, preload. Mark No show if the robot never comes out.'],
-          ['Auto', 'First 20 s', 'Tap +1 for every Fuel that goes in the Hub; +5 / +10 when it dumps a load. Tap the map where it shoots. Climbed if it hangs on Tower Level 1.'],
-          ['Teleop', 'Next 2 min 20 s', 'Keep counting Fuel. Start the Incap timer when it breaks down, and the Defense timer when it blocks opponents; stop them when that ends.'],
-          ['Endgame', 'Last 30 s', 'Keep counting Fuel, then record the highest Tower level it was hanging on at the buzzer.'],
+          ['Auto', 'First 20 s', 'Rate how much Fuel it scored and missed on the 1–10 scale below. Tap the map where it shoots. Climbed if it hangs on Tower Level 1.'],
+          ['Teleop', 'Next 2 min 20 s', 'Rate Fuel scored and missed for the whole Teleop period. Start the Incap timer when it breaks down, and the Defense timer when it blocks opponents; stop them when that ends.'],
+          ['Endgame', 'Last 30 s', 'Rate Fuel scored and missed in the last 30 s, then record the highest Tower level it was hanging on at the buzzer.'],
           ['Post-match', 'Right after', 'Rate driver and defense with the 1–5 scale below, tick any problems, add a comment.'],
         ]),
-        h('p', null, h('b', null, 'Counting tips: '), 'Watch only your robot. If you lose count, make your best guess and say so in Comments; a close guess is far more useful than a blank.'),
+        h('p', null, h('b', null, 'Rating tips: '), 'Watch only your robot and pick the number at the end of each phase. Compare it with the scale, not with the other robots in this match; a quick honest guess is far more useful than a blank.'),
         h('p', null, h('b', null, 'The field map: '), 'it turns to match Red or Blue once you pick a station. If it looks mirrored from where you sit, turn on Flip the field map on the Setup tab.'),
       ]),
 
@@ -66,6 +66,18 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           'When the last one is scanned, tap Done, all scanned.',
         ]),
         h('p', { class: 'muted' }, 'Scanning the same code twice never creates duplicates, so if you are unsure whether one was scanned, just show it again.'),
+      ]),
+
+      section('fuel', 'Fuel scale (1–10)', [
+        h('p', null, 'Used for Fuel scored and Fuel missed in Auto, Teleop and Endgame. Pick None if it scored (or missed) nothing at all.'),
+        h('ol', { class: 'scalelist fuelscale' }, [
+          ['1–2', 'A handful: one or two shots the whole phase'],
+          ['3–4', 'Some: a few small bursts'],
+          ['5–6', 'Steady: scored throughout, an average robot'],
+          ['7–8', 'A lot: big loads, kept the Hub busy'],
+          ['9–10', 'Nonstop: one of the best shooters at the event'],
+        ].map(function (r) { return h('li', null, h('b', null, r[0]), h('span', null, r[1])); })),
+        h('p', { class: 'muted' }, 'Same idea for misses: 1 = barely missed, 10 = most of its shots missed.'),
       ]),
 
       section('scale', 'Rating scale (1–5)', [
@@ -92,11 +104,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       section('rank', 'How rankings work', [
         h('p', null, 'Every number is an average over all of a team\'s matches. If two scouts watched the same robot in the same match, their two records are averaged first, so that match counts once.'),
         table(['', 'How it is worked out'], [
-          ['Points per match', 'Fuel scored (Auto + Teleop + Endgame) × ' + P.fuel + ', + ' + P.autoL1 + ' for an Auto Level 1 climb, + Tower level at the end (L1 ' + P.climb.L1 + ', L2 ' + P.climb.L2 + ', L3 ' + P.climb.L3 + ').'],
+          ['Offense index (per match)', Math.round(O.scoring * 100) + '% Fuel scoring + ' + Math.round(O.climb * 100) + '% climbing, 0–100. Fuel scoring = the 1–10 ratings weighted Auto ' + Math.round(O.auto * 100) + '%, Teleop ' + Math.round(O.teleop * 100) + '%, Endgame ' + Math.round(O.endgame * 100) + '% (Teleop is the longest). Climbing = Auto Level 1 (' + P.autoL1 + ') + Tower level at the end (L1 ' + P.climb.L1 + ', L2 ' + P.climb.L2 + ', L3 ' + P.climb.L3 + '), out of ' + (P.autoL1 + P.climb.L3) + ' points.'],
           ['Defense robot', 'Played defense in at least ' + Math.round(R.share * 100) + '% of its matches, or ' + R.seconds + ' s or more of defense per match. Everyone else is an offense robot.'],
-          ['Offense score', 'Average points ÷ the best team\'s average points × 100. The top offense robot is 100.'],
+          ['Offense score', 'The team\'s average offense index over all its matches.'],
           ['Defense score', '50% defense rating (5/5 = full) + 30% time defending (60 s per match = full) + 20% reliability (no breakdowns, no-shows).'],
-          ['Accuracy', 'Fuel scored ÷ (Fuel scored + Fuel missed).'],
+          ['Accuracy', 'Average of the scouts\' Shooting accuracy answers (< 50% counts as 35%, 50–80% as 65%, > 80% as 90%).'],
           ['Reliability', 'Share of matches without tipping, dying, getting beached, or not showing up.'],
         ]),
         h('p', { class: 'muted' }, 'Tap any team in the Rank tab to see all of its averages, its shooting map and each match.'),
