@@ -177,6 +177,12 @@ main {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
+.nojs { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--accent); border-radius: var(--radius); padding: 18px 16px; line-height: 1.5; }
+.nojs h2 { font-size: 1.4rem; margin: 0 0 6px; }
+.nojs h2[lang] { margin-top: 18px; }
+.nojs p { margin: 0 0 8px; }
+.nojs ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+
 /* ---------- Steps: ticks on a seismograph baseline ---------- */
 .steps { list-style: none; display: flex; padding: 0; margin: 0 0 14px; position: relative; }
 .steps::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 2px; background: var(--line); }

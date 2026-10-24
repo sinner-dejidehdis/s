@@ -25,7 +25,23 @@
     <div id="quake"></div>
     <nav class="tabs" id="tabs"></nav>
   </header>
-  <main id="app"></main>
+  <main id="app">
+    <!-- Shown only when scripts cannot run (QQ / WeChat / iOS Files previews). The app replaces it on start. -->
+    <div class="nojs">
+      <h2>Open this in a browser</h2>
+      <p>This preview cannot run the app.</p>
+      <ul>
+        <li><b>iPhone / iPad:</b> open the team's web link in Safari, then Share → Add to Home Screen. It keeps working offline after that.</li>
+        <li><b>Android or computer:</b> save this file, then open it with Chrome or Edge.</li>
+      </ul>
+      <h2 lang="zh">请用浏览器打开</h2>
+      <p lang="zh">当前预览无法运行这个应用。</p>
+      <ul lang="zh">
+        <li><b>iPhone / iPad：</b>用 Safari 打开队伍的网址，点「分享」→「添加到主屏幕」，之后断网也能用。</li>
+        <li><b>安卓手机或电脑：</b>把文件保存下来，用 Chrome 或 Edge 打开。</li>
+      </ul>
+    </div>
+  </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="vendor/qrcode.js"></script>
