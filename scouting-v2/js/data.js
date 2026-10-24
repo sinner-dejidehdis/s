@@ -34,7 +34,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var all = V2.ui.get('records', {});
     return Object.keys(all).filter(function (k) {
       var r = all[k], v = r.values;
-      if (v.e && v.e !== ev) return false;
+      if (!V2.CONFIG.sameEvent(v.e)) return false;
       if (sendScope === 'unsent') return r.sent === false;
       if (sendScope === 'range') {
         if (r.kind !== 'match') return false;
@@ -147,7 +147,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   }
 
   function rowsOf(kind, ev) {
-    return records().filter(function (r) { return r.kind === kind && (!ev || r.values.e === ev); }).map(function (r) { return r.values; });
+    return records().filter(function (r) { return r.kind === kind && (!ev || V2.CONFIG.sameEvent(r.values.e)); }).map(function (r) { return r.values; });
   }
 
   function tsv(kind, ev) {

@@ -12852,6 +12852,10 @@ V2.CONFIG = {
   // Use the TBA event key, e.g. '2026txhou'.
   event: '2026rampriot', // Ramp Riot, Oct 24 2026,
 
+  // Older event codes whose records still count for this event
+  alsoEvents: ['2026test'],
+  sameEvent: function (e) { return !e || e === this.event || this.alsoEvents.indexOf(e) >= 0; },
+
   // Shown in the header
   team: { number: 9094, name: 'Earthquakers', logo: 'logo.png' },
 
@@ -13740,7 +13744,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var all = V2.ui.get('records', {});
     return Object.keys(all).filter(function (k) {
       var r = all[k], v = r.values;
-      if (v.e && v.e !== ev) return false;
+      if (!V2.CONFIG.sameEvent(v.e)) return false;
       if (sendScope === 'unsent') return r.sent === false;
       if (sendScope === 'range') {
         if (r.kind !== 'match') return false;
@@ -13853,7 +13857,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   }
 
   function rowsOf(kind, ev) {
-    return records().filter(function (r) { return r.kind === kind && (!ev || r.values.e === ev); }).map(function (r) { return r.values; });
+    return records().filter(function (r) { return r.kind === kind && (!ev || V2.CONFIG.sameEvent(r.values.e)); }).map(function (r) { return r.values; });
   }
 
   function tsv(kind, ev) {
@@ -13991,7 +13995,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var rows = [], pits = [];
     Object.keys(all).forEach(function (k) {
       var r = all[k];
-      if (r.values.e && r.values.e !== ev) return;
+      if (!V2.CONFIG.sameEvent(r.values.e)) return;
       (r.kind === 'pit' ? pits : rows).push(r.values);
     });
     var stats = V2.stats.teams(rows);

@@ -8,6 +8,10 @@ V2.CONFIG = {
   // Use the TBA event key, e.g. '2026txhou'.
   event: '2026rampriot', // Ramp Riot, Oct 24 2026,
 
+  // Older event codes whose records still count for this event
+  alsoEvents: ['2026test'],
+  sameEvent: function (e) { return !e || e === this.event || this.alsoEvents.indexOf(e) >= 0; },
+
   // Shown in the header
   team: { number: 9094, name: 'Earthquakers', logo: 'logo.png' },
 
