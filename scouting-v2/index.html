@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Earthquakers Scout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&family=Big+Shoulders+Display:wght@700;900&display=swap">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <meta name="theme-color" content="#17151a">
+  <link rel="stylesheet" href="css/v2.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brandrow">
+      <span id="mark"></span>
+      <div class="wordmark">
+        <span class="teamname" id="teamname">Earthquakers</span>
+        <span class="sub" id="teamsub">FRC 9094 · REBUILT Scout</span>
+      </div>
+      <span class="eventchip" id="eventchip"></span>
+    </div>
+    <div id="quake"></div>
+    <nav class="tabs" id="tabs"></nav>
+  </header>
+  <main id="app">
+    <!-- Shown only when scripts cannot run (QQ / WeChat / iOS Files previews). The app replaces it on start. -->
+    <div class="nojs">
+      <h2>Open this in a browser</h2>
+      <p>This preview cannot run the app.</p>
+      <ul>
+        <li><b>iPhone / iPad:</b> open the team's web link in Safari, then Share → Add to Home Screen. It keeps working offline after that.</li>
+        <li><b>Android or computer:</b> save this file, then open it with Chrome or Edge.</li>
+      </ul>
+      <h2 lang="zh">请用浏览器打开</h2>
+      <p lang="zh">当前预览无法运行这个应用。</p>
+      <ul lang="zh">
+        <li><b>iPhone / iPad：</b>用 Safari 打开队伍的网址，点「分享」→「添加到主屏幕」，之后断网也能用。</li>
+        <li><b>安卓手机或电脑：</b>把文件保存下来，用 Chrome 或 Edge 打开。</li>
+      </ul>
+    </div>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/qrcode.js"></script>
+  <script src="vendor/jsQR.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/codec.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/quake.js"></script>
+  <script src="js/field.js"></script>
+  <script src="js/form.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/rank.js"></script>
+  <script src="js/guide.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
