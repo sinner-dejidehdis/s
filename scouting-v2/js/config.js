@@ -6,7 +6,7 @@ V2.CONFIG = {
   // The event every scout records for. The scouting lead sets it here once per event,
   // then redeploys / rebuilds the offline file. Scouts cannot change it in the app.
   // Use the TBA event key, e.g. '2026txhou'.
-  event: '2026test',
+  event: '2026rampriot', // Ramp Riot, Oct 24 2026,
 
   // Shown in the header
   team: { number: 9094, name: 'Earthquakers', logo: 'logo.png' },

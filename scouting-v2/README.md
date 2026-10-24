@@ -71,7 +71,7 @@
 
 ## 设定赛事（每场比赛前负责人做一次）
 
-打开 `js/config.js`，改最上面的 `event: '2026test'`（用 TBA 的赛事代码，比如 `'2026txhou'`），然后：
+打开 `js/config.js`，改最上面的 `event`（现在是 Ramp Riot：`'2026rampriot'`）（用 TBA 的赛事代码，比如 `'2026txhou'`），然后：
 1. 运行 `node scouting-v2/tools/build-offline.js` 重新生成离线文件；
 2. 把 `sw.js` 里的 `VERSION` 加 1；
 3. 推送 / 重新部署，再把新的离线文件发给队员。
