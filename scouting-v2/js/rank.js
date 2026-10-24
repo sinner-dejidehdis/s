@@ -11,7 +11,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var rows = [], pits = [];
     Object.keys(all).forEach(function (k) {
       var r = all[k];
-      if (r.values.e && r.values.e !== ev) return;
+      if (!V2.CONFIG.sameEvent(r.values.e)) return;
       (r.kind === 'pit' ? pits : rows).push(r.values);
     });
     var stats = V2.stats.teams(rows);
