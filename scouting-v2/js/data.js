@@ -238,7 +238,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }))),
       h('tbody', null, stats.map(function (s) {
         return h('tr', { class: heatTeam === s.t ? 'sel' : '' }, COLS.map(function (c) {
-          if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { heatTeam = s.t; redraw(); } }, s.t));
+          if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { V2.rank.openTeam(s.t); location.hash = '#rank'; } }, s.t));
           var v = s[c[0]];
           if (c[0] === 'offense') {
             // Bar length = offense index out of 100, so strong teams stand out at a glance
@@ -249,34 +249,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }))
     )) : h('p', { class: 'muted' }, 'No match data for ' + ev + ' yet. Scan or paste rows above.');
 
-    var detail = null;
-    var t = stats.filter(function (s) { return s.t === heatTeam; })[0];
-    if (t) {
-      var mine = rows.filter(function (v) { return v.t === t.t; });
-      var auto = [], tele = [];
-      mine.forEach(function (v) { auto = auto.concat(v.as || []); tele = tele.concat(v.ts || []); });
-      var pit = pits.filter(function (v) { return v.t === t.t; })[0];
-      detail = h('section', { class: 'card' },
-        h('h3', null, 'Team ' + t.t),
-        h('p', { class: 'muted' }, t.n + ' matches · climbs L1/L2/L3: ' + t.levels.L1 + '/' + t.levels.L2 + '/' + t.levels.L3 + ' · no-shows ' + t.noShow +
-          ' · played defense in ' + t.playedDefense + ' · was defended in ' + t.wasDefended + (t.defendedRating != null ? ' (handled it ' + t.defendedRating + '/5)' : '')),
-        h('div', { class: 'legend' }, h('span', null, h('i', { class: 'k-auto' }), 'Auto shots (' + auto.length + ')'), h('span', null, h('i', { class: 'k-tele' }), 'Teleop shots (' + tele.length + ')')),
-        h('small', { class: 'muted' }, 'Drawn from the robot\'s own alliance end, with its own wall on the left.'),
-        V2.field.heat([{ points: auto, color: V2.field.css('--s1') }, { points: tele, color: V2.field.css('--s2') }]),
-        pit ? h('div', null, h('h4', null, 'Pit'), h('dl', { class: 'pit' }, V2.codec.fields('pit').filter(function (f) { return ['s', 'e', 't'].indexOf(f.code) < 0; }).map(function (f) {
-          var v = pit[f.code];
-          if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null;
-          var shown = f.choices ? (Array.isArray(v) ? v : [v]).map(function (k) { return f.choices[k] || k; }).join(', ') : v === true ? 'Yes' : v === false ? 'No' : v;
-          return [h('dt', null, f.name), h('dd', null, String(shown))];
-        }))) : null,
-        t.comments.length ? h('div', null, h('h4', null, 'Comments'), h('ul', { class: 'notes' }, t.comments.map(function (c) { return h('li', null, h('b', null, 'Q' + c.m + ' '), c.text, h('small', { class: 'muted' }, ' — ' + c.s)); }))) : null
-      );
-    }
-
     var out = h('textarea', { class: 'raw', rows: 4, readonly: true, 'aria-label': 'Export' });
     return h('div', null,
-      h('section', { class: 'card' }, h('h3', null, 'Teams'), h('p', { class: 'muted' }, 'Tap a team number for its shooting map, pit info and comments.'), table),
-      detail,
+      h('section', { class: 'card' }, h('h3', null, 'Teams'), h('p', { class: 'muted' }, 'Tap a team number for its full page: a plain-language summary, shooting map, every match, pit info and comments.'), table),
       h('section', { class: 'card' }, h('h3', null, 'Export'),
         h('p', { class: 'muted' }, 'Tab-separated with a header row. Paste into Google Sheets or Excel.'),
         h('div', { class: 'row wrap' },

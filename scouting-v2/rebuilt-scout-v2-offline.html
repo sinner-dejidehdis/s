@@ -12850,7 +12850,7 @@ V2.CONFIG = {
   // The event every scout records for. The scouting lead sets it here once per event,
   // then redeploys / rebuilds the offline file. Scouts cannot change it in the app.
   // Use the TBA event key, e.g. '2026txhou'.
-  event: '2026test',
+  event: '2026rampriot', // Ramp Riot, Oct 24 2026,
 
   // Shown in the header
   team: { number: 9094, name: 'Earthquakers', logo: 'logo.png' },
@@ -13944,7 +13944,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }))),
       h('tbody', null, stats.map(function (s) {
         return h('tr', { class: heatTeam === s.t ? 'sel' : '' }, COLS.map(function (c) {
-          if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { heatTeam = s.t; redraw(); } }, s.t));
+          if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { V2.rank.openTeam(s.t); location.hash = '#rank'; } }, s.t));
           var v = s[c[0]];
           if (c[0] === 'offense') {
             // Bar length = offense index out of 100, so strong teams stand out at a glance
@@ -13955,34 +13955,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }))
     )) : h('p', { class: 'muted' }, 'No match data for ' + ev + ' yet. Scan or paste rows above.');
 
-    var detail = null;
-    var t = stats.filter(function (s) { return s.t === heatTeam; })[0];
-    if (t) {
-      var mine = rows.filter(function (v) { return v.t === t.t; });
-      var auto = [], tele = [];
-      mine.forEach(function (v) { auto = auto.concat(v.as || []); tele = tele.concat(v.ts || []); });
-      var pit = pits.filter(function (v) { return v.t === t.t; })[0];
-      detail = h('section', { class: 'card' },
-        h('h3', null, 'Team ' + t.t),
-        h('p', { class: 'muted' }, t.n + ' matches · climbs L1/L2/L3: ' + t.levels.L1 + '/' + t.levels.L2 + '/' + t.levels.L3 + ' · no-shows ' + t.noShow +
-          ' · played defense in ' + t.playedDefense + ' · was defended in ' + t.wasDefended + (t.defendedRating != null ? ' (handled it ' + t.defendedRating + '/5)' : '')),
-        h('div', { class: 'legend' }, h('span', null, h('i', { class: 'k-auto' }), 'Auto shots (' + auto.length + ')'), h('span', null, h('i', { class: 'k-tele' }), 'Teleop shots (' + tele.length + ')')),
-        h('small', { class: 'muted' }, 'Drawn from the robot\'s own alliance end, with its own wall on the left.'),
-        V2.field.heat([{ points: auto, color: V2.field.css('--s1') }, { points: tele, color: V2.field.css('--s2') }]),
-        pit ? h('div', null, h('h4', null, 'Pit'), h('dl', { class: 'pit' }, V2.codec.fields('pit').filter(function (f) { return ['s', 'e', 't'].indexOf(f.code) < 0; }).map(function (f) {
-          var v = pit[f.code];
-          if (v == null || v === '' || (Array.isArray(v) && !v.length)) return null;
-          var shown = f.choices ? (Array.isArray(v) ? v : [v]).map(function (k) { return f.choices[k] || k; }).join(', ') : v === true ? 'Yes' : v === false ? 'No' : v;
-          return [h('dt', null, f.name), h('dd', null, String(shown))];
-        }))) : null,
-        t.comments.length ? h('div', null, h('h4', null, 'Comments'), h('ul', { class: 'notes' }, t.comments.map(function (c) { return h('li', null, h('b', null, 'Q' + c.m + ' '), c.text, h('small', { class: 'muted' }, ' — ' + c.s)); }))) : null
-      );
-    }
-
     var out = h('textarea', { class: 'raw', rows: 4, readonly: true, 'aria-label': 'Export' });
     return h('div', null,
-      h('section', { class: 'card' }, h('h3', null, 'Teams'), h('p', { class: 'muted' }, 'Tap a team number for its shooting map, pit info and comments.'), table),
-      detail,
+      h('section', { class: 'card' }, h('h3', null, 'Teams'), h('p', { class: 'muted' }, 'Tap a team number for its full page: a plain-language summary, shooting map, every match, pit info and comments.'), table),
       h('section', { class: 'card' }, h('h3', null, 'Export'),
         h('p', { class: 'muted' }, 'Tab-separated with a header row. Paste into Google Sheets or Excel.'),
         h('div', { class: 'row wrap' },
@@ -14058,6 +14033,28 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     return h('div', { class: 'tile' }, h('small', null, label), h('b', null, value), sub ? h('span', { class: 'muted' }, sub) : null);
   }
 
+  function word(v, cuts, words) {
+    if (v == null) return null;
+    for (var i = 0; i < cuts.length; i++) if (v < cuts[i]) return words[i];
+    return words[words.length - 1];
+  }
+
+  // Plain-language summary so anyone can read a team at a glance
+  function quickRead(s, pos, total) {
+    var lines = [];
+    var role = s.role === 'offense' ? 'scorer' : 'defender';
+    lines.push(['Overall', '#' + pos + ' of ' + total + ' ' + role + 's, from ' + s.n + (s.n === 1 ? ' match' : ' matches') + '.']);
+    var shoot = word(s.teleFuel, [2.5, 4.5, 6.5, 8.5], ['Barely scores', 'Scores some', 'Steady average scorer', 'Strong scorer', 'Elite scorer']);
+    lines.push(['Scoring', shoot ? shoot + ' (Teleop ' + s.teleFuel + '/10, about ' + (s.accuracy || '?') + '% of shots go in).' : 'No Fuel scored yet.']);
+    var lv = s.levels, best = lv.L3 ? 'L3' : lv.L2 ? 'L2' : lv.L1 ? 'L1' : null;
+    lines.push(['Climb', best ? 'Usually ' + s.climbPts + ' pts per match; best climb ' + best + ' (L1 ' + lv.L1 + '×, L2 ' + lv.L2 + '×, L3 ' + lv.L3 + '×).' : 'Did not climb in any match.']);
+    lines.push(['Defense', s.playedDefense ? 'Defended in ' + s.playedDefense + ' of ' + s.n + ' matches, ~' + s.defense + ' s each' + (s.defRating != null ? ', rated ' + s.defRating + '/5.' : '.') : 'Never played defense.']);
+    lines.push(['Under pressure', s.defendedRating != null ? word(s.defendedRating, [2, 3.5], ['Stops scoring when defended', 'Slows down when defended', 'Keeps scoring when defended']) + ' (' + s.defendedRating + '/5).' : 'Not defended yet.']);
+    lines.push(['Reliability', word(s.reliability, [60, 85], ['Breaks down often', 'Some problems', 'Very reliable']) + ' (' + s.reliability + '% clean matches' + (s.noShow ? ', ' + s.noShow + ' no-show' : '') + ').']);
+    return h('section', { class: 'card' }, h('h3', null, 'Quick read'),
+      h('dl', { class: 'pit' }, lines.map(function (l) { return [h('dt', null, l[0]), h('dd', null, l[1])]; })));
+  }
+
   function detailView(root, D, redraw) {
     var s = D.stats.filter(function (x) { return x.t === open; })[0];
     if (!s) { open = null; return listView(root, D, redraw); }
@@ -14076,6 +14073,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         h('span', { class: 'rolechip ' + s.role }, (s.role === 'offense' ? 'Offense' : 'Defense') + ' #' + pos + ' of ' + list.length)),
       h('p', { class: 'muted small' }, s.roleReason + '. All numbers are averages over ' + s.n + (s.n === 1 ? ' match' : ' matches') +
         '; when two scouts watched the same match, their numbers were averaged first.'),
+      quickRead(s, pos, list.length),
+      h('h3', null, 'All numbers'),
       h('div', { class: 'tiles' },
         tile('Offense index', fmt(s.offense), 'of 100 · best match ' + fmt(s.best)),
         tile('Defense score', s.defenseScore, 'of 100'),
@@ -14124,7 +14123,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     else listView(root, D, redraw);
   }
 
-  V2.rank = { render: render };
+  V2.rank = { render: render, openTeam: function (t) { open = t; } };
 })();
 
 </script>

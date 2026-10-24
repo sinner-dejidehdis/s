@@ -53,6 +53,28 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     return h('div', { class: 'tile' }, h('small', null, label), h('b', null, value), sub ? h('span', { class: 'muted' }, sub) : null);
   }
 
+  function word(v, cuts, words) {
+    if (v == null) return null;
+    for (var i = 0; i < cuts.length; i++) if (v < cuts[i]) return words[i];
+    return words[words.length - 1];
+  }
+
+  // Plain-language summary so anyone can read a team at a glance
+  function quickRead(s, pos, total) {
+    var lines = [];
+    var role = s.role === 'offense' ? 'scorer' : 'defender';
+    lines.push(['Overall', '#' + pos + ' of ' + total + ' ' + role + 's, from ' + s.n + (s.n === 1 ? ' match' : ' matches') + '.']);
+    var shoot = word(s.teleFuel, [2.5, 4.5, 6.5, 8.5], ['Barely scores', 'Scores some', 'Steady average scorer', 'Strong scorer', 'Elite scorer']);
+    lines.push(['Scoring', shoot ? shoot + ' (Teleop ' + s.teleFuel + '/10, about ' + (s.accuracy || '?') + '% of shots go in).' : 'No Fuel scored yet.']);
+    var lv = s.levels, best = lv.L3 ? 'L3' : lv.L2 ? 'L2' : lv.L1 ? 'L1' : null;
+    lines.push(['Climb', best ? 'Usually ' + s.climbPts + ' pts per match; best climb ' + best + ' (L1 ' + lv.L1 + '×, L2 ' + lv.L2 + '×, L3 ' + lv.L3 + '×).' : 'Did not climb in any match.']);
+    lines.push(['Defense', s.playedDefense ? 'Defended in ' + s.playedDefense + ' of ' + s.n + ' matches, ~' + s.defense + ' s each' + (s.defRating != null ? ', rated ' + s.defRating + '/5.' : '.') : 'Never played defense.']);
+    lines.push(['Under pressure', s.defendedRating != null ? word(s.defendedRating, [2, 3.5], ['Stops scoring when defended', 'Slows down when defended', 'Keeps scoring when defended']) + ' (' + s.defendedRating + '/5).' : 'Not defended yet.']);
+    lines.push(['Reliability', word(s.reliability, [60, 85], ['Breaks down often', 'Some problems', 'Very reliable']) + ' (' + s.reliability + '% clean matches' + (s.noShow ? ', ' + s.noShow + ' no-show' : '') + ').']);
+    return h('section', { class: 'card' }, h('h3', null, 'Quick read'),
+      h('dl', { class: 'pit' }, lines.map(function (l) { return [h('dt', null, l[0]), h('dd', null, l[1])]; })));
+  }
+
   function detailView(root, D, redraw) {
     var s = D.stats.filter(function (x) { return x.t === open; })[0];
     if (!s) { open = null; return listView(root, D, redraw); }
@@ -71,6 +93,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         h('span', { class: 'rolechip ' + s.role }, (s.role === 'offense' ? 'Offense' : 'Defense') + ' #' + pos + ' of ' + list.length)),
       h('p', { class: 'muted small' }, s.roleReason + '. All numbers are averages over ' + s.n + (s.n === 1 ? ' match' : ' matches') +
         '; when two scouts watched the same match, their numbers were averaged first.'),
+      quickRead(s, pos, list.length),
+      h('h3', null, 'All numbers'),
       h('div', { class: 'tiles' },
         tile('Offense index', fmt(s.offense), 'of 100 · best match ' + fmt(s.best)),
         tile('Defense score', s.defenseScore, 'of 100'),
@@ -119,5 +143,5 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     else listView(root, D, redraw);
   }
 
-  V2.rank = { render: render };
+  V2.rank = { render: render, openTeam: function (t) { open = t; } };
 })();
