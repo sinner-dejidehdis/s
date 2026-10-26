@@ -1,6 +1,7 @@
 """Lid hole drawing for the ferrofluid tank (1/4 in Delrin, 4 3/8 in square).
 
-Three ports in three corners, center kept clear for the top coil array.
+Two ports in the back corners; the temperature probe goes down the expansion
+tube, so the front corners and the center stay clear.
 
 Run: python ferrofluid_tank/lid_holes.py  ->  ferrofluid_tank/lid_holes.png
 """
@@ -21,11 +22,9 @@ EDGE_OFFSET = 5 / 8   # hole center distance from lid edges
 # (label, name, x, y, diameter, spec)
 HOLES = [
     ("H1", "膨胀管", OUTER - EDGE_OFFSET, OUTER - EDGE_OFFSET, 1 / 2,
-     "Ø1/2\" 通孔，配外径 1/2\"、内径 3/8\" 玻璃管，硅酮胶密封"),
+     "Ø1/2\" 通孔，配外径 1/2\"、内径 3/8\" 玻璃管，硅酮胶密封；温度探头从管顶插入"),
     ("H2", "注液口", EDGE_OFFSET, OUTER - EDGE_OFFSET, 0.201,
      "#7 钻（0.201\"）攻 1/4\"-20 UNC 通丝，配尼龙螺塞 + O 形圈"),
-    ("H3", "温度探头", OUTER - EDGE_OFFSET, EDGE_OFFSET, 3 / 16,
-     "Ø3/16\" 通孔，探头插入后硅酮胶密封"),
 ]
 
 
@@ -46,7 +45,8 @@ def top_view(ax):
         below = y > OUTER / 2
         ax.text(x, y - 0.42 if below else y + 0.42, f"{label} {name}", ha="center",
                 va="top" if below else "bottom", fontsize=9, fontweight="bold")
-    ax.text(EDGE_OFFSET, EDGE_OFFSET, "预留\n（不开孔）", ha="center", va="center", fontsize=8, color="#999")
+    for x in (EDGE_OFFSET, OUTER - EDGE_OFFSET):
+        ax.text(x, EDGE_OFFSET + 0.15, "预留\n（不开孔）", ha="center", va="center", fontsize=8, color="#999")
 
     dim_h(ax, 0, OUTER, -0.5, frac(OUTER), ext_from=0)
     dim_v(ax, 0, OUTER, -0.5, frac(OUTER), ext_from=0)
@@ -55,10 +55,6 @@ def top_view(ax):
     ax.annotate("", (OUTER + 0.35, OUTER), (OUTER + 0.35, OUTER - EDGE_OFFSET),
                 arrowprops=dict(arrowstyle="<|-|>", color=DIM, lw=0.9, mutation_scale=9))
     ax.text(OUTER + 0.45, OUTER - EDGE_OFFSET / 2, frac(EDGE_OFFSET), color=DIM, fontsize=9,
-            va="center", rotation=90)
-    ax.annotate("", (OUTER + 0.35, 0), (OUTER + 0.35, EDGE_OFFSET),
-                arrowprops=dict(arrowstyle="<|-|>", color=DIM, lw=0.9, mutation_scale=9))
-    ax.text(OUTER + 0.45, EDGE_OFFSET / 2, frac(EDGE_OFFSET), color=DIM, fontsize=9,
             va="center", rotation=90)
 
     ax.set_title("俯视图（从上往下看）", fontsize=13, fontweight="bold", pad=10)
@@ -78,11 +74,16 @@ def section_view(ax):
     ax.add_patch(Rectangle((OUTER - T, y0 - 1 / 16 - 0.9), T, 0.9, facecolor="#d8eef5", edgecolor=GLASS_EDGE))
     for label, _, x, y, d, _ in HOLES[:2]:
         ax.add_patch(Rectangle((x - d / 2, y0), d, LID_T, facecolor="white", edgecolor="black", lw=1))
-        ax.text(x, y0 + LID_T + 0.1, label, ha="center", va="bottom", fontsize=9, fontweight="bold")
+        ax.text(x - (0.45 if label == "H1" else 0), y0 + LID_T + 0.1, label, ha="center", va="bottom",
+                fontsize=9, fontweight="bold")
     # expansion tube in H1
     x1, d1 = HOLES[0][2], HOLES[0][4]
     ax.add_patch(Rectangle((x1 - d1 / 2, y0), d1, 1.6, fill=False, edgecolor="#2b6f8a", lw=1.2))
     ax.text(x1 + 0.35, y0 + 1.2, "玻璃膨胀管\n高 4\"（图中截断）", fontsize=8, va="center")
+    # temperature probe down the tube into the liquid
+    ax.add_patch(Rectangle((x1 - 1 / 16, y0 - 0.85), 1 / 8, 2.6, facecolor="#9aa3ab", edgecolor="#555", lw=0.8))
+    ax.annotate("温度探头 Ø1/8\"\n从膨胀管顶部插入，\n探头尖端伸到盖板下约 1\"", (x1, y0 - 0.7), (x1 - 2.6, y0 - 0.75),
+                fontsize=8, va="center", arrowprops=dict(arrowstyle="-", color="#999", lw=0.7))
     ax.text(0.6, y0 - 0.5, "玻璃壁", fontsize=8, color=GLASS_EDGE)
     ax.text(OUTER / 2, y0 - 0.2, "硅胶密封垫 1/16\"", fontsize=8, ha="center", va="top", color="#555")
 
@@ -109,7 +110,8 @@ def notes(ax):
         "3. 底面（接触液体的一面）必须平整光滑，孔口去毛刺\n"
         "4. 盖板不粘死，由外框架压紧在密封垫上，方便拆卸\n"
         "5. 灌液时把容器稍微倾斜，让 H1 膨胀管所在的角最高，最后的气泡从这里排出\n"
-        "6. 左下角预留，之后可以加第二个传感器口"
+        "6. 不再单独开温度探头孔：探头从 H1 膨胀管顶部插入\n"
+        "7. 前侧两个角预留，之后可以加传感器口"
     )
     ax.text(0.0, 0.55, text, ha="left", va="top", fontsize=10, linespacing=1.7, transform=ax.transAxes)
     ax.axis("off")

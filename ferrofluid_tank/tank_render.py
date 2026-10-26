@@ -20,7 +20,6 @@ LIQ_IN_TUBE = 1.0
 BLOB_R = 0.6
 H1 = (OUTER - 5 / 8, OUTER - 5 / 8)
 H2 = (5 / 8, OUTER - 5 / 8)
-H3 = (OUTER - 5 / 8, 5 / 8)
 
 GLASS = (0.72, 0.88, 0.95, 0.22)
 GLASS_EDGE = (0.17, 0.44, 0.54, 0.9)
@@ -88,7 +87,7 @@ def draw_tank(ax, explode=0.0, filled=True):
     add_box(ax, (-e, T - e, T, OUTER - T, T, top), GLASS, GLASS_EDGE)                     # C left
     if filled:
         add_box(ax, (T, OUTER - T, T, OUTER - T, T, top), LIQUID, (0, 0, 0, 0), lw=0)
-        add_cylinder(ax, *H3, top - 1.5, top, 1 / 16, "#9aa3ab")                          # probe, wet part
+        add_cylinder(ax, *H1, top - 1.0, top, 1 / 16, "#9aa3ab")                          # probe tip under H1
         add_sphere(ax, (OUTER / 2, OUTER / 2, T + INNER / 2), BLOB_R, "#141414")
     add_box(ax, (OUTER - T + e, OUTER + e, T, OUTER - T, T, top), GLASS, GLASS_EDGE)      # C right
     add_box(ax, (0, OUTER, -e, T - e, T, top), GLASS, GLASS_EDGE)                         # B front
@@ -97,7 +96,7 @@ def draw_tank(ax, explode=0.0, filled=True):
               (OUTER - T, OUTER, T, OUTER - T, gz, gz + GASKET), (0, OUTER, 0, T, gz, gz + GASKET)]:
         add_box(ax, b, GASKET_C, (0.35, 0.35, 0.35, 1), lw=0.3)                          # gasket
     add_box(ax, (0, OUTER, 0, OUTER, lz, lid_top), LID, (0.42, 0.35, 0.23, 1), lw=0.8)   # lid
-    for (hx, hy), r in [(H1, TUBE_OD / 2), (H2, 0.1), (H3, 3 / 32)]:
+    for (hx, hy), r in [(H1, TUBE_OD / 2), (H2, 0.1)]:
         add_disc(ax, hx, hy, lid_top + 0.002, r, "#3a3a3a")
 
     base = tz if e else lid_top
@@ -105,7 +104,8 @@ def draw_tank(ax, explode=0.0, filled=True):
         add_cylinder(ax, *H1, lid_top, lid_top + LIQ_IN_TUBE, TUBE_ID / 2, "#e8c66a", alpha=0.8)
     add_cylinder(ax, *H1, base, base + TUBE_H, TUBE_OD / 2, "#9fd3e6", alpha=0.3)        # tube
     add_cylinder(ax, *H2, base, base + 0.12, 0.22, "#f7f7f2")                             # plug
-    add_cylinder(ax, *H3, base, base + (0.5 if not e else 2.0), 1 / 16, "#9aa3ab")         # probe, dry part
+    pz0 = lid_top if not e else tz + 0.3
+    add_cylinder(ax, *H1, pz0, base + TUBE_H + 0.8, 1 / 16, "#9aa3ab")                    # probe down the tube
     return lid_top, tz
 
 
@@ -132,10 +132,10 @@ def main():
     ax1 = fig.add_subplot(1, 2, 1, projection="3d")
     lid_top, _ = draw_tank(ax1, explode=0.0, filled=True)
     style(ax1, "装配完成（灌液后）", 9.0)
-    label(ax1, (*H1, lid_top + TUBE_H), "H1 膨胀管 Ø1/2\"", dx=0.6, dz=0.3)
+    label(ax1, (*H1, lid_top + 2.6), "H1 膨胀管 Ø1/2\"（管顶开口）", dx=0.7, dz=0.0)
     label(ax1, (*H1, lid_top + LIQ_IN_TUBE), "液面约高出盖板 1\"", dx=1.4, dz=0.6)
     label(ax1, (*H2, lid_top + 0.12), "H2 注液口螺塞", dx=-1.6, dz=1.0)
-    label(ax1, (*H3, lid_top + 0.5), "H3 温度探头", dx=1.2, dz=0.5)
+    label(ax1, (*H1, lid_top + TUBE_H + 0.8), "温度探头：从膨胀管顶部插入，\n尖端伸到盖板下约 1\"", dx=0.6, dz=0.2)
     label(ax1, (0, 0, lid_top), "1/4\" Delrin 盖板", dx=-2.2, dz=0.4)
     label(ax1, (OUTER / 2, OUTER / 2, T + INNER / 2 - BLOB_R), "磁流体团 Ø1.2\"", dx=2.6, dz=-1.6)
     label(ax1, (OUTER, 0, 1.0), "甘油水溶液", dx=1.0, dz=-0.6)
@@ -150,9 +150,9 @@ def main():
     label(ax2, (-e, OUTER / 2, T + 0.6), "C 左壁 / 右壁", dx=-2.4, dz=-1.4)
     label(ax2, (0, 0, T + INNER + e), "1/16\" 硅胶密封垫", dx=-2.6, dz=0.2)
     label(ax2, (0, 0, lid_top), "Delrin 盖板（框架压紧）", dx=-3.0, dz=0.6)
-    label(ax2, (*H1, tz + TUBE_H), "玻璃膨胀管", dx=0.6, dz=0.2)
+    label(ax2, (*H1, tz + 2.0), "玻璃膨胀管", dx=0.7, dz=0.0)
     label(ax2, (*H2, tz + 0.12), "尼龙螺塞 + O 形圈", dx=-2.4, dz=0.8)
-    label(ax2, (*H3, tz + 2.0), "温度探头", dx=1.0, dz=0.3)
+    label(ax2, (*H1, tz + 3.4), "温度探头（穿过膨胀管）", dx=-2.8, dz=0.0)
 
     fig.suptitle("磁流体悬浮容器 · 搭建效果图", fontsize=18, fontweight="bold", y=0.97)
     fig.text(0.5, 0.03, "内腔 4\" × 4\" × 4\"  ·  外形约 4 3/8\" × 4 3/8\" × 4 1/2\"（不含膨胀管）  ·  "
