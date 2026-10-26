@@ -15,7 +15,7 @@ from glass_panels import GLASS_EDGE, INNER, OUTER, T
 
 LID_T = 1 / 4
 GASKET = 1 / 16
-TUBE_OD, TUBE_ID, TUBE_H = 1 / 2, 3 / 8, 4.0
+TUBE_OD, TUBE_ID, TUBE_H = 16 / 25.4, 13 / 25.4, 4.0   # glass tube OD 16 mm, ID ~13 mm (assumed)
 BLOB_D = 1.2
 LIQUID = "#f6e9b8"
 FOAM = "#e9e4f2"
@@ -70,8 +70,8 @@ def side_section(ax):
     # stand under the tank
     ax.add_patch(Rectangle((-0.2, by0), OUTER + 0.4, -by0, facecolor="#d9d9d9", edgecolor="#888"))
 
-    # tank: left = front (camera side). H1 is at the back (y = 3.75); the probe goes down H1
-    (tube_x, tube_top), (probe_x, probe_top), (cx, cy) = tank_section(ax, 0, 3.75)
+    # tank: left = front (camera side). H1 is at the back (y = OUTER - 3/4); the probe goes down H1
+    (tube_x, tube_top), (probe_x, probe_top), (cx, cy) = tank_section(ax, 0, OUTER - 3 / 4)
     # grid paper on the back glass
     ax.add_patch(Rectangle((OUTER, T), 0.05, INNER, facecolor="#7fb36a", edgecolor="#4d7d3c"))
 
@@ -132,9 +132,9 @@ def camera_view(ax):
     ax.add_patch(Rectangle((0, 0), OUTER, TANK_H, fill=False, edgecolor=GLASS_EDGE, lw=1.6))
     ax.add_patch(Rectangle((0, TANK_H + GASKET), OUTER, LID_T, facecolor=LID_FILL, edgecolor="#6b5a3a"))
     # probe runs down the expansion tube in the back-right corner
-    ax.add_patch(Rectangle((3.75 - 0.06, T + INNER - 1.0), 0.12, 1.0 + GASKET + LID_T + 1.6,
+    ax.add_patch(Rectangle((OUTER - 3 / 4 - 0.06, T + INNER - 1.0), 0.12, 1.0 + GASKET + LID_T + 1.6,
                            facecolor="#9aa3ab", edgecolor="#555", lw=0.8))
-    ax.add_patch(Rectangle((3.75 - TUBE_OD / 2, TOP_Y), TUBE_OD, 1.4, fill=False, edgecolor=GLASS_EDGE))
+    ax.add_patch(Rectangle((OUTER - 3 / 4 - TUBE_OD / 2, TOP_Y), TUBE_OD, 1.4, fill=False, edgecolor=GLASS_EDGE))
     cx, cy = OUTER / 2, T + INNER / 2
     ax.add_patch(Circle((cx, cy), BLOB_D / 2, facecolor=FERRO))
     ax.plot([cx - 0.9, cx + 0.9], [cy, cy], color="#c0392b", lw=0.8, ls="--")

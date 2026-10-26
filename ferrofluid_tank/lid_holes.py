@@ -17,12 +17,12 @@ from glass_panels import DIM, GLASS_EDGE, INNER, OUTER, T, dim_h, dim_v, frac
 
 LID_T = 1 / 4
 LID_FILL = "#f1ece1"
-EDGE_OFFSET = 5 / 8   # hole center distance from lid edges
+EDGE_OFFSET = 3 / 4   # hole center distance from lid edges
 
 # (label, name, x, y, diameter, spec)
 HOLES = [
-    ("H1", "膨胀管", OUTER - EDGE_OFFSET, OUTER - EDGE_OFFSET, 1 / 2,
-     "Ø1/2\" 通孔，配外径 1/2\"、内径 3/8\" 玻璃管，硅酮胶密封；温度探头从管顶插入"),
+    ("H1", "膨胀管", OUTER - EDGE_OFFSET, OUTER - EDGE_OFFSET, 21 / 32,
+     "Ø21/32\"（16.7 mm）通孔，配外径 16 mm 玻璃管，硅酮胶密封"),
     ("H2", "注液口", EDGE_OFFSET, OUTER - EDGE_OFFSET, 0.201,
      "#7 钻（0.201\"）攻 1/4\"-20 UNC 通丝，配尼龙螺塞 + O 形圈"),
 ]

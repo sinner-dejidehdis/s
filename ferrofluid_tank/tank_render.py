@@ -15,11 +15,11 @@ from glass_panels import INNER, OUTER, T
 
 LID_T = 1 / 4
 GASKET = 1 / 16
-TUBE_OD, TUBE_ID, TUBE_H = 1 / 2, 3 / 8, 4.0
+TUBE_OD, TUBE_ID, TUBE_H = 16 / 25.4, 13 / 25.4, 4.0   # glass tube OD 16 mm, ID ~13 mm (assumed)
 LIQ_IN_TUBE = 1.0
 BLOB_R = 0.6
-H1 = (OUTER - 5 / 8, OUTER - 5 / 8)
-H2 = (5 / 8, OUTER - 5 / 8)
+H1 = (OUTER - 3 / 4, OUTER - 3 / 4)
+H2 = (3 / 4, OUTER - 3 / 4)
 
 GLASS = (0.72, 0.88, 0.95, 0.22)
 GLASS_EDGE = (0.17, 0.44, 0.54, 0.9)
@@ -132,7 +132,7 @@ def main():
     ax1 = fig.add_subplot(1, 2, 1, projection="3d")
     lid_top, _ = draw_tank(ax1, explode=0.0, filled=True)
     style(ax1, "装配完成（灌液后）", 9.0)
-    label(ax1, (*H1, lid_top + 2.6), "H1 膨胀管 Ø1/2\"（管顶开口）", dx=0.7, dz=0.0)
+    label(ax1, (*H1, lid_top + 2.6), "H1 膨胀管 外径 16 mm（管顶开口）", dx=0.7, dz=0.0)
     label(ax1, (*H1, lid_top + LIQ_IN_TUBE), "液面约高出盖板 1\"", dx=1.4, dz=0.6)
     label(ax1, (*H2, lid_top + 0.12), "H2 注液口螺塞", dx=-1.6, dz=1.0)
     label(ax1, (*H1, lid_top + TUBE_H + 0.8), "温度探头：从膨胀管顶部插入，\n尖端伸到盖板下约 1\"", dx=0.6, dz=0.2)
