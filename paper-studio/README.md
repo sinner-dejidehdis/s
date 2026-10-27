@@ -32,3 +32,6 @@ node --test paper-studio/tests/*.test.js paper-studio/tests/*.test.mjs   # from 
 - `js/sample.js` the example project. The Levenson, Woods & Scott, Hale & Guan and Scott et al. papers are real (checked against Crossref); Zhang & Li (2021) is made up on purpose to show an untraceable reference
 - `js/app.js` rendering and interaction
 - `worker/worker.js` Cloudflare Worker for AI feedback: calls Groq (`openai/gpt-oss-120b`) with the no-ghostwriting rules and drops any note that repeats 8+ words of the user's text. Needs the secret `GROQ_API_KEY`; optional `ALLOWED_ORIGINS` (comma-separated) limits which sites may call it. The page calls `https://arguo-api.arguolucid.workers.dev` unless `window.ARGUO_API` is set.
+- `js/config.js` public settings: AI server URL, Supabase URL and anon key (safe to publish; never the service_role key)
+- `js/cloud.js` accounts (email + password, confirmation and reset by email) and cloud projects through Supabase; the site stays local-only when Supabase is not configured
+- `supabase/schema.sql` the `projects` table with row-level security, run once in the Supabase SQL editor

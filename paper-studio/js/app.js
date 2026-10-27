@@ -9,7 +9,10 @@
   let pending = '';
   let verifying = false;
   const ai = {}; // per view: { loading, notes, error, blocked }
-  const AI_API = window.ARGUO_API || 'https://arguo-api.arguolucid.workers.dev';
+  const AI_API = window.ARGUO_API || (window.ARGUO_CONFIG || {}).apiUrl || 'https://arguo-api.arguolucid.workers.dev';
+  const C = S.cloud;
+  const acct = { mode: 'signin', msg: '', err: '', busy: false, projects: null, recovery: false, confirmOpen: '' };
+  let cloudState = ''; // '', 'saving', 'saved', 'error'
 
   const MODULES = [
     { id: 'overview', name: 'Overview', pain: 'Progress and next step' },
@@ -33,7 +36,33 @@
     const target = keys.reduce((o, k) => (o[k] == null ? (o[k] = {}) : o[k]), obj);
     target[last] = val;
   }
-  function save() { S.store.save(state); }
+  let cloudTimer = null;
+  function save() {
+    S.store.save(state);
+    if (C.enabled() && C.user() && state.cloudId) {
+      clearTimeout(cloudTimer);
+      cloudTimer = setTimeout(pushCloud, 1500);
+    }
+  }
+  async function pushCloud() {
+    cloudState = 'saving'; paintCloud();
+    try { state.cloudId = await C.save(state); S.store.save(state); cloudState = 'saved'; } catch (e) { cloudState = 'error'; }
+    paintCloud();
+  }
+  function cloudLine() {
+    if (!C.enabled()) return '';
+    if (!C.user()) return '<p class="cloud-line">Only in this browser. <a href="#account">Sign in</a> to keep it in your account.</p>';
+    if (!state.cloudId) return '<p class="cloud-line">Only in this browser. <button class="link-btn" data-action="cloud-save">Save to my account</button></p>';
+    return `<p class="cloud-line">${{ saving: 'Saving to your account…', error: 'Could not save to your account. Your changes are kept in this browser.' }[cloudState] || 'Saved to your account.'}</p>`;
+  }
+  function paintCloud() { const el = document.getElementById('cloud-line'); if (el) el.innerHTML = cloudLine(); }
+  function paintAccountLink() {
+    const a = document.getElementById('account-link');
+    if (!a) return;
+    a.hidden = !C.enabled();
+    a.textContent = C.user() ? 'Account' : 'Sign in';
+  }
+
   function fieldLabel(key) { const f = S.outline.FIELDS.find((x) => x.key === key); return f ? f.label : ''; }
 
   function toast(msg) {
@@ -183,6 +212,7 @@
         ${state.sample ? '<span class="sample-chip">Example project</span>' : ''}
       </div>
       ${confirmBar}
+      <div id="cloud-line">${cloudLine()}</div>
       <div class="status-grid">${MODULES.slice(1).map((m) => {
         const s = st[m.id];
         return `<a class="status-card" href="#${m.id}">
@@ -370,12 +400,72 @@
   const VIEWS = { overview, outline, matrix, cite, check, review, submit };
 
   // ---------- render ----------
-  function current() { const v = location.hash.slice(1); return v === 'home' || VIEWS[v] ? v : 'home'; }
+  function account() {
+    const head = '<section class="account wrap"><h1>Your account</h1>';
+    if (!C.enabled()) return head + '<p class="intro">Accounts are not set up on this site yet. Your projects are saved in this browser.</p></section>';
+    const msg = (acct.msg ? `<p class="acct-msg">${esc(acct.msg)}</p>` : '') + (acct.err ? `<p class="acct-msg error">${esc(acct.err)}</p>` : '');
+    const busy = acct.busy ? ' disabled' : '';
+    if (acct.recovery) {
+      return head + `${msg}<form class="acct-form" data-form="set-password">
+        <label for="a-new">New password</label><input id="a-new" type="password" autocomplete="new-password" minlength="8" required>
+        <button class="btn primary"${busy}>Set new password</button></form></section>`;
+    }
+    const u = C.user();
+    if (!u) {
+      const m = acct.mode;
+      const title = { signin: 'Sign in', signup: 'Create an account', reset: 'Reset your password' }[m];
+      return head + `<p class="intro">Sign in to keep your projects in your account and open them on any device.</p>${msg}
+        <form class="acct-form" data-form="${m}">
+          <h2>${title}</h2>
+          <label for="a-email">Email</label><input id="a-email" type="email" autocomplete="email" required>
+          ${m !== 'reset' ? `<label for="a-pass">Password</label><input id="a-pass" type="password" autocomplete="${m === 'signup' ? 'new-password' : 'current-password'}" minlength="8" required>` : ''}
+          <button class="btn primary"${busy}>${{ signin: 'Sign in', signup: 'Create account', reset: 'Send reset link' }[m]}</button>
+        </form>
+        <p class="acct-switch">${m === 'signin' ? '<button class="link-btn" data-action="acct-mode" data-mode="signup">Create an account</button> · <button class="link-btn" data-action="acct-mode" data-mode="reset">Forgot password?</button>'
+          : '<button class="link-btn" data-action="acct-mode" data-mode="signin">Back to sign in</button>'}</p></section>`;
+    }
+    if (acct.projects === null) loadProjects();
+    const rows = (Array.isArray(acct.projects) ? acct.projects : []).map((p) => `<li><div><b>${esc(p.title)}</b><small>Updated ${new Date(p.updated_at).toLocaleString()}</small></div>
+        <span>${state.cloudId === p.id ? '<span class="pill tone-ok">Open now</span>'
+          : acct.confirmOpen === p.id ? '<button class="btn danger small-btn" data-action="cloud-open" data-id="' + p.id + '" data-force="1">Replace this browser’s project</button>'
+            : '<button class="btn small-btn" data-action="cloud-open" data-id="' + p.id + '">Open</button>'}
+        <button class="icon-btn" data-action="cloud-delete" data-id="${p.id}">Delete</button></span></li>`).join('');
+    return head + `<p class="intro">Signed in as <b>${esc(u.email)}</b>. <button class="link-btn" data-action="sign-out">Sign out</button></p>${msg}
+      <h2>Your projects</h2>
+      ${!Array.isArray(acct.projects) ? '<p class="empty">Loading…</p>' : rows ? `<ul class="proj-list">${rows}</ul>` : '<p class="empty">No projects in your account yet.</p>'}
+      ${state.cloudId ? '' : `<button class="btn primary" data-action="cloud-save">Save “${esc(state.title)}” to my account</button>`}
+      <p class="fine">Projects are stored with Supabase and only you can read them.</p></section>`;
+  }
+
+  async function loadProjects() {
+    acct.projects = 'loading';
+    try { acct.projects = await C.list(); } catch (e) { acct.projects = []; acct.err = e.message; }
+    if (current() === 'account') render();
+  }
+
+  async function accountSubmit(form) {
+    const kind = form.dataset.form;
+    const email = (form.querySelector('#a-email') || {}).value;
+    const pass = (form.querySelector('#a-pass') || form.querySelector('#a-new') || {}).value;
+    acct.busy = true; acct.err = ''; acct.msg = ''; render();
+    try {
+      if (kind === 'signin') await C.signIn(email, pass);
+      if (kind === 'signup') { const r = await C.signUp(email, pass); if (r.needsConfirm) acct.msg = 'Check your email and click the link to confirm your account, then sign in.'; }
+      if (kind === 'reset') { await C.sendReset(email); acct.msg = 'If that email has an account, a reset link is on its way.'; }
+      if (kind === 'set-password') { await C.setPassword(pass); acct.recovery = false; acct.msg = 'Password updated.'; }
+    } catch (e) { acct.err = e.message; }
+    acct.busy = false; render();
+  }
+
+  function current() { const v = location.hash.slice(1); return v === 'home' || v === 'account' || VIEWS[v] ? v : 'home'; }
 
   function render() {
     const v = current();
-    document.querySelectorAll('.top-nav a').forEach((a) => a.classList.toggle('active', (a.getAttribute('href') === '#home') === (v === 'home')));
+    const navFor = v === 'home' || v === 'account' ? '#' + v : '#overview';
+    document.querySelectorAll('.top-nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === navFor));
+    paintAccountLink();
     if (v === 'home') { app.innerHTML = home(); return; }
+    if (v === 'account') { app.innerHTML = account(); return; }
     const st = status();
     const m = MODULES.find((x) => x.id === v);
     const view = VIEWS[v]();
@@ -450,6 +540,20 @@
   const ACTIONS = {
     'open-sample': () => { if (!state.sample) state = S.sample.create(); save(); location.hash = 'overview'; },
     'new-blank': () => { state = S.sample.blank(); save(); location.hash = 'outline'; },
+    'acct-mode': (el) => { acct.mode = el.dataset.mode; acct.msg = ''; acct.err = ''; render(); },
+    'sign-out': async () => { try { await C.signOut(); } catch (e) { /* session already gone */ } state.cloudId = undefined; S.store.save(state); acct.projects = null; render(); },
+    'cloud-save': () => { pushCloud().then(() => { acct.projects = null; render(); }); },
+    'cloud-open': async (el) => {
+      const local = !state.sample && !state.cloudId;
+      if (local && !el.dataset.force) { acct.confirmOpen = el.dataset.id; render(); return; }
+      try { state = await C.load(el.dataset.id); S.store.save(state); acct.confirmOpen = ''; location.hash = 'overview'; }
+      catch (e) { acct.err = e.message; render(); }
+    },
+    'cloud-delete': async (el) => {
+      try { await C.remove(el.dataset.id); if (state.cloudId === el.dataset.id) { state.cloudId = undefined; S.store.save(state); } }
+      catch (e) { acct.err = e.message; }
+      acct.projects = null; render();
+    },
     'ask-reset': () => { pending = 'reset'; render(); },
     'ask-clear': () => { pending = 'clear'; render(); },
     cancel: () => { pending = ''; render(); },
@@ -470,6 +574,18 @@
     if (el && ACTIONS[el.dataset.action]) { e.preventDefault(); ACTIONS[el.dataset.action](el); }
   });
 
+  document.addEventListener('submit', (e) => {
+    const form = e.target.closest('[data-form]');
+    if (form) { e.preventDefault(); accountSubmit(form); }
+  });
+
   window.addEventListener('hashchange', () => { pending = ''; render(); window.scrollTo(0, 0); });
+  C.onChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') { acct.recovery = true; history.replaceState(null, '', '#account'); }
+    if (event === 'SIGNED_IN' && /access_token|type=/.test(location.hash)) history.replaceState(null, '', '#account');
+    acct.projects = null;
+    render();
+  });
   render();
+  C.init().then(render, render);
 })();
