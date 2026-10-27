@@ -29,3 +29,9 @@ test('rejects unknown tasks, missing key and quota errors cleanly', async () => 
   assert.strictEqual((await call({ task: 'outline', input: {} }, groq([]), {})).status, 500);
   assert.strictEqual((await call({ task: 'outline', input: {} }, new Response('', { status: 429 }))).status, 429);
 });
+
+test('matrix and review tasks are accepted', async () => {
+  const ok = groq([{ level: 'gap', title: 'Shared limitation' }]);
+  assert.strictEqual((await call({ task: 'matrix', input: { rows: [{ source: 'A (2020)', limitation: 'self-report' }] } }, ok)).status, 200);
+  assert.strictEqual((await call({ task: 'review', input: { comments: '1. Strengthen the discussion.' } }, groq([]))).status, 200);
+});

@@ -2,7 +2,7 @@
 // and enforces the red line on the way back. The Groq key lives only in the
 // Worker's secret GROQ_API_KEY; the page never sees it.
 //
-// POST /api/feedback  { task: "outline" | "consistency", input: {...} }
+// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review", input: {...} }
 // -> { notes: [{ level, field?, title, why, how, example?, ask? }], blocked: n }
 
 const MODEL = 'openai/gpt-oss-120b';
@@ -28,6 +28,15 @@ ${['question', 'gap', 'aim', 'method', 'result', 'conclusion'].map((k) => `[${k}
 Look for: claims with no supporting result, causal language on correlational data, absolute wording, research questions without a result, missing limitations.
 
 [research question]\n${str(i.question)}\n\n[method]\n${str(i.method)}\n\n[results]\n${str(i.results)}\n\n[discussion]\n${str(i.discussion)}`,
+  matrix: (i) => `Help the writer find a research gap in this literature matrix (one paper per row).
+Look for: limitations several papers share, one design or population dominating, conflicting findings and what might explain them, missing recent work.
+Point at patterns and ask questions. Do not write the gap statement or the literature review.
+
+${(Array.isArray(i.rows) ? i.rows : []).slice(0, 15).map((r, n) => `[paper ${n + 1}] ${['source', 'sample', 'method', 'finding', 'limitation', 'relation'].map((k) => `${k}: ${str(r && r[k]).slice(0, 300)}`).join(' | ')}`).join('\n')}`,
+  review: (i) => `Help the writer plan a revision from these reviewer comments.
+For each important comment: say what the reviewer most likely wants, whether it is a must-fix, and what kind of change or evidence would answer it. For vague comments, give two or three possible readings. Do not draft the response letter or any reply text.
+
+${str(i.comments)}`,
 };
 
 function str(v) { return String(v || '').slice(0, 4000); }
@@ -103,7 +112,7 @@ export default {
       notes = JSON.parse(data.choices[0].message.content).notes || [];
     } catch { return json({ error: 'The AI reply could not be read. Try again.' }, 502, headers); }
 
-    const userText = Object.values(body.input).join(' ');
+    const userText = JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
     const kept = notes.slice(0, 5).map(clean).filter((n) => !copiesUser(n, userText));
     return json({ notes: kept, blocked: Math.min(notes.length, 5) - kept.length }, 200, headers);
   },

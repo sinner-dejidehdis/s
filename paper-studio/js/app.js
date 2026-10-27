@@ -104,13 +104,17 @@
   }
 
   async function askAi(v) {
-    const input = v === 'outline' ? state.outline
-      : { question: state.outline.question, method: state.outline.method, results: state.check.results, discussion: state.check.discussion };
+    const input = {
+      outline: state.outline,
+      check: { question: state.outline.question, method: state.outline.method, results: state.check.results, discussion: state.check.discussion },
+      matrix: { rows: state.matrix },
+      review: { comments: state.review.input },
+    }[v];
     ai[v] = { loading: true };
     refreshNotes();
     try {
       const res = await fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: v === 'outline' ? 'outline' : 'consistency', input }) });
+        body: JSON.stringify({ task: v === 'check' ? 'consistency' : v, input }) });
       const data = await res.json().catch(() => ({}));
       ai[v] = res.ok ? { notes: data.notes || [], blocked: data.blocked || 0 } : { error: data.error || `Request failed (${res.status}).` };
     } catch (e) {
@@ -222,7 +226,7 @@
       </table></div>
       <button class="btn" data-action="add-row">Add a paper</button>
       ${state.sample ? '<p class="fine">The papers in the example are real; the summaries are for demonstration only. Check the originals before citing them.</p>' : ''}`;
-    return { main, notes: notesPanel(S.matrix.analyze(state.matrix)) };
+    return { main, notes: notesPanel(S.matrix.analyze(state.matrix), aiBlock('matrix')) };
   }
 
   const STATUS = {
@@ -348,7 +352,7 @@
       <textarea id="f-review" rows="6" data-bind="review.input">${esc(state.review.input)}</textarea>
       <div class="toolbar"><button class="btn primary" data-action="split-review">${state.review.tasks.length ? 'Break into tasks again (replaces current tasks)' : 'Break into tasks'}</button></div>
       <div id="tasks">${reviewTasks()}</div>`;
-    return { main, notes: notesPanel(reviewNotes(), LETTER) };
+    return { main, notes: notesPanel(reviewNotes(), aiBlock('review') + LETTER) };
   }
 
   function submit() {
