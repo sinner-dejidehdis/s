@@ -8,6 +8,8 @@
   let state = S.store.load() || S.sample.create();
   let pending = '';
   let verifying = false;
+  const ai = {}; // per view: { loading, notes, error, blocked }
+  const AI_API = window.ARGUO_API || 'https://arguo-api.arguolucid.workers.dev';
 
   const MODULES = [
     { id: 'overview', name: 'Overview', pain: 'Progress and next step' },
@@ -85,6 +87,36 @@
       review: { value: `${rs.done}/${rs.total} addressed`, issues: rs.majorOpen },
       submit: { value: `${checked}/${S.checklist.ALL.length} items`, issues: 0 },
     };
+  }
+
+  // ---------- AI feedback ----------
+  function aiBlock(v) {
+    const a = ai[v] || {};
+    const body = a.loading ? '<p class="ai-status">Reading your text…</p>'
+      : a.error ? `<p class="ai-status error">${esc(a.error)}</p>`
+        : a.notes ? (a.notes.length ? a.notes.map(noteHtml).join('') : '<p class="ai-status">No further problems found.</p>')
+          + (a.blocked ? `<p class="ai-status">${a.blocked} AI ${a.blocked === 1 ? 'note was' : 'notes were'} hidden because ${a.blocked === 1 ? 'it' : 'they'} repeated your wording.</p>` : '') : '';
+    return `<section class="ai-box">
+        <div class="ai-head"><h4>AI feedback</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : 'Get AI feedback'}</button></div>
+        <p class="ai-rule">Sent to our server and the Groq AI service, which does not train on it. The AI follows the same rule: diagnose, never write.</p>
+        ${body}
+      </section>`;
+  }
+
+  async function askAi(v) {
+    const input = v === 'outline' ? state.outline
+      : { question: state.outline.question, method: state.outline.method, results: state.check.results, discussion: state.check.discussion };
+    ai[v] = { loading: true };
+    refreshNotes();
+    try {
+      const res = await fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: v === 'outline' ? 'outline' : 'consistency', input }) });
+      const data = await res.json().catch(() => ({}));
+      ai[v] = res.ok ? { notes: data.notes || [], blocked: data.blocked || 0 } : { error: data.error || `Request failed (${res.status}).` };
+    } catch (e) {
+      ai[v] = { error: 'Could not reach the AI server. Previews block outside requests; it works on the deployed site.' };
+    }
+    refreshNotes();
   }
 
   // ---------- views ----------
@@ -174,7 +206,7 @@
         <textarea id="f-${f.key}" rows="3" data-bind="outline.${f.key}">${esc(state.outline[f.key])}</textarea>
         <details class="pattern"><summary>See how this looks for another topic</summary><p>${esc(f.example)}</p></details>
       </div>`).join('')}</div>`;
-    return { main, notes: notesPanel(S.outline.check(state.outline)) };
+    return { main, notes: notesPanel(S.outline.check(state.outline), aiBlock('outline')) };
   }
 
   function matrix() {
@@ -262,7 +294,7 @@
       <label for="f-discussion">Discussion</label>
       <textarea id="f-discussion" rows="8" data-bind="check.discussion">${esc(state.check.discussion)}</textarea>
       <div id="flagged">${flaggedList(r.flagged)}</div>`;
-    return { main, notes: notesPanel(r.notes) };
+    return { main, notes: notesPanel(r.notes, aiBlock('check')) };
   }
 
   const LETTER = `<details class="guide" open><summary>How a response letter is structured</summary>
@@ -424,6 +456,7 @@
     'add-row': () => { state.matrix.push(S.matrix.blankRow()); save(); render(); },
     'del-row': (el) => { state.matrix.splice(Number(el.dataset.index), 1); save(); render(); },
     verify: () => { if (!verifying) verifyAll(); },
+    ai: (el) => { if (!(ai[el.dataset.view] || {}).loading) askAi(el.dataset.view); },
     'copy-bib': () => { const b = bibliography(); if (b) copy(b); else toast('No verified references yet'); },
     'split-review': () => { state.review.tasks = S.review.split(state.review.input); save(); render(); toast(`${state.review.tasks.length} tasks created`); },
     focus: (el) => { const t = document.getElementById(el.dataset.target); if (t) { t.focus(); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } },

@@ -263,3 +263,12 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); f
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* AI feedback box inside the notes margin */
+.ai-box { background: var(--surface); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 6px; }
+.ai-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ai-head h4 { font-size: var(--step-0); }
+.small-btn { padding: 5px 10px; font-size: var(--step--1); }
+.ai-rule, .ai-status { font-size: var(--step--1); color: var(--muted); }
+.ai-status.error { color: var(--pen); }
+.ai-box .note:first-of-type { border-top: 0; }

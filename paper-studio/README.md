@@ -22,7 +22,7 @@ Static files, no build step:
 
 ```sh
 cd paper-studio && python3 -m http.server 8000   # open http://localhost:8000
-node --test paper-studio/tests/*.test.js          # run from the repository root
+node --test paper-studio/tests/*.test.js paper-studio/tests/*.test.mjs   # from the repository root
 ```
 
 ## Files
@@ -31,3 +31,4 @@ node --test paper-studio/tests/*.test.js          # run from the repository root
 - `js/outline.js` `js/matrix.js` `js/consistency.js` `js/review.js` `js/cite.js` `js/checklist.js` module logic, independent of the page and tested in Node
 - `js/sample.js` the example project. The Levenson, Woods & Scott, Hale & Guan and Scott et al. papers are real (checked against Crossref); Zhang & Li (2021) is made up on purpose to show an untraceable reference
 - `js/app.js` rendering and interaction
+- `worker/worker.js` Cloudflare Worker for AI feedback: calls Groq (`openai/gpt-oss-120b`) with the no-ghostwriting rules and drops any note that repeats 8+ words of the user's text. Needs the secret `GROQ_API_KEY`; optional `ALLOWED_ORIGINS` (comma-separated) limits which sites may call it. The page calls `https://arguo-api.arguolucid.workers.dev` unless `window.ARGUO_API` is set.
