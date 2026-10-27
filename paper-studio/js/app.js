@@ -127,7 +127,7 @@
           + (a.blocked ? `<p class="ai-status">${a.blocked} AI ${a.blocked === 1 ? 'note was' : 'notes were'} hidden because ${a.blocked === 1 ? 'it' : 'they'} repeated your wording.</p>` : '') : '';
     return `<section class="ai-box">
         <div class="ai-head"><h4>AI feedback</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : 'Get AI feedback'}</button></div>
-        <p class="ai-rule">Sent to our server and the Groq AI service, which does not train on it. The AI follows the same rule: diagnose, never write.</p>
+        <p class="ai-rule">This module’s text is sent to our AI provider, Groq, which does not train on it (<a href="#privacy">privacy</a>). The AI follows the same rule: diagnose, never write.</p>
         ${body}
       </section>`;
   }
@@ -419,6 +419,7 @@
           <h2>${title}</h2>
           <label for="a-email">Email</label><input id="a-email" type="email" autocomplete="email" required>
           ${m !== 'reset' ? `<label for="a-pass">Password</label><input id="a-pass" type="password" autocomplete="${m === 'signup' ? 'new-password' : 'current-password'}" minlength="8" required>` : ''}
+          ${m === 'signup' ? '<p class="fine">By creating an account you agree to the <a href="#terms">Terms of Service</a> and the <a href="#privacy">Privacy Policy</a>.</p>' : ''}
           <button class="btn primary"${busy}>${{ signin: 'Sign in', signup: 'Create account', reset: 'Send reset link' }[m]}</button>
         </form>
         <p class="acct-switch">${m === 'signin' ? '<button class="link-btn" data-action="acct-mode" data-mode="signup">Create an account</button> · <button class="link-btn" data-action="acct-mode" data-mode="reset">Forgot password?</button>'
@@ -457,7 +458,7 @@
     acct.busy = false; render();
   }
 
-  function current() { const v = location.hash.slice(1); return v === 'home' || v === 'account' || VIEWS[v] ? v : 'home'; }
+  function current() { const v = location.hash.slice(1); return ['home', 'account', 'privacy', 'terms'].includes(v) || VIEWS[v] ? v : 'home'; }
 
   function render() {
     const v = current();
@@ -466,6 +467,7 @@
     paintAccountLink();
     if (v === 'home') { app.innerHTML = home(); return; }
     if (v === 'account') { app.innerHTML = account(); return; }
+    if (v === 'privacy' || v === 'terms') { app.innerHTML = S.legal[v](); return; }
     const st = status();
     const m = MODULES.find((x) => x.id === v);
     const view = VIEWS[v]();
