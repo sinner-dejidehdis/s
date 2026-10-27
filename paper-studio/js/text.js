@@ -18,22 +18,21 @@
     'results show shows showed shown suggest suggests suggested finding findings between among effect effects ' +
     'relationship research data paper using used based such more most less other there here they them we you your ' +
     'about over under within without across per each both all any some only very much many will would should could ' +
-    'one two three first second however therefore thus while when where whose authors author please').split(' '));
+    'one two three first second however therefore thus while when where whose authors author please among ' +
+    'found find finds this that those per via onto upon whereas although because since likely may also ' +
+    'associated association associate associations higher lower greater stronger weaker longer shorter ' +
+    'increase increased decrease decreased each additional particularly especially').split(' '));
 
-  function stem(w) {
-    if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
-    if (w.length > 5 && w.endsWith('ing')) return w.slice(0, -3);
-    if (w.length > 4 && w.endsWith('ed')) return w.slice(0, -2);
-    if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
-    return w;
-  }
+  // Crude but robust for overlap scores: keep the first six letters, so
+  // association / associated and student / students land on the same key.
+  function stem(w) { return w.slice(0, 6); }
 
   function terms(text) {
     const out = new Set();
     const s = String(text || '');
-    (s.toLowerCase().match(/[a-z][a-z-]{2,}/g) || []).forEach((raw) => {
-      const w = stem(raw.replace(/-/g, ''));
-      if (w.length >= 3 && !EN_STOP.has(w)) out.add(w);
+    (s.toLowerCase().match(/[a-z][a-z'-]{2,}/g) || []).forEach((raw) => {
+      const w = raw.replace(/['-]/g, '');
+      if (w.length >= 3 && !EN_STOP.has(w) && !EN_STOP.has(w.replace(/s$/, ''))) out.add(stem(w));
     });
     (s.match(/[一-鿿]+/g) || []).forEach((run) => {
       let seg = '';

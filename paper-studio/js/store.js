@@ -2,13 +2,13 @@
 // (private windows, blocked site data), so every access is guarded.
 (function (root) {
   const S = root.Sigao = root.Sigao || {};
-  const KEY = 'sigao.project.v1';
+  const KEY = 'margin.project.v2';
 
   function load() {
     try {
       const raw = root.localStorage && root.localStorage.getItem(KEY);
       const p = raw ? JSON.parse(raw) : null;
-      return p && p.version === 1 ? p : null;
+      return p && p.version === 2 ? p : null;
     } catch (e) { return null; }
   }
 

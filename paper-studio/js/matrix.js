@@ -1,26 +1,26 @@
-// 文献矩阵: one row per paper. The analysis does not write the review; it
-// points at patterns (repeated limitations, one dominant method, no dissent)
+// Literature matrix: one row per paper. The analysis does not write the review;
+// it points at patterns (repeated limitations, one dominant design, no dissent)
 // and asks the questions that turn a pile of summaries into a gap.
 (function (root) {
   const S = root.Sigao = root.Sigao || {};
   const T = S.text;
 
   const COLUMNS = [
-    { key: 'source', label: '文献', placeholder: '作者 (年份)' },
-    { key: 'sample', label: '样本与情境', placeholder: '谁、在哪、多少人' },
-    { key: 'method', label: '方法', placeholder: '设计与分析方法' },
-    { key: 'finding', label: '主要发现', placeholder: '用你自己的话概括' },
-    { key: 'limitation', label: '局限', placeholder: '作者承认的或你发现的' },
-    { key: 'relation', label: '与我的研究', placeholder: '' },
+    { key: 'source', label: 'Source', placeholder: 'Author (year)' },
+    { key: 'sample', label: 'Sample & setting', placeholder: 'Who, where, how many' },
+    { key: 'method', label: 'Method', placeholder: 'Design and analysis' },
+    { key: 'finding', label: 'Main finding', placeholder: 'In your own words' },
+    { key: 'limitation', label: 'Limitations', placeholder: 'Stated by the authors or noticed by you' },
+    { key: 'relation', label: 'Relation to my study', placeholder: '' },
   ];
-  const RELATIONS = ['支持', '矛盾', '方法参考', '背景'];
+  const RELATIONS = ['Supports', 'Contradicts', 'Method reference', 'Background'];
 
   const DESIGNS = [
-    ['横断面', /横断|cross-sectional|问卷|survey|questionnaire/i],
-    ['纵向/队列', /纵向|追踪|队列|longitudinal|cohort|panel/i],
-    ['实验/干预', /实验|干预|随机|experiment|trial|intervention|rct/i],
-    ['综述/元分析', /综述|元分析|meta|review/i],
-    ['质性', /访谈|质性|扎根|interview|qualitative|ethnograph/i],
+    ['cross-sectional', /cross-sectional|survey|questionnaire|横断|问卷/i],
+    ['longitudinal or cohort', /longitudinal|cohort|panel|follow-up|纵向|追踪|队列/i],
+    ['experimental', /experiment|trial|intervention|randomi[sz]ed|rct|实验|干预/i],
+    ['review or meta-analysis', /review|meta-analy|综述|元分析/i],
+    ['qualitative', /interview|qualitative|ethnograph|focus group|访谈|质性/i],
   ];
 
   function blankRow() {
@@ -34,7 +34,7 @@
 
   // Clauses (split at punctuation) that recur across rows, as [clause, rowCount].
   function repeatedClauses(cells) {
-    const perRow = cells.map((c) => String(c || '').split(/[；;，,、。.]+/).map((x) => x.trim()).filter((x) => T.terms(x).size));
+    const perRow = cells.map((c) => String(c || '').split(/[；;，,、。]+|\.\s+|\(|\)/).map((x) => x.trim()).filter((x) => T.terms(x).size));
     const seen = [];
     perRow.forEach((clauses, i) => clauses.forEach((c) => {
       if (seen.some(([s]) => T.coverage(c, s) >= 0.5 || T.coverage(s, c) >= 0.5)) return;
@@ -50,62 +50,63 @@
     const notes = [];
 
     if (rows.length < 3) {
-      notes.push({ level: 'tip', title: `目前只有 ${rows.length} 篇文献`,
-        why: '少于 3 篇时，看不出共同点和分歧，也就很难判断缺口。',
-        how: '先把和你研究问题最相关的 5～10 篇填进来，每篇只填一行。' });
+      notes.push({ level: 'tip', title: `Only ${rows.length} ${rows.length === 1 ? 'source' : 'sources'} so far`,
+        why: 'With fewer than three papers you cannot see agreements or disagreements, so a gap is hard to judge.',
+        how: 'Add the 5–10 papers closest to your research question, one row each.' });
       return notes;
     }
 
     const empty = rows.filter((r) => !String(r.limitation || '').trim()).length;
     if (empty) {
-      notes.push({ level: 'tip', title: `${empty} 篇文献还没有填「局限」`,
-        why: '缺口最常藏在前人的局限里。', how: '回到原文的讨论和局限部分，记下作者自己承认的不足。' });
+      notes.push({ level: 'tip', title: `${empty} ${empty === 1 ? 'paper has' : 'papers have'} no limitations filled in`,
+        why: 'Gaps most often hide in the limitations of earlier work.',
+        how: 'Go back to each paper’s discussion and note the limitations the authors admit.' });
     }
 
     const designCount = DESIGNS.map(([name, re]) => [name, rows.filter((r) => re.test(r.method || '')).length]);
     const top = designCount.slice().sort((a, b) => b[1] - a[1])[0];
     if (top[1] >= Math.ceil(rows.length * 0.6)) {
       const missing = designCount.filter(([, n]) => n === 0).map(([name]) => name);
-      notes.push({ level: 'gap', title: `${top[1]}/${rows.length} 篇用的是${top[0]}设计`,
-        why: '同一种设计占多数时，它的共同弱点就是整个领域的弱点。',
-        how: `考虑你的研究能否在设计上补一块，例如：${missing.slice(0, 3).join('、') || '换一种数据来源'}。`,
-        ask: `${top[0]}设计回答不了的问题是什么？你的研究能回答吗？` });
+      notes.push({ level: 'gap', title: `${top[1]} of ${rows.length} papers use a ${top[0]} design`,
+        why: 'When one design dominates, its shared weakness becomes the weakness of the whole field.',
+        how: `Consider whether your study can add a different design, for example ${missing.slice(0, 3).join(', ') || 'a different data source'}.`,
+        ask: `What question can a ${top[0]} design not answer? Can your study answer it?` });
     }
 
     const repeated = repeatedClauses(rows.map((r) => r.limitation));
     if (repeated.length) {
-      notes.push({ level: 'gap', title: '同样的局限在多篇文献里反复出现',
-        why: `${repeated.map(([c, n]) => `「${c}」${n} 篇`).join('，')}。一个被多次承认却没人解决的局限，往往就是缺口。`,
-        how: '把这些局限归成一两类，写成「已有研究多……，较少……」的句式，填回论证主线的「研究缺口」。',
-        ask: '这个局限是因为做不到，还是因为没人去做？' });
+      notes.push({ level: 'gap', title: 'The same limitations recur across papers',
+        why: `${repeated.map(([c, n]) => `"${c}" (${n} papers)`).join(', ')}. A limitation many authors admit but nobody addresses is often a gap.`,
+        how: 'Group these limitations into one or two themes and phrase them as "Earlier work has mostly …; few studies …". Then add that to the research gap in your argument thread.',
+        ask: 'Is this limitation there because it cannot be done, or because nobody has done it?' });
     }
 
     const rel = (name) => rows.filter((r) => r.relation === name).length;
-    if (rel('矛盾') && rel('支持')) {
-      notes.push({ level: 'gap', title: `有 ${rel('矛盾')} 篇文献和其他结论相反`,
-        why: '结论相互矛盾，说明有条件在起作用，这是写出有论点的综述的好材料。',
-        how: '对比矛盾双方的样本、测量和情境，看差异能否解释分歧。综述里按「分歧及其原因」组织，而不是按文献逐篇罗列。',
-        ask: '什么条件下结论成立，什么条件下不成立？' });
-    } else if (rows.length >= 3 && !rel('矛盾')) {
-      notes.push({ level: 'tip', title: '所有文献的结论方向一致',
-        why: '一边倒的文献可能是真实共识，也可能是你还没检索到不同的声音，或者存在发表偏倚。',
-        how: '用「null result」「no association」「不显著」等词再检索一次。',
-        ask: '有没有研究发现相反或不显著的结果？' });
+    if (rel('Contradicts') && rel('Supports')) {
+      notes.push({ level: 'gap', title: `${rel('Contradicts')} ${rel('Contradicts') === 1 ? 'paper contradicts' : 'papers contradict'} the others`,
+        why: 'Conflicting findings suggest that some condition matters. That is good material for a review with an argument.',
+        how: 'Compare the samples, measures and settings on each side to see whether they explain the disagreement. Organise the review around the disagreement and its causes, not paper by paper.',
+        ask: 'Under what conditions does the finding hold, and when does it not?' });
+    } else if (!rel('Contradicts')) {
+      notes.push({ level: 'tip', title: 'All papers point the same way',
+        why: 'Agreement can be a real consensus, a sign you have not found dissenting work yet, or publication bias.',
+        how: 'Search again with terms such as "null result", "no association" or "non-significant".',
+        ask: 'Has any study found the opposite, or no effect?' });
     }
 
     const years = rows.map(yearOf).filter(Boolean);
     if (years.length && Math.max(...years) <= now - 4) {
-      notes.push({ level: 'tip', title: `最新的一篇是 ${Math.max(...years)} 年`,
-        why: '审稿人常要求补充近三年的文献，否则会质疑缺口是否已经被别人补上。',
-        how: '按年份倒序检索近三年的研究，确认缺口仍然存在。' });
+      notes.push({ level: 'tip', title: `The most recent paper is from ${Math.max(...years)}`,
+        why: 'Reviewers often ask for work from the last three years; otherwise they may doubt the gap is still open.',
+        how: 'Search for the last three years sorted by date and confirm the gap still exists.' });
     }
 
     const samples = rows.map((r) => r.sample).filter((x) => String(x || '').trim());
     if (samples.length >= 3) {
-      notes.push({ level: 'ask', title: '对照一下样本与情境',
-        why: `已有样本：${samples.map((x) => '「' + x + '」').join('；')}。`,
-        how: '看看哪类人群、地区或场景没有被研究过。',
-        ask: '你的样本和这些研究相比，新在哪里？' });
+      notes.push({ level: 'ask', title: 'Compare the samples and settings',
+        why: `Samples so far: ${samples.map((x) => `"${x}"`).join('; ')}.`,
+        how: 'Look for populations, regions or settings nobody has studied.',
+        ask: 'What is new about your sample compared with these?' });
     }
     return notes;
   }

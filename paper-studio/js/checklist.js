@@ -1,35 +1,39 @@
-// 投稿清单: what journals commonly ask for before a manuscript goes out.
+// Submission checklist: what international journals commonly ask for before
+// a manuscript goes out. Items follow common ICMJE / COPE practice.
 (function (root) {
   const S = root.Sigao = root.Sigao || {};
 
   const GROUPS = [
-    { name: '期刊匹配', items: [
-      ['scope', '研究主题在期刊的目标与范围（Aims & Scope）之内', '读期刊官网的 Aims & Scope，再看近一年发表的 5 篇文章是否和你的研究相近。'],
-      ['type', '文章类型符合要求（研究论文、短篇通讯、综述）', '不同类型有不同的字数和结构要求。'],
-      ['length', '字数、摘要字数、关键词数量符合作者指南', '作者指南（Guide for Authors）里通常写明上限。'],
-      ['recent', '引用了该期刊或该领域近三年的相关研究', '审稿人常以此判断你是否了解最新进展。'],
+    { name: 'Journal fit', items: [
+      ['scope', 'The topic fits the journal’s Aims & Scope', 'Read the Aims & Scope, then check whether 5 recent articles are close to your study.'],
+      ['type', 'The article type is right (research article, short communication, review)', 'Each type has its own length and structure rules.'],
+      ['length', 'Word count, abstract length and number of keywords meet the Guide for Authors', ''],
+      ['recent', 'You cite relevant work from the last three years, including in this journal', 'Reviewers use this to judge whether you know the current literature.'],
+      ['predatory', 'The journal is legitimate', 'Check it is indexed (e.g. DOAJ, Web of Science, Scopus) and listed by its publisher. Be wary of unsolicited invitations.'],
     ] },
-    { name: '稿件内容', items: [
-      ['thread', '研究问题、方法、结果、结论在同一条线上', '用「论证主线」和「一致性检查」各过一遍。'],
-      ['limits', '讨论里写了局限性', '主动说明比被审稿人指出更好。'],
-      ['refs', '所有参考文献都已核实，正文引用和文末列表一一对应', '用「引用验证」逐条查一次。'],
-      ['figures', '图表编号连续，正文都有引用，分辨率达到要求（通常 300 dpi 以上）', ''],
+    { name: 'Manuscript', items: [
+      ['thread', 'Research question, methods, results and conclusion line up', 'Run the argument thread and the consistency check.'],
+      ['limits', 'The discussion states the limitations', 'Stating them yourself is better than a reviewer pointing them out.'],
+      ['refs', 'Every reference is verified, and in-text citations match the reference list', 'Use the citation check on each entry.'],
+      ['figures', 'Figures and tables are numbered, cited in the text and at the required resolution (often 300 dpi or more)', ''],
+      ['reporting', 'You followed the reporting guideline for your design, if one applies', 'For example CONSORT for trials, STROBE for observational studies, PRISMA for systematic reviews (see the EQUATOR Network).'],
     ] },
-    { name: '声明与伦理', items: [
-      ['ethics', '涉及人或动物的研究有伦理审批编号', '写明审批机构和编号；问卷研究也通常需要。'],
-      ['consent', '说明了知情同意的获取方式', ''],
-      ['data', '数据可用性声明（Data Availability Statement）', '说明数据存放位置，或无法公开的原因。'],
-      ['coi', '利益冲突声明', '没有冲突也要写明「无」。'],
-      ['funding', '经费来源和项目编号', '按资助方要求的格式写。'],
-      ['credit', '作者贡献声明（如 CRediT 分类）', '每位作者的贡献要真实，并经全体作者确认。'],
-      ['ai', 'AI 工具使用声明', '多数期刊要求说明是否以及如何使用了 AI 工具。'],
+    { name: 'Statements & ethics', items: [
+      ['ethics', 'Ethics approval (IRB or ethics committee) name and number', 'Usually needed for human or animal research, including surveys.'],
+      ['consent', 'How informed consent was obtained', ''],
+      ['data', 'Data availability statement', 'Say where the data are deposited, or why they cannot be shared.'],
+      ['coi', 'Competing interests statement', 'If there are none, say so.'],
+      ['funding', 'Funding sources and grant numbers', 'Use the format the funder requires.'],
+      ['credit', 'Author contributions (e.g. CRediT roles), agreed by all authors', ''],
+      ['ai', 'AI use disclosure', 'Most journals ask whether and how AI tools were used. Check your journal’s policy.'],
     ] },
-    { name: '文件与提交', items: [
-      ['similarity', '自查文字重复率', '引用他人观点要标注出处，不要只靠改写降低重复率。'],
-      ['cover', '投稿信（Cover Letter）', '说明研究问题、主要发现，以及为什么适合这本期刊。'],
-      ['format', '参考文献格式符合期刊要求', '在「引用验证」里按期刊格式导出。'],
-      ['blind', '双盲审稿时，正文已去除作者信息', '包括文件属性里的作者名。'],
-      ['authors', '所有作者的姓名、单位、邮箱和 ORCID 已确认', ''],
+    { name: 'Files & submission', items: [
+      ['similarity', 'Self-check for text overlap', 'Quote and cite others’ ideas; do not rely on paraphrasing to lower similarity scores.'],
+      ['cover', 'Cover letter', 'State the research question, the main finding, and why it suits this journal.'],
+      ['format', 'Reference style matches the journal', 'Export it in the right style from the citation check.'],
+      ['blind', 'For double-blind review, author details are removed from the manuscript', 'Including file properties.'],
+      ['authors', 'Every author’s name, affiliation, email and ORCID iD are confirmed', ''],
+      ['reviewers', 'Suggested and opposed reviewers, if the journal asks', 'Avoid recent co-authors and colleagues at your institution.'],
     ] },
   ];
 

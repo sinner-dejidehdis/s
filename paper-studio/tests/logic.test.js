@@ -7,48 +7,56 @@ for (const f of ['text', 'outline', 'matrix', 'consistency', 'review', 'cite', '
 }
 const S = globalThis.Sigao;
 
-test('Chinese terms are cut at function characters', () => {
+test('Chinese input is still supported: terms are cut at function characters', () => {
   const t = S.text.terms('社交媒体使用会损害学业成绩');
   assert.ok(t.has('损害') && t.has('学业') && t.has('成绩'));
   assert.ok(!t.has('用会') && !t.has('会损'));
 });
 
+test('English terms share a stem across word forms', () => {
+  const t = S.text.terms('students scrolling interaction');
+  assert.ok(S.text.terms('student scroll interact').size === t.size && [...t].every((x) => S.text.terms('student scrolls interacting').has(x)));
+});
+
 test('outline flags causal conclusion on survey data and a missing field', () => {
   const p = S.sample.create();
   const titles = S.outline.check(p.outline).map((n) => n.title);
-  assert.ok(titles.includes('横断面数据写出了因果结论'));
+  assert.ok(titles.includes('A causal conclusion from cross-sectional data'));
   const blank = S.outline.check(Object.assign({}, p.outline, { gap: '' }));
   assert.ok(blank.some((n) => n.field === 'gap' && n.level === 'issue'));
 });
 
 test('matrix finds the repeated limitations as gap clues', () => {
   const notes = S.matrix.analyze(S.sample.create().matrix, 2026);
-  const rep = notes.find((n) => n.title.startsWith('同样的局限'));
-  assert.ok(rep && rep.why.includes('自我报告'));
-  assert.ok(notes.some((n) => n.title.includes('横断面设计')));
+  const rep = notes.find((n) => n.title.startsWith('The same limitations'));
+  assert.ok(rep && rep.why.includes('self-report'));
+  assert.ok(notes.some((n) => n.title.includes('cross-sectional design')));
 });
 
 test('consistency flags unsupported, overclaiming and causal sentences, and missing limitations', () => {
   const p = S.sample.create();
   const r = S.consistency.check({ question: p.outline.question, method: p.outline.method, ...p.check });
   const flagged = r.flagged.map((f) => f.sentence);
-  assert.ok(flagged.some((s) => s.includes('学业成绩')));
-  assert.ok(flagged.some((s) => s.includes('彻底')));
+  assert.ok(flagged.some((s) => s.includes('academic performance')));
+  assert.ok(flagged.some((s) => s.includes('completely solve')));
   assert.ok(!flagged.some((s) => s.includes('Levenson')), 'sentences comparing with literature are skipped');
-  assert.ok(r.notes.some((n) => n.title === '讨论里没有局限性'));
-  const withLimits = S.consistency.check({ ...p.check, discussion: p.check.discussion + '本研究的局限在于横断面设计。' });
-  assert.ok(!withLimits.notes.some((n) => n.title === '讨论里没有局限性'));
+  assert.ok(r.notes.some((n) => n.title === 'The discussion has no limitations'));
+  const withLimits = S.consistency.check({ ...p.check, discussion: p.check.discussion + ' A limitation is the cross-sectional design.' });
+  assert.ok(!withLimits.notes.some((n) => n.title === 'The discussion has no limitations'));
 });
 
 test('review comments split by reviewer and number, with priority and vagueness', () => {
   const tasks = S.review.split(S.sample.create().review.input);
   assert.strictEqual(tasks.length, 6);
-  assert.deepStrictEqual([...new Set(tasks.map((t) => t.reviewer))], ['审稿人 1', '审稿人 2']);
-  assert.strictEqual(tasks[0].priority, '必改');
+  assert.deepStrictEqual([...new Set(tasks.map((t) => t.reviewer))], ['Reviewer 1', 'Reviewer 2']);
+  assert.strictEqual(tasks[0].priority, 'Must fix');
   assert.strictEqual(tasks[2].vague, true);
-  assert.strictEqual(tasks[3].category, '数据与结果');
-  const para = S.review.split('讨论需要加强。方法部分没有说明样本量的计算依据。');
+  assert.strictEqual(tasks[3].category, 'Language & format');
+  const para = S.review.split('The discussion needs work. The methods do not justify the sample size.');
   assert.strictEqual(para.length, 2);
+  const sections = S.review.split('Major comments\n1. Add a robustness analysis.\nMinor comments\n1. Shorten the title.');
+  assert.deepStrictEqual(sections.map((t) => t.priority), ['Must fix', 'Suggested']);
+  assert.strictEqual(S.review.split('1. 方法部分没有说明问卷的信度。')[0].category, 'Methods');
 });
 
 test('citation parse finds DOI and year', () => {
@@ -74,7 +82,7 @@ test('verify reports a year mismatch against the Crossref record', async () => {
   const entry = S.cite.parse(S.sample.create().refs.input)[1];
   const r = await S.cite.verify(entry, fakeFetch({ 'adolescence.2016.05.008': { message: WOODS } }));
   assert.strictEqual(r.status, 'mismatch');
-  assert.deepStrictEqual(r.issues, ['年份写的是 2018，数据库记录是 2016']);
+  assert.deepStrictEqual(r.issues, ['Year given as 2018; the record says 2016']);
 });
 
 test('verify by title rejects a poor match and reports network failure', async () => {
@@ -85,15 +93,26 @@ test('verify by title rejects a poor match and reports network failure', async (
   assert.strictEqual(down.status, 'error');
 });
 
-test('APA and GB/T formatting from a verified record', () => {
+test('APA, Vancouver and Chicago formatting from a verified record', () => {
   const rec = S.cite.fromCrossref(WOODS);
   assert.strictEqual(S.cite.format(rec, 'apa'),
     'Woods, H. C., & Scott, H. (2016). #Sleepyteens: Social media use in adolescence is associated with poor sleep quality, anxiety, depression and low self‐esteem. Journal of Adolescence, 51(1), 41–49. https://doi.org/10.1016/j.adolescence.2016.05.008');
-  assert.ok(S.cite.format(rec, 'gbt').startsWith('WOODS H C, SCOTT H. #Sleepyteens'));
-  assert.ok(S.cite.format(rec, 'gbt').includes('[J]. Journal of Adolescence, 2016, 51(1): 41-49.'));
+  assert.ok(S.cite.format(rec, 'vancouver').startsWith('Woods HC, Scott H. #Sleepyteens'));
+  assert.ok(S.cite.format(rec, 'vancouver').endsWith('Journal of Adolescence. 2016;51(1):41-49. doi:10.1016/j.adolescence.2016.05.008'));
+  assert.ok(S.cite.format(rec, 'chicago').startsWith('Woods, Heather Cleland, and Holly Scott. 2016. "#Sleepyteens'));
+  assert.ok(S.cite.format(rec, 'chicago').includes('Journal of Adolescence 51 (1): 41–49.'));
 });
 
 test('checklist ids are unique', () => {
   const ids = S.checklist.ALL.map((i) => i.id);
   assert.strictEqual(new Set(ids).size, ids.length);
+});
+
+test('a corrected outline passes all outline rules', () => {
+  const o = S.sample.create().outline;
+  const fixed = Object.assign({}, o, {
+    method: o.method + ' Bedtime social media use was self-reported as minutes of passive scrolling and active interaction.',
+    conclusion: 'Among the university students studied, longer bedtime social media use was associated with poorer sleep quality, particularly for passive scrolling.',
+  });
+  assert.deepStrictEqual(S.outline.check(fixed).map((n) => n.level), ['ok']);
 });

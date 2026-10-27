@@ -1,4 +1,4 @@
-// 引用验证: every reference must resolve to a real record in Crossref.
+// Citation check: every reference must resolve to a real record in Crossref.
 // Entries with a DOI are looked up directly; the rest by title. The record is
 // compared with what the author typed (year, first author, title), and the
 // bibliography is formatted from the verified record, never from guesses.
@@ -48,10 +48,10 @@
   // Compare what the author wrote against the verified record.
   function compare(entry, rec) {
     const issues = [];
-    if (entry.year && rec.year && entry.year !== rec.year) issues.push(`年份写的是 ${entry.year}，数据库记录是 ${rec.year}`);
+    if (entry.year && rec.year && entry.year !== rec.year) issues.push(`Year given as ${entry.year}; the record says ${rec.year}`);
     const first = rec.authors[0] && rec.authors[0].family;
-    if (first && !words(entry.raw).includes(words(first)[0] || '###')) issues.push(`第一作者应为 ${first}`);
-    if (titleMatch(rec.title, entry.raw) < 0.6) issues.push('标题和数据库记录差别较大');
+    if (first && !words(entry.raw).includes(words(first)[0] || '###')) issues.push(`First author should be ${first}`);
+    if (titleMatch(rec.title, entry.raw) < 0.6) issues.push('Title differs substantially from the record');
     return issues;
   }
 
@@ -67,7 +67,7 @@
     try {
       if (entry.doi) {
         const json = await getJson(`${API}/${encodeURIComponent(entry.doi)}`, fetchImpl);
-        if (!json) return { status: 'notfound', note: `DOI ${entry.doi} 在 Crossref 中不存在` };
+        if (!json) return { status: 'notfound', note: `DOI ${entry.doi} does not exist in Crossref` };
         const rec = fromCrossref(json.message);
         const issues = compare(entry, rec);
         return { status: issues.length ? 'mismatch' : 'verified', record: rec, issues };
@@ -75,16 +75,16 @@
       const q = entry.raw.replace(/https?:\/\/\S+/g, '').slice(0, 300);
       const json = await getJson(`${API}?rows=1&query.bibliographic=${encodeURIComponent(q)}`, fetchImpl);
       const item = json && json.message && json.message.items && json.message.items[0];
-      if (!item) return { status: 'notfound', note: '数据库里查不到这篇文献' };
+      if (!item) return { status: 'notfound', note: 'No matching record found' };
       const rec = fromCrossref(item);
       if (titleMatch(rec.title, entry.raw) < 0.7) {
-        return { status: 'notfound', note: `查不到标题匹配的文献。最接近的是「${rec.title}」(${rec.year || '年份不详'})，但标题不一致，请核对原文。` };
+        return { status: 'notfound', note: `No record with a matching title. The closest is "${rec.title}" (${rec.year || 'n.d.'}), which does not match. Check the original source.` };
       }
       const issues = compare(entry, rec);
-      issues.unshift('原文没有 DOI，已按标题找到');
+      issues.unshift('No DOI given; matched by title');
       return { status: issues.length > 1 ? 'mismatch' : 'verified', record: rec, issues };
     } catch (e) {
-      return { status: 'error', note: '无法连接 Crossref。预览环境会拦截外部请求；部署到网站后即可查询。' };
+      return { status: 'error', note: 'Could not reach Crossref. Preview environments block outside requests; this works once the site is deployed.' };
     }
   }
 
@@ -94,27 +94,43 @@
   }
   const isCjk = (s) => /[一-鿿]/.test(s);
 
+  const fullName = (a) => isCjk(a.family) ? a.family + a.given : [a.given, a.family].filter(Boolean).join(' ');
+  const pagesEn = (p) => String(p || '').replace('-', '–');
+  const doiUrl = (r) => `https://doi.org/${r.doi}`;
+
   function apa(r) {
     const names = r.authors.map((a) => isCjk(a.family) ? a.family + a.given : `${a.family}, ${initials(a.given)}`.replace(/,\s*$/, ''));
-    let au = names.length <= 1 ? (names[0] || '')
+    const au = names.length <= 1 ? (names[0] || '')
       : names.length <= 20 ? names.slice(0, -1).join(', ') + ', & ' + names[names.length - 1]
         : names.slice(0, 19).join(', ') + ', ... ' + names[names.length - 1];
     const vol = r.volume ? `, ${r.volume}${r.issue ? `(${r.issue})` : ''}` : '';
-    const pages = r.pages ? `, ${r.pages.replace('-', '–')}` : '';
-    return `${au} (${r.year || 'n.d.'}). ${r.title}. ${r.journal}${vol}${pages}. https://doi.org/${r.doi}`;
+    const pages = r.pages ? `, ${pagesEn(r.pages)}` : '';
+    return `${au} (${r.year || 'n.d.'}). ${r.title}. ${r.journal}${vol}${pages}. ${doiUrl(r)}`;
   }
 
-  function gbt(r) {
-    const names = r.authors.map((a) => isCjk(a.family) ? a.family + a.given
-      : `${a.family.toUpperCase()} ${initials(a.given).replace(/\./g, '').replace(/-/g, ' ')}`.trim());
-    const etal = isCjk(r.title) ? ', 等' : ', et al';
-    const au = names.length > 3 ? names.slice(0, 3).join(', ') + etal : names.join(', ');
-    const vol = r.volume ? `, ${r.volume}${r.issue ? `(${r.issue})` : ''}` : '';
-    const pages = r.pages ? `: ${r.pages.replace('–', '-')}` : '';
-    return `${au}. ${r.title}[J]. ${r.journal}, ${r.year}${vol}${pages}. DOI:${r.doi}.`;
+  // Vancouver (ICMJE/NLM): up to six authors, then "et al."; full journal
+  // name, because Crossref does not give the NLM abbreviation.
+  function vancouver(r) {
+    const names = r.authors.map((a) => `${a.family} ${initials(a.given).replace(/[.\s-]/g, '')}`.trim());
+    const au = names.length > 6 ? names.slice(0, 6).join(', ') + ', et al' : names.join(', ');
+    const vol = r.volume ? `;${r.volume}${r.issue ? `(${r.issue})` : ''}` : '';
+    const pages = r.pages ? `:${r.pages.replace('–', '-')}` : '';
+    return `${au}. ${r.title}. ${r.journal}. ${r.year}${vol}${pages}. doi:${r.doi}`;
   }
 
-  const STYLES = { apa: { label: 'APA 第 7 版', fn: apa }, gbt: { label: 'GB/T 7714-2015', fn: gbt } };
+  // Chicago author-date: first author inverted, the rest in natural order;
+  // more than ten authors -> first seven and "et al."
+  function chicago(r) {
+    const list = r.authors.length > 10 ? r.authors.slice(0, 7) : r.authors;
+    const names = list.map((a, i) => (i === 0 ? [a.family, a.given].filter(Boolean).join(', ') : fullName(a)));
+    let au = names.length <= 1 ? (names[0] || '') : names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+    if (r.authors.length > 10) au = names.join(', ') + ', et al';
+    const vol = r.volume ? ` ${r.volume}${r.issue ? ` (${r.issue})` : ''}` : '';
+    const pages = r.pages ? `: ${pagesEn(r.pages)}` : '';
+    return `${au}. ${r.year || 'n.d.'}. "${r.title}." ${r.journal}${vol}${pages}. ${doiUrl(r)}.`;
+  }
+
+  const STYLES = { apa: { label: 'APA 7th', fn: apa }, vancouver: { label: 'Vancouver', fn: vancouver }, chicago: { label: 'Chicago author-date', fn: chicago } };
 
   function format(rec, style) { return (STYLES[style] || STYLES.apa).fn(rec); }
 

@@ -22,45 +22,45 @@
     'Levenson, J. C., Shensa, A., Sidani, J. E., Colditz, J. B., & Primack, B. A. (2016). The association between social media use and sleep disturbance among young adults. Preventive Medicine, 85, 36–41. https://doi.org/10.1016/j.ypmed.2016.01.001',
     'Woods, H. C., & Scott, H. (2018). #Sleepyteens: Social media use in adolescence is associated with poor sleep quality, anxiety, depression and low self-esteem. Journal of Adolescence, 51, 41–49. https://doi.org/10.1016/j.adolescence.2016.05.008',
     'Hale, L., & Guan, S. (2015). Screen time and sleep among school-aged children and adolescents: A systematic literature review. Sleep Medicine Reviews, 21, 50–58.',
-    'Zhang, W., & Li, M. (2021). Bedtime phone use and sleep quality among Chinese college students. Journal of Campus Sleep Studies, 12(3), 45–52.',
+    'Zhang, W., & Li, M. (2021). Bedtime phone use and sleep quality among college students. Journal of Campus Sleep Studies, 12(3), 45–52.',
   ];
 
   function create() {
     const entries = S.cite.parse(REFS.join('\n'));
     return {
-      version: 1,
+      version: 2,
       sample: true,
-      title: '睡前社交媒体使用与大学生睡眠质量',
+      title: 'Bedtime social media use and sleep quality in university students',
       outline: {
-        question: '大学生睡前使用社交媒体的时长与睡眠质量之间有什么关系？这种关系是否因使用方式（被动浏览或主动互动）而不同？',
-        gap: '已有研究多关注青少年的总屏幕时间，较少区分社交媒体的使用方式，也缺少针对中国大学生的数据。',
-        aim: '检验睡前社交媒体使用时长与睡眠质量的关联，并比较被动浏览与主动互动两种使用方式的差异。',
-        method: '对 3 所高校 612 名本科生进行问卷调查，用匹兹堡睡眠质量指数（PSQI）测量睡眠质量，用多元回归控制性别、年级和学业压力。',
-        result: '睡前社交媒体使用时长与 PSQI 得分正相关；被动浏览的关联强于主动互动。',
-        conclusion: '社交媒体使用会导致大学生失眠，高校应全面限制夜间网络。',
+        question: 'Is bedtime social media use associated with sleep quality among university students, and does the association differ between passive scrolling and active interaction?',
+        gap: 'Prior studies have mostly examined total screen time in adolescents; few have distinguished passive from active social media use, and evidence from university students remains limited.',
+        aim: 'To estimate the association between bedtime social media use and sleep quality, and to compare passive scrolling with active interaction.',
+        method: 'We surveyed 612 undergraduates at three universities, measured sleep quality with the Pittsburgh Sleep Quality Index (PSQI), and used multiple regression adjusting for gender, year of study and academic stress.',
+        result: 'Longer bedtime social media use was associated with higher PSQI scores (poorer sleep); the association was stronger for passive scrolling than for active interaction.',
+        conclusion: 'Social media use causes insomnia in university students, so universities should completely restrict night-time internet access.',
       },
       matrix: [
-        { id: 'r1', source: 'Levenson 等 (2016)', sample: '美国 19–32 岁成年人，全国性样本', method: '横断面问卷调查', finding: '社交媒体使用量和使用频率越高，睡眠障碍越多', limitation: '横断面设计，无法判断因果；自我报告', relation: '支持' },
-        { id: 'r2', source: 'Woods & Scott (2016)', sample: '苏格兰中学生', method: '横断面问卷调查', finding: '夜间使用和情感投入与较差的睡眠质量、焦虑和抑郁相关', limitation: '横断面设计；自我报告；单一地区样本', relation: '支持' },
-        { id: 'r3', source: 'Hale & Guan (2015)', sample: '学龄儿童与青少年', method: '系统综述', finding: '多数研究发现屏幕时间与入睡推迟、睡眠时间缩短相关', limitation: '纳入研究多为横断面设计；多依赖自我报告', relation: '背景' },
-        { id: 'r4', source: 'Scott, Biello & Woods (2019)', sample: '英国千禧队列中的青少年', method: '横断面分析（队列数据）', finding: '社交媒体使用越多，入睡越晚、夜间醒来越多', limitation: '只分析了一个时间点，属横断面设计；自我报告', relation: '支持' },
+        { id: 'r1', source: 'Levenson et al. (2016)', sample: 'US adults aged 19–32, national sample', method: 'Cross-sectional survey', finding: 'More frequent and higher-volume social media use went with more sleep disturbance', limitation: 'Cross-sectional design; self-report', relation: 'Supports' },
+        { id: 'r2', source: 'Woods & Scott (2016)', sample: 'Secondary school pupils in Scotland', method: 'Cross-sectional survey', finding: 'Night-time use and emotional investment went with poorer sleep quality, anxiety and depression', limitation: 'Cross-sectional design; self-report; one region', relation: 'Supports' },
+        { id: 'r3', source: 'Hale & Guan (2015)', sample: 'School-aged children and adolescents', method: 'Systematic review', finding: 'Most included studies linked screen time to later bedtimes and shorter sleep', limitation: 'Included studies mostly cross-sectional design; mostly self-report', relation: 'Background' },
+        { id: 'r4', source: 'Scott, Biello & Woods (2019)', sample: 'Adolescents in the UK Millennium Cohort Study', method: 'Cross-sectional analysis of cohort data', finding: 'More social media use went with later sleep onset and more night waking', limitation: 'Cross-sectional design (one wave); self-report', relation: 'Supports' },
       ],
       refs: {
         input: REFS.join('\n'),
         style: 'apa',
         results: [
           Object.assign({}, entries[0], { status: 'verified', record: REC.levenson, issues: [] }),
-          Object.assign({}, entries[1], { status: 'mismatch', record: REC.woods, issues: ['年份写的是 2018，数据库记录是 2016'] }),
-          Object.assign({}, entries[2], { status: 'verified', record: REC.hale, issues: ['原文没有 DOI，已按标题找到'] }),
-          Object.assign({}, entries[3], { status: 'notfound', note: '查不到标题匹配的文献。这是示例里故意放的一条虚构引用：不要引用你没有读过、查不到出处的文献。' }),
+          Object.assign({}, entries[1], { status: 'mismatch', record: REC.woods, issues: ['Year given as 2018; the record says 2016'] }),
+          Object.assign({}, entries[2], { status: 'verified', record: REC.hale, issues: ['No DOI given; matched by title'] }),
+          Object.assign({}, entries[3], { status: 'notfound', note: 'No record with a matching title. This example entry is made up on purpose: never cite a paper you have not read or cannot trace.' }),
         ],
       },
       check: {
-        results: '回归分析显示，控制性别、年级和学业压力后，睡前社交媒体使用时长每增加 1 小时，PSQI 得分平均升高 1.2 分（p < 0.01）。被动浏览组的回归系数高于主动互动组。性别和年级的调节作用不显著。',
-        discussion: '本研究发现睡前社交媒体使用时长与睡眠质量下降相关，这与 Levenson 等（2016）的结果一致。被动浏览的关联更强，可能是因为被动浏览更容易延长使用时间。结果还表明，社交媒体使用会损害大学生的学业成绩和人际关系。本研究证明了限制手机使用可以彻底解决大学生的睡眠问题。',
+        results: 'After adjusting for gender, year of study and academic stress, each additional hour of bedtime social media use was associated with a 1.2-point increase in PSQI score (p < 0.01). The coefficient was larger in the passive-scrolling group than in the active-interaction group. Gender and year of study did not moderate the association.',
+        discussion: 'We found that longer bedtime social media use was associated with poorer sleep quality, consistent with Levenson et al. (2016). The stronger association for passive scrolling may reflect longer, less intentional sessions. Our results also show that social media use damages students’ academic performance and friendships. This study proves that limiting phone use will completely solve students’ sleep problems.',
       },
       review: {
-        input: '审稿人 1\n1. The sample is limited to three universities; the authors must discuss the generalizability of the findings.\n2. 方法部分没有说明问卷的信度和效度，请补充。\n3. 讨论部分需要加强。\n4. Some typos in Table 2.\n\n审稿人 2\n1. The claim that social media "causes" insomnia is not supported by cross-sectional data.\n2. 建议补充近三年的相关文献。',
+        input: 'Reviewer 1\n1. The sample is limited to three universities; the authors must discuss the generalizability of the findings.\n2. The methods section does not report the reliability or validity of the social media use measure.\n3. The discussion needs to be strengthened.\n4. Some typos in Table 2.\n\nReviewer 2\n1. The claim that social media "causes" insomnia is not supported by cross-sectional data.\n2. Please consider citing more recent literature from the last three years.',
         tasks: [],
       },
       submit: { checked: { scope: true, type: true, ethics: true } },
@@ -68,7 +68,7 @@
   }
 
   function blank() {
-    return { version: 1, sample: false, title: '未命名论文',
+    return { version: 2, sample: false, title: 'Untitled paper',
       outline: { question: '', gap: '', aim: '', method: '', result: '', conclusion: '' },
       matrix: [S.matrix.blankRow(), S.matrix.blankRow(), S.matrix.blankRow()],
       refs: { input: '', style: 'apa', results: [] },

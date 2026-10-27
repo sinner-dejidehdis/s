@@ -1,5 +1,5 @@
 // UI: hash-routed views, two-way binding through data-bind paths, and a
-// margin of notes ("批注") beside each module that re-renders as you type.
+// margin of notes beside each module that re-renders as you type.
 (function () {
   const S = window.Sigao;
   const esc = S.text.escapeHtml;
@@ -10,17 +10,17 @@
   let verifying = false;
 
   const MODULES = [
-    { id: 'overview', name: '项目概览', pain: '整体进度和下一步' },
-    { id: 'outline', name: '论证主线', pain: '结构不一致 · 开不了头' },
-    { id: 'matrix', name: '文献矩阵', pain: '综述没论点 · 找不到缺口' },
-    { id: 'cite', name: '引用验证', pain: '引用出错 · AI 编造文献' },
-    { id: 'check', name: '一致性检查', pain: '讨论和结果对不上' },
-    { id: 'review', name: '审稿意见', pain: '大修拆不成任务' },
-    { id: 'submit', name: '投稿清单', pain: '投稿前漏东西' },
+    { id: 'overview', name: 'Overview', pain: 'Progress and next step' },
+    { id: 'outline', name: 'Argument thread', pain: 'Sections that don’t line up · can’t get started' },
+    { id: 'matrix', name: 'Literature matrix', pain: 'A review without an argument · no clear gap' },
+    { id: 'cite', name: 'Citation check', pain: 'Wrong details · AI-invented references' },
+    { id: 'check', name: 'Consistency check', pain: 'Discussion that outruns the results' },
+    { id: 'review', name: 'Reviewer comments', pain: 'A major revision you can’t break down' },
+    { id: 'submit', name: 'Submission checklist', pain: 'Missing items at submission' },
   ];
 
   const LEVEL = {
-    issue: ['需修改', 'pen'], tip: ['建议', 'warn'], gap: ['可能的缺口', 'accent'], ask: ['追问', 'accent'], ok: ['通过', 'ok'],
+    issue: ['Fix', 'pen'], tip: ['Suggestion', 'warn'], gap: ['Possible gap', 'accent'], ask: ['Think about', 'accent'], ok: ['Looks good', 'ok'],
   };
 
   // ---------- helpers ----------
@@ -49,19 +49,19 @@
       <header><span class="note-tag">${tag}</span>${n.field ? `<button class="note-field" data-action="focus" data-target="f-${n.field}">${esc(fieldLabel(n.field))}</button>` : ''}</header>
       <h4>${esc(n.title)}</h4>
       ${n.why ? `<p class="note-why">${esc(n.why)}</p>` : ''}
-      ${n.how ? `<p class="note-how"><b>怎么改</b>${esc(n.how)}</p>` : ''}
-      ${n.example ? `<details class="note-example"><summary>看一个其他主题的例子</summary><p>${esc(n.example)}</p></details>` : ''}
-      ${n.ask ? `<p class="note-ask"><b>想一想</b>${esc(n.ask)}</p>` : ''}
+      ${n.how ? `<p class="note-how"><b>How to fix</b>${esc(n.how)}</p>` : ''}
+      ${n.example ? `<details class="note-example"><summary>See an example from another topic</summary><p>${esc(n.example)}</p></details>` : ''}
+      ${n.ask ? `<p class="note-ask"><b>Ask yourself</b>${esc(n.ask)}</p>` : ''}
     </article>`;
   }
 
   function notesPanel(notes, extra) {
     const count = notes.filter((n) => n.level === 'issue').length;
     return `<div class="notes-head">
-        <h3>批注</h3>
-        <span class="count">${count ? `${count} 处需修改` : '无必改项'}</span>
+        <h3>Notes</h3>
+        <span class="count">${count ? `${count} to fix` : 'Nothing to fix'}</span>
       </div>
-      <p class="notes-rule">只指出问题、说明改法、举其他主题的例子。修改由你自己完成。</p>
+      <p class="notes-rule">Margin points out problems, explains how to fix them and shows examples from other topics. The writing stays yours.</p>
       ${extra || ''}
       <div class="notes-list">${notes.map(noteHtml).join('')}</div>`;
   }
@@ -77,60 +77,61 @@
     const checked = S.checklist.ALL.filter((i) => state.submit.checked[i.id]).length;
     const issues = (ns) => ns.filter((n) => n.level === 'issue').length;
     return {
-      outline: { value: `${S.outline.filled(o)}/6 个节点`, issues: issues(oNotes), done: S.outline.filled(o) === 6 && !issues(oNotes) },
-      matrix: { value: `${state.matrix.filter((r) => r.source.trim()).length} 篇文献`, issues: 0, gaps: mNotes.filter((n) => n.level === 'gap').length },
-      cite: { value: `${refs.filter((r) => r.status === 'verified').length}/${refs.length} 条已核实`, issues: refs.filter((r) => r.status === 'mismatch' || r.status === 'notfound').length },
-      check: { value: !state.check.results.trim() || !state.check.discussion.trim() ? '还没粘贴正文'
-        : c.flagged.length ? `${c.flagged.length} 句待核对` : '未发现问题', issues: issues(c.notes) },
-      review: { value: `${rs.done}/${rs.total} 条已处理`, issues: rs.majorOpen },
-      submit: { value: `${checked}/${S.checklist.ALL.length} 项`, issues: 0 },
+      outline: { value: `${S.outline.filled(o)}/6 nodes`, issues: issues(oNotes), done: S.outline.filled(o) === 6 && !issues(oNotes) },
+      matrix: { value: `${state.matrix.filter((r) => r.source.trim()).length} sources`, issues: 0, gaps: mNotes.filter((n) => n.level === 'gap').length },
+      cite: { value: `${refs.filter((r) => r.status === 'verified').length}/${refs.length} verified`, issues: refs.filter((r) => r.status === 'mismatch' || r.status === 'notfound').length },
+      check: { value: !state.check.results.trim() || !state.check.discussion.trim() ? 'Nothing pasted yet'
+        : c.flagged.length ? `${c.flagged.length} sentences to review` : 'No problems found', issues: issues(c.notes) },
+      review: { value: `${rs.done}/${rs.total} addressed`, issues: rs.majorOpen },
+      submit: { value: `${checked}/${S.checklist.ALL.length} items`, issues: 0 },
     };
   }
 
   // ---------- views ----------
   function home() {
     const rows = [
-      ['论证主线', '研究问题、缺口、目标、方法、结果、结论六个节点连成一条线，哪里断了就标出来。', '结构不一致 · 开不了头'],
-      ['文献矩阵', '每篇文献一行，系统找出反复出现的局限、单一的方法和缺失的样本，帮你看见缺口。', '读了很多却写不出有论点的综述'],
-      ['引用验证', '每条引用都到 Crossref 核对作者、年份和标题。查不到的引用会被标出来。', '怕引用出错 · 怕 AI 编造文献'],
-      ['一致性检查', '逐句对照讨论和结果，找出没有依据的结论、因果误用和缺失的局限。', '讨论里出现结果中没有的结论'],
-      ['审稿意见', '把导师和审稿人的意见拆成任务，标出必改项和含糊的意见，逐条追踪。', '「大修」拆不成可执行的任务'],
-      ['投稿清单', '期刊匹配、伦理、数据、经费、作者声明，投稿前逐项核对。', '投稿前不知道漏了什么'],
+      ['Argument thread', 'Link research question, gap, aim, method, result and conclusion into one line, and see where it breaks.', 'Sections that don’t line up · can’t get started'],
+      ['Literature matrix', 'One row per paper. Margin finds recurring limitations, a dominant design and missing samples, so the gap becomes visible.', 'Read a lot, but the review has no argument'],
+      ['Citation check', 'Every reference is checked against Crossref for authors, year and title. References that cannot be traced are flagged.', 'Wrong details · AI-invented references'],
+      ['Consistency check', 'Compares the discussion with the results sentence by sentence: unsupported claims, causal overreach, missing limitations.', 'A discussion that says more than the data'],
+      ['Reviewer comments', 'Turns supervisor and reviewer comments into tasks, flags must-fix and vague comments, and tracks each one.', 'A major revision you can’t break into steps'],
+      ['Submission checklist', 'Journal fit, ethics, data, funding and author statements, checked item by item before you submit.', 'Not sure what you’ve missed'],
     ];
     return `<section class="hero wrap">
-        <p class="eyebrow">学术写作工作台 · 原型</p>
-        <h1>帮你想清楚，<br>不替你写。</h1>
-        <p class="lede">从读文献到投稿，思稿在每一步指出问题、讲清改法、给出其他主题的例子。每一个字仍然由你自己写。</p>
+        <p class="eyebrow">Academic writing workspace · prototype</p>
+        <h1>Think it through.<br>Write it yourself.</h1>
+        <p class="lede">From reading the literature to submission, Margin points out what is wrong, explains how to fix it and shows examples from other topics. Every word of your paper stays yours.</p>
         <div class="hero-actions">
-          <button class="btn primary" data-action="open-sample">打开示例项目</button>
-          <button class="btn" data-action="new-blank">新建空白项目</button>
+          <button class="btn primary" data-action="open-sample">Open the example project</button>
+          <button class="btn" data-action="new-blank">Start a blank project</button>
         </div>
-        <p class="fine">数据只保存在你自己的浏览器里。</p>
+        <p class="fine">Your project is saved only in this browser.</p>
       </section>
       <section class="wrap modules-list">
-        <h2>六个模块，一条论证线</h2>
-        <ol class="flow">${rows.map(([n, d, p]) => `<li><div><h3>${n}</h3><p>${d}</p></div><span class="pain">解决：${p}</span></li>`).join('')}</ol>
+        <h2>Six modules, one line of argument</h2>
+        <ol class="flow">${rows.map(([n, d, p]) => `<li><div><h3>${n}</h3><p>${d}</p></div><span class="pain">For: ${p}</span></li>`).join('')}</ol>
       </section>
       <section class="wrap redline">
-        <h2>AI 红线</h2>
+        <h2>Feedback, never ghostwriting</h2>
         <div class="redline-grid">
-          <div><h3>我们做</h3><ul>
-            <li>指出问题在哪里、为什么是问题</li>
-            <li>说明修改的方法和步骤</li>
-            <li>用其他主题的例子演示写法</li>
-            <li>追问，帮你把想法想清楚</li>
-            <li>核实引用，排版参考文献</li></ul></div>
-          <div class="no"><h3>我们不做</h3><ul>
-            <li>改写或续写你的段落</li>
-            <li>生成整段、整章或整篇</li>
-            <li>一键润色、降 AI 率</li>
-            <li>编造或推荐查不到出处的文献</li>
-            <li>代写审稿回复信</li></ul></div>
+          <div><h3>Margin does</h3><ul>
+            <li>Point out where the problem is and why it matters</li>
+            <li>Explain how to fix it, step by step</li>
+            <li>Show the pattern with an example from another topic</li>
+            <li>Ask questions that help you think it through</li>
+            <li>Verify references and format the bibliography</li></ul></div>
+          <div class="no"><h3>Margin does not</h3><ul>
+            <li>Rewrite or continue your paragraphs</li>
+            <li>Generate paragraphs, sections or papers</li>
+            <li>One-click polishing or “humanising” AI text</li>
+            <li>Invent or suggest references it cannot trace</li>
+            <li>Write your response letter for you</li></ul></div>
         </div>
+        <p class="fine">Many journals ask authors to disclose AI-generated text. Margin does not generate any of your manuscript, but check your journal’s policy on disclosing AI-assisted feedback.</p>
       </section>
       <section class="wrap roadmap">
-        <h2>规划中</h2>
-        <p>写作过程记录（用于证明原创）、期刊匹配、语言问题标注、写作进度与同伴互评、结果图表的叙述指导、Word / LaTeX / Zotero 接入。</p>
+        <h2>Coming later</h2>
+        <p>AI-powered feedback, a writing history that shows the work is yours, journal matching, language issue flags, progress tracking and peer review circles, guidance for narrating results, and Word, LaTeX/Overleaf and Zotero integration.</p>
       </section>`;
   }
 
@@ -138,12 +139,12 @@
     const st = status();
     const next = MODULES.slice(1).find((m) => st[m.id] && st[m.id].issues);
     const confirmBar = pending ? `<div class="confirm" role="alert">
-        <span>${pending === 'reset' ? '恢复示例项目会覆盖当前所有内容。' : '清空后当前所有内容都会删除。'}</span>
-        <button class="btn danger" data-action="confirm">确认</button><button class="btn" data-action="cancel">取消</button></div>` : '';
+        <span>${pending === 'reset' ? 'Restoring the example replaces everything in this project.' : 'Clearing deletes everything in this project.'}</span>
+        <button class="btn danger" data-action="confirm">${pending === 'reset' ? 'Restore example' : 'Clear project'}</button><button class="btn" data-action="cancel">Cancel</button></div>` : '';
     const main = `<div class="title-row">
-        <label for="f-title" class="sr">论文标题</label>
+        <label for="f-title" class="sr">Paper title</label>
         <input id="f-title" class="title-input" data-bind="title" value="${esc(state.title)}">
-        ${state.sample ? '<span class="sample-chip">示例项目</span>' : ''}
+        ${state.sample ? '<span class="sample-chip">Example project</span>' : ''}
       </div>
       ${confirmBar}
       <div class="status-grid">${MODULES.slice(1).map((m) => {
@@ -151,54 +152,54 @@
         return `<a class="status-card" href="#${m.id}">
           <span class="status-name">${m.name}</span>
           <span class="status-value">${esc(s.value)}</span>
-          ${s.issues ? `<span class="pill tone-pen">${s.issues} 处待处理</span>` : s.gaps ? `<span class="pill tone-accent">${s.gaps} 个缺口线索</span>` : '<span class="pill tone-ok">暂无问题</span>'}
+          ${s.issues ? `<span class="pill tone-pen">${s.issues} to address</span>` : s.gaps ? `<span class="pill tone-accent">${s.gaps} gap ${s.gaps === 1 ? 'clue' : 'clues'}</span>` : '<span class="pill tone-ok">No issues</span>'}
           <span class="status-pain">${m.pain}</span></a>`;
       }).join('')}</div>
       <div class="project-actions">
-        <button class="btn" data-action="ask-reset">恢复示例项目</button>
-        <button class="btn" data-action="ask-clear">清空，开始我的论文</button>
+        <button class="btn" data-action="ask-reset">Restore example project</button>
+        <button class="btn" data-action="ask-clear">Clear and start my paper</button>
       </div>`;
     const notes = [];
-    if (next) notes.push({ level: 'ask', title: `下一步：处理「${next.name}」`, why: `这里还有 ${st[next.id].issues} 处问题。`, how: '按主线顺序处理：先主线，再文献和引用，最后一致性和投稿。' });
-    else notes.push({ level: 'ok', title: '各模块都没有待处理的问题', why: '', how: '投稿前到「投稿清单」逐项核对。' });
-    if (state.sample) notes.push({ level: 'tip', title: '你正在看示例项目', why: '示例内容里故意留了一些问题，方便你看到每个模块会给出什么批注。', how: '看完后点「清空，开始我的论文」。' });
+    if (next) notes.push({ level: 'ask', title: `Next: ${next.name}`, why: `${st[next.id].issues} ${st[next.id].issues === 1 ? 'item needs' : 'items need'} attention here.`, how: 'Work along the thread: argument first, then literature and citations, then consistency and submission.' });
+    else notes.push({ level: 'ok', title: 'No open issues in any module', why: '', how: 'Before submitting, go through the submission checklist.' });
+    if (state.sample) notes.push({ level: 'tip', title: 'You are viewing the example project', why: 'The example contains deliberate problems so you can see what each module flags.', how: 'When you are done, choose “Clear and start my paper”.' });
     return { main, notes: notesPanel(notes) };
   }
 
   function outline() {
-    const main = `<p class="intro">先用一两句话填完六个节点，不求完美。主线清楚了，每一章都知道自己要写什么。</p>
+    const main = `<p class="intro">Fill in all six nodes with a sentence or two. It does not need to be perfect. Once the thread is clear, every section knows its job.</p>
       <div class="thread">${S.outline.FIELDS.map((f) => `<div class="node">
         <label for="f-${f.key}">${f.label}</label>
         <p class="hint">${f.hint}</p>
         <textarea id="f-${f.key}" rows="3" data-bind="outline.${f.key}">${esc(state.outline[f.key])}</textarea>
-        <details class="pattern"><summary>看一个其他主题的写法</summary><p>${esc(f.example)}</p></details>
+        <details class="pattern"><summary>See how this looks for another topic</summary><p>${esc(f.example)}</p></details>
       </div>`).join('')}</div>`;
     return { main, notes: notesPanel(S.outline.check(state.outline)) };
   }
 
   function matrix() {
     const cols = S.matrix.COLUMNS;
-    const main = `<p class="intro">每篇文献一行，用你自己的话填。不要复制摘要：用自己的话概括，才能看出文献之间的关系。</p>
+    const main = `<p class="intro">One row per paper, in your own words. Don’t paste abstracts: summarising yourself is how you see how the papers relate.</p>
       <div class="table-wrap"><table class="matrix">
-        <thead><tr>${cols.map((c) => `<th scope="col">${c.label}</th>`).join('')}<th><span class="sr">操作</span></th></tr></thead>
+        <thead><tr>${cols.map((c) => `<th scope="col">${c.label}</th>`).join('')}<th><span class="sr">Actions</span></th></tr></thead>
         <tbody>${state.matrix.map((r, i) => `<tr>${cols.map((c) => c.key === 'relation'
-          ? `<td><label class="sr" for="m-${r.id}-relation">与我的研究</label><select id="m-${r.id}-relation" data-bind="matrix.${i}.relation">
-              <option value="">选择</option>${S.matrix.RELATIONS.map((x) => `<option${r.relation === x ? ' selected' : ''}>${x}</option>`).join('')}</select></td>`
+          ? `<td><label class="sr" for="m-${r.id}-relation">Relation to my study</label><select id="m-${r.id}-relation" data-bind="matrix.${i}.relation">
+              <option value="">Choose</option>${S.matrix.RELATIONS.map((x) => `<option${r.relation === x ? ' selected' : ''}>${x}</option>`).join('')}</select></td>`
           : `<td><label class="sr" for="m-${r.id}-${c.key}">${c.label}</label><textarea id="m-${r.id}-${c.key}" rows="3" placeholder="${c.placeholder}" data-bind="matrix.${i}.${c.key}">${esc(r[c.key])}</textarea></td>`).join('')}
-          <td><button class="icon-btn" data-action="del-row" data-index="${i}" aria-label="删除第 ${i + 1} 行">删除</button></td></tr>`).join('')}</tbody>
+          <td><button class="icon-btn" data-action="del-row" data-index="${i}" aria-label="Delete row ${i + 1}">Delete</button></td></tr>`).join('')}</tbody>
       </table></div>
-      <button class="btn" data-action="add-row">添加一篇文献</button>
-      ${state.sample ? '<p class="fine">示例中的文献都是真实论文，概括只用于演示，引用前请以原文为准。</p>' : ''}`;
+      <button class="btn" data-action="add-row">Add a paper</button>
+      ${state.sample ? '<p class="fine">The papers in the example are real; the summaries are for demonstration only. Check the originals before citing them.</p>' : ''}`;
     return { main, notes: notesPanel(S.matrix.analyze(state.matrix)) };
   }
 
   const STATUS = {
-    verified: ['已核实', 'ok'], mismatch: ['有出入', 'warn'], notfound: ['查不到', 'pen'], error: ['连接失败', 'warn'], pending: ['查询中', 'accent'],
+    verified: ['Verified', 'ok'], mismatch: ['Mismatch', 'warn'], notfound: ['Not found', 'pen'], error: ['Connection failed', 'warn'], pending: ['Checking', 'accent'],
   };
 
   function citeList() {
     const res = state.refs.results || [];
-    if (!res.length) return '<p class="empty">粘贴参考文献后点「验证引用」。每行一条，有 DOI 最好。</p>';
+    if (!res.length) return '<p class="empty">Paste your references and choose “Check references”. One per line; a DOI helps.</p>';
     return `<ol class="ref-list">${res.map((r) => {
       const [label, tone] = STATUS[r.status] || STATUS.pending;
       return `<li class="ref">
@@ -206,7 +207,7 @@
         <p class="ref-raw">${esc(r.raw)}</p>
         ${(r.issues || []).length ? `<ul class="ref-issues">${r.issues.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         ${r.note ? `<p class="ref-note">${esc(r.note)}</p>` : ''}
-        ${r.record ? `<p class="ref-fixed"><span>核实后的条目</span>${esc(S.cite.format(r.record, state.refs.style))}</p>` : ''}
+        ${r.record ? `<p class="ref-fixed"><span>Verified entry</span>${esc(S.cite.format(r.record, state.refs.style))}</p>` : ''}
       </li>`;
     }).join('')}</ol>`;
   }
@@ -219,24 +220,25 @@
   function citeNotes() {
     const res = state.refs.results || [];
     const n = (s) => res.filter((r) => r.status === s).length;
+    const plural = (k, one, many) => (k === 1 ? one : many);
     const notes = [];
-    if (n('notfound')) notes.push({ level: 'issue', title: `${n('notfound')} 条引用查不到`, why: '可能是作者、标题写错了，也可能这篇文献根本不存在（例如 AI 编造的引用）。', how: '找到原文核对。找不到原文的文献，不要引用。' });
-    if (n('mismatch')) notes.push({ level: 'issue', title: `${n('mismatch')} 条引用与数据库记录有出入`, why: '年份、作者或标题写错，审稿人和编辑很容易发现。', how: '以「核实后的条目」为准，同时修改正文里对应的引用（例如年份）。' });
-    if (n('error')) notes.push({ level: 'tip', title: `${n('error')} 条暂时无法查询`, why: '网络连接失败。', how: '稍后重新点「验证引用」。' });
-    if (!notes.length && res.length) notes.push({ level: 'ok', title: '所有引用都已核实', why: '', how: '记得核对正文中的引用和文末列表是否一一对应。' });
-    notes.push({ level: 'tip', title: '思稿不会替你找或生成引用', why: '每条引用都应当是你读过的文献。', how: '先在「文献矩阵」里读懂一篇，再引用它。' });
+    if (n('notfound')) notes.push({ level: 'issue', title: `${n('notfound')} ${plural(n('notfound'), 'reference', 'references')} not found`, why: 'The authors or title may be wrong, or the paper may not exist at all (for example, a reference invented by an AI tool).', how: 'Find the original and check it. If you cannot find the original, do not cite it.' });
+    if (n('mismatch')) notes.push({ level: 'issue', title: `${n('mismatch')} ${plural(n('mismatch'), 'reference differs', 'references differ')} from the record`, why: 'A wrong year, author or title is easy for reviewers and editors to spot.', how: 'Use the verified entry, and fix the matching in-text citation too (for example the year).' });
+    if (n('error')) notes.push({ level: 'tip', title: `${n('error')} could not be checked`, why: 'The connection failed.', how: 'Choose “Check references” again later.' });
+    if (!notes.length && res.length) notes.push({ level: 'ok', title: 'All references verified', why: '', how: 'Make sure every in-text citation matches an entry in the list.' });
+    notes.push({ level: 'tip', title: 'Margin will not find or generate references for you', why: 'Every reference should be a paper you have read.', how: 'Read and summarise a paper in the literature matrix first, then cite it.' });
     return notes;
   }
 
   function cite() {
-    const main = `<p class="intro">每行粘贴一条参考文献。有 DOI 的直接核对，没有 DOI 的按标题检索。数据来自 Crossref。</p>
-      <label for="f-refs" class="sr">参考文献</label>
+    const main = `<p class="intro">Paste one reference per line. Entries with a DOI are checked directly; others are searched by title. Records come from Crossref.</p>
+      <label for="f-refs" class="sr">References</label>
       <textarea id="f-refs" class="mono" rows="7" data-bind="refs.input">${esc(state.refs.input)}</textarea>
       <div class="toolbar">
-        <button class="btn primary" data-action="verify"${verifying ? ' disabled' : ''}>${verifying ? '正在验证…' : '验证引用'}</button>
-        <label for="f-style">格式</label>
+        <button class="btn primary" data-action="verify"${verifying ? ' disabled' : ''}>${verifying ? 'Checking…' : 'Check references'}</button>
+        <label for="f-style">Style</label>
         <select id="f-style" data-bind="refs.style" data-rerender="cite-list">${Object.entries(S.cite.STYLES).map(([k, v]) => `<option value="${k}"${state.refs.style === k ? ' selected' : ''}>${v.label}</option>`).join('')}</select>
-        <button class="btn" data-action="copy-bib">复制已核实的参考文献</button>
+        <button class="btn" data-action="copy-bib">Copy verified references</button>
       </div>
       <div id="cite-list">${citeList()}</div>`;
     return { main, notes: notesPanel(citeNotes()) };
@@ -248,31 +250,31 @@
 
   function flaggedList(flagged) {
     if (!flagged.length) return '';
-    return `<div class="flagged"><h3>讨论中需要核对的句子</h3><ol>${flagged.map((f) => `<li><q>${esc(f.sentence)}</q><span>${f.reasons.map(esc).join('；')}</span></li>`).join('')}</ol></div>`;
+    return `<div class="flagged"><h3>Sentences to review in the discussion</h3><ol>${flagged.map((f) => `<li><q>${esc(f.sentence)}</q><span>${f.reasons.map(esc).join('; ')}</span></li>`).join('')}</ol></div>`;
   }
 
   function check() {
     const r = checkResult();
-    const main = `<p class="intro">粘贴论文的结果和讨论。检查会对照「论证主线」里的研究问题和方法。</p>
-      <div class="readonly"><span>研究问题（来自论证主线）</span><p>${esc(state.outline.question) || '还没有填写。'}</p><a href="#outline">去修改</a></div>
-      <label for="f-results">结果</label>
+    const main = `<p class="intro">Paste your Results and Discussion. They are checked against the research question and method in your argument thread.</p>
+      <div class="readonly"><span>Research question (from the argument thread)</span><p>${esc(state.outline.question) || 'Not filled in yet.'}</p><a href="#outline">Edit</a></div>
+      <label for="f-results">Results</label>
       <textarea id="f-results" rows="6" data-bind="check.results">${esc(state.check.results)}</textarea>
-      <label for="f-discussion">讨论</label>
+      <label for="f-discussion">Discussion</label>
       <textarea id="f-discussion" rows="8" data-bind="check.discussion">${esc(state.check.discussion)}</textarea>
       <div id="flagged">${flaggedList(r.flagged)}</div>`;
     return { main, notes: notesPanel(r.notes) };
   }
 
-  const LETTER = `<details class="guide" open><summary>回复信的结构</summary>
-      <ol><li>开头感谢编辑和审稿人，一两句即可。</li>
-      <li>逐条列出：<b>原意见</b> → <b>你的回复</b> → <b>修改位置</b>（页码、行号）。</li>
-      <li>同意的意见：说明改了什么。不同意的意见：礼貌地给出理由和证据。</li>
-      <li>含糊的意见：写出你的理解，再说明按这个理解做了什么。</li></ol>
-      <p class="guide-example"><b>其他主题的例子</b>（城市公园研究）意见：「样本只覆盖三座城市。」回复：「感谢指出。我们在讨论第 4.3 节补充了样本城市的气候范围，并说明结论只适用于亚热带城市（第 15 页第 8–14 行）。」</p></details>`;
+  const LETTER = `<details class="guide" open><summary>How a response letter is structured</summary>
+      <ol><li>Thank the editor and reviewers in a sentence or two.</li>
+      <li>For each comment: <b>the comment</b> → <b>your response</b> → <b>where it changed</b> (page and line).</li>
+      <li>If you agree, say what you changed. If you disagree, give your reasons and evidence politely.</li>
+      <li>If a comment is vague, state how you understood it, then what you did on that reading.</li></ol>
+      <p class="guide-example"><b>Example from another topic</b> (urban parks study). Comment: “The sample covers only three cities.” Response: “Thank you. We now describe the climate range of the sample cities in Section 4.3 and state that the conclusions apply to subtropical cities (p. 15, lines 8–14).”</p></details>`;
 
   function reviewTasks() {
     const tasks = state.review.tasks;
-    if (!tasks.length) return '<p class="empty">粘贴意见后点「拆分成任务」。</p>';
+    if (!tasks.length) return '<p class="empty">Paste the comments and choose “Break into tasks”.</p>';
     let last = null;
     return tasks.map((t, i) => {
       const head = t.reviewer !== last ? `<h3 class="reviewer">${esc(t.reviewer)}</h3>` : '';
@@ -284,15 +286,15 @@
         </div>
         <div class="task-meta">
           <span class="pill tone-accent">${esc(t.category)}</span>
-          <label class="sr" for="t-${t.id}-pri">优先级</label>
-          <select id="t-${t.id}-pri" data-bind="review.tasks.${i}.priority" data-rerender="notes">${['必改', '建议', '待判断'].map((p) => `<option${t.priority === p ? ' selected' : ''}>${p}</option>`).join('')}</select>
-          ${t.vague ? '<span class="pill tone-warn">意见含糊</span>' : ''}
+          <label class="sr" for="t-${t.id}-pri">Priority</label>
+          <select id="t-${t.id}-pri" data-bind="review.tasks.${i}.priority" data-rerender="notes">${S.review.PRIORITIES.map((p) => `<option${t.priority === p ? ' selected' : ''}>${p}</option>`).join('')}</select>
+          ${t.vague ? '<span class="pill tone-warn">Vague comment</span>' : ''}
         </div>
-        ${t.vague ? '<p class="task-vague">这条意见没有说具体改什么。可以先问清楚；问不到的话，写下你对它的两三种理解，选一种在回复里说明。</p>' : ''}
-        <label for="t-${t.id}-plan" class="small">修改方案（自己写）</label>
-        <textarea id="t-${t.id}-plan" rows="2" data-bind="review.tasks.${i}.plan" placeholder="打算怎么改？需要补什么分析或文献？">${esc(t.plan)}</textarea>
-        <label for="t-${t.id}-where" class="small">修改位置</label>
-        <input id="t-${t.id}-where" data-bind="review.tasks.${i}.where" value="${esc(t.where)}" placeholder="如：第 8 页第 12–20 行">
+        ${t.vague ? '<p class="task-vague">This comment does not say what to change. Ask if you can; if not, write down two or three ways to read it, pick one, and say so in your response.</p>' : ''}
+        <label for="t-${t.id}-plan" class="small">Your revision plan</label>
+        <textarea id="t-${t.id}-plan" rows="2" data-bind="review.tasks.${i}.plan" placeholder="What will you change? Which analysis or literature do you need?">${esc(t.plan)}</textarea>
+        <label for="t-${t.id}-where" class="small">Where it changed</label>
+        <input id="t-${t.id}-where" data-bind="review.tasks.${i}.where" value="${esc(t.where)}" placeholder="e.g. p. 8, lines 12–20">
       </div>`;
     }).join('');
   }
@@ -300,32 +302,32 @@
   function reviewNotes() {
     const s = S.review.summary(state.review.tasks);
     const notes = [];
-    if (!s.total) return [{ level: 'tip', title: '还没有任务', why: '', how: '粘贴意见后点「拆分成任务」。' }];
-    notes.push({ level: s.majorOpen ? 'issue' : 'ok', title: s.majorOpen ? `${s.majorOpen} 条必改意见还没处理` : '必改意见都已处理',
-      why: `共 ${s.total} 条意见，已处理 ${s.done} 条。`, how: '先处理必改项，尤其是方法和论证类的意见，它们可能牵动多个章节。' });
-    if (s.vague) notes.push({ level: 'tip', title: `${s.vague} 条意见比较含糊`, why: '「需要加强」「请完善」这类意见没有说具体改什么。', how: '先列出你的理解，再决定怎么改，并在回复中写明你的理解。' });
-    if (s.noPlan) notes.push({ level: 'tip', title: `${s.noPlan} 条还没有写修改方案`, why: '', how: '每条写一句话：改什么、在哪改、需要补什么。' });
+    if (!s.total) return [{ level: 'tip', title: 'No tasks yet', why: '', how: 'Paste the comments and choose “Break into tasks”.' }];
+    notes.push({ level: s.majorOpen ? 'issue' : 'ok', title: s.majorOpen ? `${s.majorOpen} must-fix ${s.majorOpen === 1 ? 'comment' : 'comments'} still open` : 'All must-fix comments addressed',
+      why: `${s.done} of ${s.total} comments addressed.`, how: 'Start with must-fix items, especially on methods and argument; they can affect several sections.' });
+    if (s.vague) notes.push({ level: 'tip', title: `${s.vague} vague ${s.vague === 1 ? 'comment' : 'comments'}`, why: 'Comments like “needs strengthening” do not say what to change.', how: 'Write down how you read it, decide what to do, and state your reading in the response.' });
+    if (s.noPlan) notes.push({ level: 'tip', title: `${s.noPlan} without a revision plan`, why: '', how: 'One sentence each: what changes, where, and what you need to add.' });
     return notes;
   }
 
   function review() {
-    const main = `<p class="intro">粘贴导师或审稿人的意见，按「审稿人 1」「1.」这样的格式效果最好。</p>
-      <label for="f-review" class="sr">审稿意见</label>
+    const main = `<p class="intro">Paste comments from your supervisor or reviewers. Headings like “Reviewer 1” or “Major comments” and numbered points work best.</p>
+      <label for="f-review" class="sr">Reviewer comments</label>
       <textarea id="f-review" rows="6" data-bind="review.input">${esc(state.review.input)}</textarea>
-      <div class="toolbar"><button class="btn primary" data-action="split-review">${state.review.tasks.length ? '重新拆分（会覆盖当前任务）' : '拆分成任务'}</button></div>
+      <div class="toolbar"><button class="btn primary" data-action="split-review">${state.review.tasks.length ? 'Break into tasks again (replaces current tasks)' : 'Break into tasks'}</button></div>
       <div id="tasks">${reviewTasks()}</div>`;
     return { main, notes: notesPanel(reviewNotes(), LETTER) };
   }
 
   function submit() {
-    const main = `<p class="intro">投稿前逐项核对。具体要求以目标期刊的作者指南为准。</p>
+    const main = `<p class="intro">Go through each item before you submit. Your target journal’s Guide for Authors has the final say.</p>
       ${S.checklist.GROUPS.map((g) => `<fieldset class="checks"><legend>${g.name}</legend>${g.items.map(([id, label, how]) => `
         <div class="check-item"><input type="checkbox" id="c-${id}" data-bind="submit.checked.${id}" data-rerender="notes"${state.submit.checked[id] ? ' checked' : ''}>
         <label for="c-${id}">${label}${how ? `<small>${how}</small>` : ''}</label></div>`).join('')}</fieldset>`).join('')}`;
     const left = S.checklist.ALL.filter((i) => !state.submit.checked[i.id]);
     const notes = left.length
-      ? [{ level: 'tip', title: `还有 ${left.length} 项没有核对`, why: left.slice(0, 6).map((i) => i.label).join('；') + (left.length > 6 ? '……' : ''), how: '「声明与伦理」中的项目缺失时，编辑通常会直接退回稿件。' }]
-      : [{ level: 'ok', title: '清单全部核对完成', why: '', how: '提交前再通读一遍投稿信。' }];
+      ? [{ level: 'tip', title: `${left.length} ${left.length === 1 ? 'item' : 'items'} left to check`, why: left.slice(0, 6).map((i) => i.label).join('; ') + (left.length > 6 ? '…' : ''), how: 'Editors often return a manuscript straight away when statements or ethics details are missing.' }]
+      : [{ level: 'ok', title: 'Checklist complete', why: '', how: 'Read your cover letter once more before you submit.' }];
     return { main, notes: notesPanel(notes) };
   }
 
@@ -342,11 +344,11 @@
     const m = MODULES.find((x) => x.id === v);
     const view = VIEWS[v]();
     app.innerHTML = `<div class="workspace wrap">
-      <nav class="side" aria-label="模块">${MODULES.map((x) => `<a href="#${x.id}"${x.id === v ? ' aria-current="page"' : ''}>
+      <nav class="side" aria-label="Modules">${MODULES.map((x) => `<a href="#${x.id}"${x.id === v ? ' aria-current="page"' : ''}>
         <span>${x.name}</span>${st[x.id] && st[x.id].issues ? `<b>${st[x.id].issues}</b>` : ''}</a>`).join('')}</nav>
       <section class="module">
         <header class="module-head"><h1>${m.name}</h1><p>${m.pain}</p></header>
-        <div class="module-body"><div class="editor">${view.main}</div><aside class="notes" id="notes">${view.notes}</aside></div>
+        <div class="module-body"><div class="editor">${view.main}</div><aside class="notes" id="notes" aria-label="Notes">${view.notes}</aside></div>
       </section></div>`;
   }
 
@@ -371,8 +373,7 @@
   function onEdit(e) {
     const el = e.target.closest('[data-bind]');
     if (!el) return;
-    const path = el.dataset.bind;
-    setPath(state, path, el.type === 'checkbox' ? el.checked : el.value);
+    setPath(state, el.dataset.bind, el.type === 'checkbox' ? el.checked : el.value);
     save();
     const re = el.dataset.rerender;
     if (re === 'all') { render(); return; }
@@ -390,7 +391,8 @@
     render();
     for (const entry of state.refs.results) {
       Object.assign(entry, await S.cite.verify(entry));
-      document.getElementById('cite-list') && (document.getElementById('cite-list').innerHTML = citeList());
+      const list = document.getElementById('cite-list');
+      if (list) list.innerHTML = citeList();
     }
     verifying = false;
     save();
@@ -398,12 +400,12 @@
   }
 
   function copy(text) {
-    const done = () => toast('已复制');
+    const done = () => toast('Copied');
     const fallback = () => {
       const ta = document.createElement('textarea');
-      ta.value = text; ta.className = 'copy-fallback'; ta.setAttribute('aria-label', '参考文献');
+      ta.value = text; ta.className = 'copy-fallback'; ta.setAttribute('aria-label', 'References');
       document.querySelector('#cite-list').prepend(ta); ta.focus(); ta.select();
-      toast('请按 Ctrl+C / ⌘C 复制选中的文字');
+      toast('Press Ctrl+C / ⌘C to copy the selected text');
     };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
     else fallback();
@@ -417,13 +419,13 @@
     cancel: () => { pending = ''; render(); },
     confirm: () => {
       state = pending === 'reset' ? S.sample.create() : S.sample.blank();
-      pending = ''; save(); render(); toast(state.sample ? '已恢复示例项目' : '已清空，可以开始了');
+      pending = ''; save(); render(); toast(state.sample ? 'Example project restored' : 'Project cleared. Start with your research question.');
     },
     'add-row': () => { state.matrix.push(S.matrix.blankRow()); save(); render(); },
     'del-row': (el) => { state.matrix.splice(Number(el.dataset.index), 1); save(); render(); },
     verify: () => { if (!verifying) verifyAll(); },
-    'copy-bib': () => { const b = bibliography(); if (b) copy(b); else toast('还没有已核实的条目'); },
-    'split-review': () => { state.review.tasks = S.review.split(state.review.input); save(); render(); toast(`拆分出 ${state.review.tasks.length} 条任务`); },
+    'copy-bib': () => { const b = bibliography(); if (b) copy(b); else toast('No verified references yet'); },
+    'split-review': () => { state.review.tasks = S.review.split(state.review.input); save(); render(); toast(`${state.review.tasks.length} tasks created`); },
     focus: (el) => { const t = document.getElementById(el.dataset.target); if (t) { t.focus(); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } },
   };
   document.addEventListener('click', (e) => {

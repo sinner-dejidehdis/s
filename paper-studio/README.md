@@ -1,33 +1,33 @@
-# 思稿（Sigao）
+# Margin
 
-学术写作工作台原型。原则：**帮你想清楚，不替你写**。AI 只指出问题、说明改法、举其他主题的例子，不改写、不续写、不生成正文。
+Prototype of an academic writing workspace for researchers writing in English. Principle: **think it through, write it yourself**. Margin points out problems, explains how to fix them and shows examples from other topics. It never rewrites, continues or generates the user's text.
 
-## 模块
+## Modules
 
-| 模块 | 做什么 | 对应痛点 |
+| Module | What it does | Pain point |
 |---|---|---|
-| 项目概览 | 各模块进度和下一步 | 进度管理 |
-| 论证主线 | 研究问题 → 缺口 → 目标 → 方法 → 结果 → 结论，检查断点、因果误用、绝对化表述 | 结构不一致、开不了头 |
-| 文献矩阵 | 每篇文献一行，找出重复的局限、单一的设计、一边倒的结论 | 综述没论点、找不到缺口 |
-| 引用验证 | 到 Crossref 核对 DOI、年份、作者、标题，按 APA / GB/T 7714 排版 | 引用出错、AI 编造文献 |
-| 一致性检查 | 讨论中没有结果支撑的句子、因果误用、缺失的局限 | 方法、结果、讨论对不上 |
-| 审稿意见 | 拆成任务，标出必改项和含糊的意见，记录修改方案和位置 | 大修拆不成任务 |
-| 投稿清单 | 期刊匹配、伦理、数据、经费、作者声明等 20 项 | 投稿前漏东西 |
+| Overview | Progress per module and the next step | Progress tracking |
+| Argument thread | Research question → gap → aim → method → result → conclusion; flags breaks, causal overreach and absolute wording | Sections that don't line up, can't get started |
+| Literature matrix | One row per paper; finds recurring limitations, a dominant design and one-sided findings | A review without an argument, no clear gap |
+| Citation check | Checks DOI, year, first author and title against Crossref; formats APA 7, Vancouver or Chicago author-date | Wrong details, AI-invented references |
+| Consistency check | Discussion sentences without a supporting result, causal claims from correlational data, missing limitations | Discussion that outruns the results |
+| Reviewer comments | Splits comments into tasks (reviewer headings, major/minor sections, numbered points), flags must-fix and vague comments | A major revision you can't break down |
+| Submission checklist | 23 items on journal fit, manuscript, statements and ethics, files | Missing items at submission |
 
-目前的检查都是规则检查，没有接入 AI；数据保存在浏览器的 localStorage 里。
+All checks are rule-based for now (no AI backend). English is the main language; Chinese input is still recognised by the rules. Projects are stored in the browser's localStorage.
 
-## 运行
+## Run
 
-纯静态页面，无需构建：
+Static files, no build step:
 
 ```sh
-cd paper-studio && python3 -m http.server 8000   # 打开 http://localhost:8000
-node --test paper-studio/tests/*.test.js          # 在仓库根目录运行测试
+cd paper-studio && python3 -m http.server 8000   # open http://localhost:8000
+node --test paper-studio/tests/*.test.js          # run from the repository root
 ```
 
-## 文件
+## Files
 
-- `js/text.js` 中英文分词（中文按虚词切分后取二元组）、句子切分、重合度
-- `js/outline.js` `js/matrix.js` `js/consistency.js` `js/review.js` `js/cite.js` `js/checklist.js` 各模块的检查逻辑，不依赖页面，可在 Node 中测试
-- `js/sample.js` 示例项目。Levenson、Woods & Scott、Hale & Guan、Scott 等的文献都是真实论文（已用 Crossref 核对）；Zhang & Li (2021) 是故意虚构的，用来演示查不到的引用
-- `js/app.js` 页面渲染与交互
+- `js/text.js` term extraction (English: six-letter stems; Chinese: bigrams cut at function characters), sentence splitting, overlap scores
+- `js/outline.js` `js/matrix.js` `js/consistency.js` `js/review.js` `js/cite.js` `js/checklist.js` module logic, independent of the page and tested in Node
+- `js/sample.js` the example project. The Levenson, Woods & Scott, Hale & Guan and Scott et al. papers are real (checked against Crossref); Zhang & Li (2021) is made up on purpose to show an untraceable reference
+- `js/app.js` rendering and interaction
