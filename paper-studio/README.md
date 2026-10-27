@@ -1,6 +1,6 @@
-# Margin
+# Arguo
 
-Prototype of an academic writing workspace for researchers writing in English. Principle: **think it through, write it yourself**. Margin points out problems, explains how to fix them and shows examples from other topics. It never rewrites, continues or generates the user's text.
+Prototype of an academic writing workspace for researchers writing in English. Principle: **think it through, write it yourself**. Arguo points out problems, explains how to fix them and shows examples from other topics. It never rewrites, continues or generates the user's text.
 
 ## Modules
 

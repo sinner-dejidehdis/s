@@ -2,7 +2,7 @@
 // (private windows, blocked site data), so every access is guarded.
 (function (root) {
   const S = root.Sigao = root.Sigao || {};
-  const KEY = 'margin.project.v2';
+  const KEY = 'arguo.project.v2';
 
   function load() {
     try {

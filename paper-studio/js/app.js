@@ -61,7 +61,7 @@
         <h3>Notes</h3>
         <span class="count">${count ? `${count} to fix` : 'Nothing to fix'}</span>
       </div>
-      <p class="notes-rule">Margin points out problems, explains how to fix them and shows examples from other topics. The writing stays yours.</p>
+      <p class="notes-rule">Arguo points out problems, explains how to fix them and shows examples from other topics. The writing stays yours.</p>
       ${extra || ''}
       <div class="notes-list">${notes.map(noteHtml).join('')}</div>`;
   }
@@ -91,7 +91,7 @@
   function home() {
     const rows = [
       ['Argument thread', 'Link research question, gap, aim, method, result and conclusion into one line, and see where it breaks.', 'Sections that don’t line up · can’t get started'],
-      ['Literature matrix', 'One row per paper. Margin finds recurring limitations, a dominant design and missing samples, so the gap becomes visible.', 'Read a lot, but the review has no argument'],
+      ['Literature matrix', 'One row per paper. Arguo finds recurring limitations, a dominant design and missing samples, so the gap becomes visible.', 'Read a lot, but the review has no argument'],
       ['Citation check', 'Every reference is checked against Crossref for authors, year and title. References that cannot be traced are flagged.', 'Wrong details · AI-invented references'],
       ['Consistency check', 'Compares the discussion with the results sentence by sentence: unsupported claims, causal overreach, missing limitations.', 'A discussion that says more than the data'],
       ['Reviewer comments', 'Turns supervisor and reviewer comments into tasks, flags must-fix and vague comments, and tracks each one.', 'A major revision you can’t break into steps'],
@@ -100,7 +100,7 @@
     return `<section class="hero wrap">
         <p class="eyebrow">Academic writing workspace · prototype</p>
         <h1>Think it through.<br>Write it yourself.</h1>
-        <p class="lede">From reading the literature to submission, Margin points out what is wrong, explains how to fix it and shows examples from other topics. Every word of your paper stays yours.</p>
+        <p class="lede">From reading the literature to submission, Arguo points out what is wrong, explains how to fix it and shows examples from other topics. Every word of your paper stays yours.</p>
         <div class="hero-actions">
           <button class="btn primary" data-action="open-sample">Open the example project</button>
           <button class="btn" data-action="new-blank">Start a blank project</button>
@@ -114,20 +114,20 @@
       <section class="wrap redline">
         <h2>Feedback, never ghostwriting</h2>
         <div class="redline-grid">
-          <div><h3>Margin does</h3><ul>
+          <div><h3>Arguo does</h3><ul>
             <li>Point out where the problem is and why it matters</li>
             <li>Explain how to fix it, step by step</li>
             <li>Show the pattern with an example from another topic</li>
             <li>Ask questions that help you think it through</li>
             <li>Verify references and format the bibliography</li></ul></div>
-          <div class="no"><h3>Margin does not</h3><ul>
+          <div class="no"><h3>Arguo does not</h3><ul>
             <li>Rewrite or continue your paragraphs</li>
             <li>Generate paragraphs, sections or papers</li>
             <li>One-click polishing or “humanising” AI text</li>
             <li>Invent or suggest references it cannot trace</li>
             <li>Write your response letter for you</li></ul></div>
         </div>
-        <p class="fine">Many journals ask authors to disclose AI-generated text. Margin does not generate any of your manuscript, but check your journal’s policy on disclosing AI-assisted feedback.</p>
+        <p class="fine">Many journals ask authors to disclose AI-generated text. Arguo does not generate any of your manuscript, but check your journal’s policy on disclosing AI-assisted feedback.</p>
       </section>
       <section class="wrap roadmap">
         <h2>Coming later</h2>
@@ -226,7 +226,7 @@
     if (n('mismatch')) notes.push({ level: 'issue', title: `${n('mismatch')} ${plural(n('mismatch'), 'reference differs', 'references differ')} from the record`, why: 'A wrong year, author or title is easy for reviewers and editors to spot.', how: 'Use the verified entry, and fix the matching in-text citation too (for example the year).' });
     if (n('error')) notes.push({ level: 'tip', title: `${n('error')} could not be checked`, why: 'The connection failed.', how: 'Choose “Check references” again later.' });
     if (!notes.length && res.length) notes.push({ level: 'ok', title: 'All references verified', why: '', how: 'Make sure every in-text citation matches an entry in the list.' });
-    notes.push({ level: 'tip', title: 'Margin will not find or generate references for you', why: 'Every reference should be a paper you have read.', how: 'Read and summarise a paper in the literature matrix first, then cite it.' });
+    notes.push({ level: 'tip', title: 'Arguo will not find or generate references for you', why: 'Every reference should be a paper you have read.', how: 'Read and summarise a paper in the literature matrix first, then cite it.' });
     return notes;
   }
 
