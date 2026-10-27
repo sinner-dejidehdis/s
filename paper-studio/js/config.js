@@ -4,5 +4,5 @@
 window.ARGUO_CONFIG = {
   apiUrl: 'https://arguo-api.arguolucid.workers.dev',
   supabaseUrl: 'https://tydpspiuqvpcfgxjqiwt.supabase.co',
-  supabaseAnonKey: '',
+  supabaseAnonKey: 'sb_publishable_9IxCr3rPE5QDBgkVxGS-Hg_bmMttwFD',
 };
