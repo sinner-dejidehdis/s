@@ -1,21 +1,18 @@
-// Privacy policy and terms of service. DRAFT: the bracketed fields must be
-// filled in, and the text should be reviewed by a lawyer before launch.
+// Privacy policy and terms of service for the test prototype. Before a real
+// launch, add the operator, a contact address and governing law, and have
+// the text reviewed by a lawyer.
 (function (root) {
   const S = root.Sigao = root.Sigao || {};
 
   const UPDATED = '28 October 2026';
-  const OPERATOR = '[Operator legal name]';
-  const CONTACT = '[privacy@your-domain]';
-  const LAW = '[country or state]';
-  const REGION = '[Supabase project region, e.g. EU (Frankfurt)]';
 
-  const draft = `<p class="legal-draft">Draft. Fields in [brackets] still need to be filled in, and this text has not yet been reviewed by a lawyer.</p>`;
+  const draft = `<p class="legal-draft">Arguo is a test prototype. Please do not upload confidential or unpublished work you cannot afford to lose.</p>`;
 
   const privacy = `<article class="legal wrap">
     <h1>Privacy Policy</h1>
     <p class="legal-date">Last updated ${UPDATED}</p>
     ${draft}
-    <p>Arguo is an academic writing feedback tool operated by ${OPERATOR} (“we”, “us”). This policy explains what we collect, why, who processes it, and your rights. We wrote it to be short and plain. If anything is unclear, write to ${CONTACT}.</p>
+    <p>Arguo is an academic writing feedback tool run by the Arguo team (“we”, “us”). This policy explains what we collect, why, who processes it, and your rights. We wrote it to be short and plain.</p>
 
     <h2>The short version</h2>
     <ul>
@@ -49,7 +46,7 @@
       <thead><tr><th>Provider</th><th>What for</th><th>What it receives</th></tr></thead>
       <tbody>
         <tr><td>Cloudflare</td><td>Hosting the website and our AI relay server</td><td>Technical data; text sent for AI feedback passes through</td></tr>
-        <tr><td>Supabase</td><td>Accounts and saved projects, stored in ${REGION}</td><td>Account data and saved projects</td></tr>
+        <tr><td>Supabase</td><td>Accounts and saved projects</td><td>Account data and saved projects</td></tr>
         <tr><td>Groq</td><td>Generating AI feedback</td><td>The text you ask about. Under Groq’s terms it is not used for training, is not retained by default, and logs may be kept up to 30 days for reliability and abuse prevention</td></tr>
         <tr><td>Crossref</td><td>Looking up references</td><td>The reference text you check</td></tr>
         <tr><td>Google Fonts, jsDelivr</td><td>Loading fonts and code libraries</td><td>Your IP address and browser details</td></tr>
@@ -66,7 +63,7 @@
     </ul>
 
     <h2>Your rights</h2>
-    <p>Depending on where you live (for example under the GDPR, UK GDPR or California law), you can ask to access, correct, export or delete your data, object to or restrict processing, and withdraw consent. You can delete any saved project yourself from your account page. For anything else, including deleting your account, write to ${CONTACT}. We reply within 30 days. You may also complain to your local data protection authority.</p>
+    <p>Depending on where you live (for example under the GDPR, UK GDPR or California law), you can ask to access, correct, export or delete your data, object to or restrict processing, and withdraw consent. You can delete any saved project yourself from your account page. For anything else, including deleting your account, contact us through the site. You may also complain to your local data protection authority.</p>
 
     <h2>Security</h2>
     <p>Data is encrypted in transit. Passwords are hashed by our authentication provider and never visible to us. Database rules ensure each user can read only their own projects. No system is perfectly secure; if a breach affects you, we will tell you as the law requires.</p>
@@ -76,22 +73,19 @@
 
     <h2>Changes</h2>
     <p>If we change this policy in a meaningful way, we will update the date above and tell account holders by email or in the app.</p>
-
-    <h2>Contact</h2>
-    <p>${OPERATOR} · ${CONTACT}</p>
   </article>`;
 
   const terms = `<article class="legal wrap">
     <h1>Terms of Service</h1>
     <p class="legal-date">Last updated ${UPDATED}</p>
     ${draft}
-    <p>These terms are an agreement between you and ${OPERATOR} (“we”, “us”) for your use of Arguo. By using Arguo or creating an account, you agree to them. Please also read our <a href="#privacy">Privacy Policy</a>.</p>
+    <p>These terms are an agreement between you and the Arguo team (“we”, “us”) for your use of Arguo. By using Arguo or creating an account, you agree to them. Please also read our <a href="#privacy">Privacy Policy</a>.</p>
 
     <h2>1. What Arguo is</h2>
     <p>Arguo gives feedback on academic writing: it points out problems, explains how to fix them and shows examples from other topics. It does not write, rewrite or complete your manuscript. Arguo is currently a prototype and features may change or stop.</p>
 
     <h2>2. Your account</h2>
-    <p>You must be at least 16 and give a valid email address. Keep your password secure; you are responsible for activity under your account. Tell us at ${CONTACT} if you think your account has been misused.</p>
+    <p>You must be at least 16 and give a valid email address. Keep your password secure; you are responsible for activity under your account. Tell us if you think your account has been misused.</p>
 
     <h2>3. Your content</h2>
     <p>You keep all rights to what you enter in Arguo. You give us only the permission needed to store, process and display it to provide the service, including sending it to the providers listed in the Privacy Policy. We do not claim ownership, publish your content or use it to train AI models. Do not enter content you have no right to use, or personal data about research participants unless you are permitted to share it with service providers like ours.</p>
@@ -116,13 +110,7 @@
     <p>To the extent the law allows, we are not liable for indirect or consequential losses, lost data, rejected manuscripts or academic outcomes, and our total liability is limited to the amount you paid us in the 12 months before the claim (or 50 US dollars if you paid nothing). Nothing in these terms limits liability that cannot be limited by law, or your rights as a consumer where you live.</p>
 
     <h2>9. Ending your use</h2>
-    <p>You can stop using Arguo at any time and ask us to delete your account. We may close accounts that break these terms, with notice where reasonable. Sections 3, 4, 8 and 10 continue after your use ends.</p>
-
-    <h2>10. Law and disputes</h2>
-    <p>These terms are governed by the laws of ${LAW}, without affecting mandatory consumer protections where you live. Before any formal dispute, please write to ${CONTACT} so we can try to resolve it.</p>
-
-    <h2>Contact</h2>
-    <p>${OPERATOR} · ${CONTACT}</p>
+    <p>You can stop using Arguo at any time and ask us to delete your account. We may close accounts that break these terms, with notice where reasonable. Sections 3, 4 and 8 continue after your use ends.</p>
   </article>`;
 
   S.legal = { privacy: () => privacy, terms: () => terms };
