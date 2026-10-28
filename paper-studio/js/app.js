@@ -188,54 +188,104 @@
   }
 
   // ---------- views ----------
+  // Lucide-style 24px stroke icons.
+  const ICON_PATHS = {
+    overview: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+    discover: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    matrix: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/>',
+    ideas: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V17h5.2v-1.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>',
+    design: '<path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7.5 15h9"/>',
+    outline: '<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 7v10M8 5h3a5 5 0 0 1 5 5v0"/>',
+    cite: '<path d="M7 7h4v4c0 3-1.5 5-4 6M15 7h4v4c0 3-1.5 5-4 6"/>',
+    check: '<path d="m3 12 4 4 8-8M13 16l2 2 6-6"/>',
+    review: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/><path d="M9 11h6M9 14h4"/>',
+    submit: '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
+  };
+  const icon = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[k] || ''}</svg>`;
+  const GROUPS_NAV = [['Plan', ['overview', 'discover', 'matrix', 'ideas', 'design']], ['Write', ['outline', 'cite', 'check']], ['Revise & submit', ['review', 'submit']]];
+
   function home() {
-    const rows = [
-      ['Discover research', 'Search 250 million scholarly works for the newest and most cited research on your topic, with links to every paper and an AI briefing that cites only those papers.', 'Already have a topic and need the state of the art'],
-      ['Next steps & ideas', 'A plan worked out from where your project is, and AI-suggested research directions built only from the papers you found.', 'Not sure what to do next or what would be new'],
-      ['Study design', 'Describe your planned study; Arguo checks controls, randomisation, sample size, confounders, ethics and preregistration, and the AI compares it with methods of similar studies.', 'How should I design my experiment?'],
-      ['Argument thread', 'Link research question, gap, aim, method, result and conclusion into one line, and see where it breaks.', 'Sections that don’t line up · can’t get started'],
-      ['Literature matrix', 'One row per paper. Arguo finds recurring limitations, a dominant design and missing samples, so the gap becomes visible.', 'Read a lot, but the review has no argument'],
-      ['Citation check', 'Every reference is checked against Crossref for authors, year and title. References that cannot be traced are flagged.', 'Wrong details · AI-invented references'],
-      ['Consistency check', 'Compares the discussion with the results sentence by sentence: unsupported claims, causal overreach, missing limitations.', 'A discussion that says more than the data'],
-      ['Reviewer comments', 'Turns supervisor and reviewer comments into tasks, flags must-fix and vague comments, and tracks each one.', 'A major revision you can’t break into steps'],
-      ['Submission checklist', 'Journal fit, ethics, data, funding and author statements, checked item by item before you submit.', 'Not sure what you’ve missed'],
+    const tiles = [
+      ['discover', 'Discover research', 'Search 250M+ scholarly works for the newest and most-cited research on your topic. An AI briefing summarises them and cites only those papers.', 'What’s the state of the art?', true],
+      ['matrix', 'Literature matrix', 'Paste a link and the paper’s details and a first reading appear. Find shared limitations and the gap nobody has filled.', 'A review with no argument', true],
+      ['ideas', 'Next steps & ideas', 'A plan from where your project is, plus research directions grounded in real papers.', 'What should I do next?'],
+      ['design', 'Study design', 'Controls, randomisation, sample size, confounders, ethics: checked before you collect data.', 'Is my design sound?'],
+      ['outline', 'Argument thread', 'Question, gap, aim, method, result, conclusion: one line, with every break flagged.', 'Sections that don’t line up'],
+      ['check', 'Consistency check', 'Each manuscript section against its node, with examples from published papers.', 'Discussion outruns results'],
+      ['cite', 'Citation check', 'Every reference verified against Crossref and formatted for your target journal.', 'Wrong details, invented refs'],
+      ['review', 'Reviewer comments', 'Turn a major revision into tasks; vague comments flagged.', 'Can’t break down revisions'],
+      ['submit', 'Submission checklist', 'Adapts to your target journal and study design: reporting guideline, registration, fees and statements. Anything Arguo can verify from your project is ticked automatically.', 'What did I miss?', 'full'],
     ];
-    return `<section class="hero wrap">
-        <p class="eyebrow">Academic writing workspace · prototype</p>
-        <h1>Think it through.<br>Write it yourself.</h1>
-        <p class="lede">From reading the literature to submission, Arguo points out what is wrong, explains how to fix it and shows examples from other topics. Every word of your paper stays yours.</p>
-        <div class="hero-actions">
-          <button class="btn primary" data-action="open-sample">Open the example project</button>
-          <button class="btn" data-action="new-blank">Start a blank project</button>
+    const preview = `<div class="preview" aria-hidden="true">
+        <div class="pv-bar"><i></i><i></i><i></i><span>arguo · Consistency check</span></div>
+        <div class="pv-body">
+          <div class="pv-side">${['overview', 'discover', 'matrix', 'outline', 'check', 'cite'].map((k) => `<span class="${k === 'check' ? 'on' : ''}">${icon(k)}${MODULES.find((m) => m.id === k).name}</span>`).join('')}</div>
+          <div class="pv-main">
+            <h4>Conclusion</h4>
+            <p class="pv-label">Your discussion</p>
+            <div class="pv-field">We found that longer bedtime social media use was associated with poorer sleep quality. <mark>Our results also show that social media use damages students’ academic performance.</mark> <mark>This study proves</mark> that limiting phone use will help.</div>
+            <p class="pv-label">Results</p>
+            <div class="pv-field">Each additional hour of bedtime use was associated with a 1.2-point higher PSQI score (95% CI 0.8–1.6).</div>
+          </div>
+          <div class="pv-notes">
+            <div class="pv-note"><span class="tag" style="color:var(--pen)">Fix</span><b>A claim with no supporting result</b>Academic performance was never measured. Remove it, or turn it into a question for future work.</div>
+            <div class="pv-note"><span class="tag" style="color:var(--pen)">Fix</span><b>Correlation written as cause</b>“Damages” claims cause from survey data. Use “is associated with”.</div>
+            <div class="pv-note"><span class="tag" style="color:var(--accent)">Published example</span><b>How Levenson et al. (2016) phrase it</b>They report an association and name the cross-sectional limit.</div>
+          </div>
         </div>
-        <p class="fine">Your project is saved only in this browser.</p>
+      </div>`;
+    return `<div class="home">
+      <section class="hero wrap">
+        <a class="hero-badge" href="#discover"><b>NEW</b><span>Discover research with AI briefings grounded in real papers →</span></a>
+        <h1>Research writing that <span class="g">holds together.</span></h1>
+        <p class="lede">Arguo checks your paper from literature to submission: it finds the gaps, flags what doesn’t line up, verifies every reference and shows how published papers do it. Every sentence stays yours.</p>
+        <div class="hero-actions">
+          <button class="btn grad" data-action="open-sample">Try the example project</button>
+          <button class="btn" data-action="new-blank">Start your paper</button>
+        </div>
+        <div class="trust"><span>250M+ papers via OpenAlex</span><span>References verified with Crossref</span><span>10,000+ journal styles</span><span>Never writes your text</span></div>
+        ${preview}
       </section>
-      <section class="wrap modules-list">
-        <h2>Nine modules, one line of argument</h2>
-        <ol class="flow">${rows.map(([n, d, p]) => `<li><div><h3>${n}</h3><p>${d}</p></div><span class="pain">For: ${p}</span></li>`).join('')}</ol>
+
+      <section class="section wrap">
+        <div class="section-head"><span class="kicker">One workspace</span><h2>Every step of the paper, connected.</h2>
+          <p>Papers you find flow into your matrix, citations you write are matched to it, and your reference list formats itself for the journal you choose.</p></div>
+        <div class="bento">${tiles.map(([k, n, d, p, wide]) => `<a class="tile${wide === 'full' ? ' full' : wide ? ' wide' : ''}" href="#${k}"><span class="tile-ico">${icon(k)}</span><h3>${n}</h3><p>${d}</p><span class="pain">${p}</span></a>`).join('')}</div>
       </section>
-      <section class="wrap redline">
-        <h2>Feedback, never ghostwriting</h2>
+
+      <section class="section wrap">
+        <div class="section-head"><span class="kicker">How it works</span><h2>From topic to submission in three moves.</h2></div>
+        <div class="steps3">
+          <div class="step3"><h3>Map the field</h3><p>Search your topic, read the briefing, and pull the key papers into your literature matrix with one click.</p></div>
+          <div class="step3"><h3>Build the argument</h3><p>Write your question, gap and design in the argument thread. Arguo flags every break and suggests directions.</p></div>
+          <div class="step3"><h3>Check and submit</h3><p>Check each section against your thread, verify and format references, and tick off a checklist built for your journal.</p></div>
+        </div>
+      </section>
+
+      <section class="section wrap">
+        <div class="section-head"><span class="kicker">Our promise</span><h2>Feedback, never ghostwriting.</h2>
+          <p>Many journals ask authors to disclose AI-generated text. Arguo doesn’t generate any of your manuscript.</p></div>
         <div class="redline-grid">
           <div><h3>Arguo does</h3><ul>
             <li>Point out where the problem is and why it matters</li>
             <li>Explain how to fix it, step by step</li>
-            <li>Show the pattern with an example from another topic</li>
+            <li>Show how published papers handle the same thing</li>
             <li>Ask questions that help you think it through</li>
-            <li>Verify references and format the bibliography</li></ul></div>
+            <li>Verify references and format them for your journal</li></ul></div>
           <div class="no"><h3>Arguo does not</h3><ul>
             <li>Rewrite or continue your paragraphs</li>
             <li>Generate paragraphs, sections or papers</li>
-            <li>One-click polishing or “humanising” AI text</li>
-            <li>Invent references: every paper it shows is a real, linked record</li>
-            <li>Write your response letter for you</li></ul></div>
+            <li>“Humanise” or polish AI text</li>
+            <li>Invent references: every paper it shows is real and linked</li>
+            <li>Write your response letter</li></ul></div>
         </div>
-        <p class="fine">Many journals ask authors to disclose AI-generated text. Arguo does not generate any of your manuscript, but check your journal’s policy on disclosing AI-assisted feedback.</p>
       </section>
-      <section class="wrap roadmap">
-        <h2>Coming later</h2>
-        <p>AI-powered feedback, a writing history that shows the work is yours, journal matching, language issue flags, progress tracking and peer review circles, guidance for narrating results, and Word, LaTeX/Overleaf and Zotero integration.</p>
-      </section>`;
+
+      <section class="wrap">
+        <div class="cta-band"><h2>Start with the example, then bring your own paper.</h2><p>Free while in testing. Your project stays in your browser unless you sign in.</p>
+          <button class="btn" data-action="open-sample">Open the example project</button></div>
+      </section>
+    </div>`;
   }
 
   function overview() {
@@ -847,10 +897,10 @@
     const m = MODULES.find((x) => x.id === (v === 'paper' ? 'matrix' : v));
     const view = VIEWS[v]();
     app.innerHTML = `<div class="workspace wrap">
-      <nav class="side" aria-label="Modules">${MODULES.map((x) => `<a href="#${x.id}"${x.id === (v === 'paper' ? 'matrix' : v) ? ' aria-current="page"' : ''}>
-        <span>${x.name}</span>${st[x.id] && st[x.id].issues ? `<b>${st[x.id].issues}</b>` : ''}</a>`).join('')}</nav>
+      <nav class="side" aria-label="Modules">${GROUPS_NAV.map(([g, ids]) => `<p class="side-label">${g}</p>` + ids.map((id) => MODULES.find((x) => x.id === id)).map((x) => `<a href="#${x.id}"${x.id === (v === 'paper' ? 'matrix' : v) ? ' aria-current="page"' : ''}>
+        ${icon(x.id)}<span>${x.name}</span>${st[x.id] && st[x.id].issues ? `<b>${st[x.id].issues}</b>` : ''}</a>`).join('')).join('')}</nav>
       <section class="module">
-        <header class="module-head"><h1>${m.name}</h1><p>${m.pain}</p></header>
+        <header class="module-head"><h1><span class="tile-ico">${icon(m.id)}</span>${m.name}</h1><p>${m.pain}</p></header>
         <div class="module-body"><div class="editor">${view.main}</div><aside class="notes" id="notes" aria-label="Notes">${view.notes}</aside></div>
       </section></div>`;
   }
