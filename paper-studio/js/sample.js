@@ -64,6 +64,9 @@
         tasks: [],
       },
       submit: { checked: { scope: true, type: true, ethics: true } },
+      design: { type: 'cross', question: '', variables: 'Exposure: minutes of social media use in the hour before bed (passive scrolling vs active interaction). Outcome: PSQI score. Covariates: gender, year of study, academic stress.',
+        sample: '612 undergraduates at three universities, recruited by email.', procedure: 'Participants complete an online questionnaire once: demographics, bedtime social media use, PSQI, academic stress scale.',
+        analysis: 'Multiple regression of PSQI on bedtime use, adjusting for covariates; interaction with use type.' },
       discover: {
         query: 'social media use and sleep quality', years: 0, sort: 'cited', oa: false, total: 0, sample: true,
         results: [REC.hale, REC.woods, REC.levenson].map((r, i) => ({
@@ -83,7 +86,7 @@
       refs: { input: '', style: 'apa', results: [] },
       check: { results: '', discussion: '' },
       review: { input: '', tasks: [] },
-      submit: { checked: {} }, discover: blankDiscover() };
+      submit: { checked: {} }, discover: blankDiscover(), design: { type: '', question: '', variables: '', sample: '', procedure: '', analysis: '' } };
   }
 
   function withTasks(p) {

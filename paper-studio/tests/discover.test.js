@@ -35,3 +35,25 @@ test('search falls back to the proxy when the browser is rate limited', async ()
   assert.strictEqual(r.results.length, 1);
   assert.ok(calls[1].startsWith('https://api.test/api/search?url=https%3A%2F%2Fapi.openalex.org'));
 });
+
+test('next steps follow the project state', () => {
+  for (const f of ['outline', 'consistency', 'review', 'cite', 'checklist', 'sample', 'ideas']) require(path.join(__dirname, '..', 'js', f + '.js'));
+  const S = globalThis.Sigao;
+  const steps = S.ideas.nextSteps(S.sample.create());
+  assert.strictEqual(steps[0].done, false, 'example results do not count as your own search');
+  assert.ok(steps.find((x) => x.href === 'outline' && x.title.startsWith('Fill in')).done);
+  assert.strictEqual(S.ideas.ideasInput(S.sample.create()).limitations.length, 4);
+});
+
+test('design rules flag the sample study\'s gaps and accept a complete experiment', () => {
+  require(path.join(__dirname, '..', 'js', 'design.js'));
+  const S = globalThis.Sigao;
+  const titles = S.design.check(S.sample.create().design).map((n) => n.title);
+  assert.ok(titles.includes('The sample size is not justified'));
+  assert.ok(titles.includes('Ethics approval and consent are not mentioned'));
+  assert.ok(!titles.includes('Confounders are not addressed'));
+  const good = S.design.check({ type: 'experiment', question: 'Does a 30-minute screen curfew improve sleep quality?',
+    variables: 'Condition: curfew vs usual use (control). Outcome: PSQI, actigraphy.', sample: '120 students; power analysis (d = 0.5, alpha .05, power .80).',
+    procedure: 'Randomised by computer in blocks; assessors blinded; validated PSQI; ethics approval and consent; preregistered on OSF.', analysis: 'ANCOVA; missing data by multiple imputation.' });
+  assert.ok(!good.some((n) => n.level === 'issue'));
+});

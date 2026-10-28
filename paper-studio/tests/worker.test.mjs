@@ -56,3 +56,18 @@ test('search relay only forwards OpenAlex work searches', async () => {
   const bad = await worker.fetch(new Request('https://x.dev/api/search?url=' + encodeURIComponent('https://evil.example/')), env);
   assert.strictEqual(bad.status, 400);
 });
+
+test('ideas notes may only cite papers that were sent', async () => {
+  const res = await call({ task: 'ideas', input: { topic: 't', papers: [{ title: 'A' }], limitations: ['X: self-report'] } }, groq([
+    { level: 'gap', title: 'Use objective sleep measures?', refs: [1, 5] },
+  ]));
+  const data = await res.json();
+  assert.deepStrictEqual(data.notes[0].refs, [1]);
+});
+
+test('methods notes need refs; design notes do not', async () => {
+  const m = await (await call({ task: 'methods', input: { procedure: 'p', papers: [{ title: 'A' }] } }, groq([{ title: 'Actigraphy', refs: [1] }, { title: 'No ref' }]))).json();
+  assert.deepStrictEqual(m.notes.map((n) => n.title), ['Actigraphy']);
+  const d = await (await call({ task: 'design', input: { type: 'cross', procedure: 'p' } }, groq([{ level: 'issue', title: 'Confounding' }]))).json();
+  assert.strictEqual(d.notes.length, 1);
+});

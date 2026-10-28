@@ -7,6 +7,7 @@
 
   let state = S.store.load() || S.sample.create();
   if (!state.discover) state.discover = S.sample.blankDiscover();
+  if (!state.design) state.design = S.design.blank();
   let searching = false;
   let searchErr = '';
   let pending = '';
@@ -21,6 +22,8 @@
     { id: 'overview', name: 'Overview', pain: 'Progress and next step' },
     { id: 'discover', name: 'Discover research', pain: 'What’s new in my field? Where do I start?' },
     { id: 'matrix', name: 'Literature matrix', pain: 'A review without an argument · no clear gap' },
+    { id: 'ideas', name: 'Next steps & ideas', pain: 'What should I do next? What would be new?' },
+    { id: 'design', name: 'Study design', pain: 'How did similar studies do it? Is my design sound?' },
     { id: 'outline', name: 'Argument thread', pain: 'Sections that don’t line up · can’t get started' },
     { id: 'cite', name: 'Citation check', pain: 'Wrong details · AI-invented references' },
     { id: 'check', name: 'Consistency check', pain: 'Discussion that outruns the results' },
@@ -112,6 +115,8 @@
     const checked = S.checklist.ALL.filter((i) => state.submit.checked[i.id]).length;
     const issues = (ns) => ns.filter((n) => n.level === 'issue').length;
     return {
+      design: { value: state.design.type ? S.design.TYPES[state.design.type].split(' (')[0] : 'Not planned yet', issues: S.design.check(state.design).filter((n) => n.level === 'issue').length && state.design.type ? S.design.check(state.design).filter((n) => n.level === 'issue').length : 0 },
+      ideas: { value: `${S.ideas.nextSteps(state).filter((x) => x.done).length}/${S.ideas.nextSteps(state).length} steps done`, issues: 0 },
       discover: { value: state.discover.results.length ? `${state.discover.results.length} papers found` : 'No search yet', issues: 0 },
       outline: { value: `${S.outline.filled(o)}/6 nodes`, issues: issues(oNotes), done: S.outline.filled(o) === 6 && !issues(oNotes) },
       matrix: { value: `${state.matrix.filter((r) => r.source.trim()).length} sources`, issues: 0, gaps: mNotes.filter((n) => n.level === 'gap').length },
@@ -128,12 +133,12 @@
     const a = ai[v] || {};
     const body = a.loading ? '<p class="ai-status">Reading your text…</p>'
       : a.error ? `<p class="ai-status error">${esc(a.error)}</p>`
-        : a.notes ? (a.notes.length ? a.notes.map((n) => (v === 'discover' ? noteHtml(n).replace('<b>How to fix</b>', '<b>Read first</b>') : noteHtml(n)) + (n.refs && n.refs.length ? `<p class="note-refs">Based on ${n.refs.map((r) => `<a href="#paper-${r}" data-action="jump" data-target="paper-${r}">[${r}]</a>`).join(' ')}</p>` : '')).join('') : '<p class="ai-status">No further problems found.</p>')
+        : a.notes ? (a.notes.length ? a.notes.map((n) => (v === 'discover' ? noteHtml(n).replace('<b>How to fix</b>', '<b>Read first</b>') : v === 'ideas' ? noteHtml(n).replace('<b>How to fix</b>', '<b>How to test it</b>').replace('>Possible gap<', '>Direction<') : v === 'methods' ? noteHtml(n).replace('<b>How to fix</b>', '<b>For your study</b>').replace('>Suggestion<', '>Approach<') : noteHtml(n)) + (n.refs && n.refs.length ? `<p class="note-refs">Based on ${n.refs.map((r) => paperRef(v, r)).join(' ')}</p>` : '')).join('') : '<p class="ai-status">No further problems found.</p>')
           + (a.blocked ? `<p class="ai-status">${a.blocked} AI ${a.blocked === 1 ? 'note was' : 'notes were'} hidden because ${a.blocked === 1 ? 'it' : 'they'} repeated your wording.</p>` : '') : '';
-    const label = v === 'discover' ? 'AI research briefing' : 'AI feedback';
+    const label = { discover: 'AI research briefing', ideas: 'Possible new directions', design: 'AI design review', methods: 'Methods in similar studies' }[v] || 'AI feedback';
     if (v === 'discover' && !state.discover.results.length) return '';
     return `<section class="ai-box">
-        <div class="ai-head"><h4>${label}</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : v === 'discover' ? 'Summarise these results' : 'Get AI feedback'}</button></div>
+        <div class="ai-head"><h4>${label}</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : { discover: 'Summarise these results', ideas: 'Suggest directions', design: 'Review my design', methods: 'Compare with similar studies' }[v] || 'Get AI feedback'}</button></div>
         ${v === 'discover' ? '<p class="ai-rule">The AI summarises only the papers listed here and links each point to them. Always read the papers themselves.</p>' : ''}
         <p class="ai-rule">This module’s text is sent to our AI provider, Groq, which does not train on it (<a href="#privacy">privacy</a>). The AI follows the same rule: diagnose, never write.</p>
         ${body}
@@ -146,6 +151,9 @@
       check: { question: state.outline.question, method: state.outline.method, results: state.check.results, discussion: state.check.discussion },
       matrix: { rows: state.matrix },
       review: { comments: state.review.input },
+      ideas: S.ideas.ideasInput(state),
+      design: Object.assign({}, state.design, { question: state.design.question || state.outline.question }),
+      methods: { type: S.design.TYPES[state.design.type] || '', procedure: state.design.procedure, papers: state.discover.results.slice(0, 10).map((r) => ({ title: r.title, year: r.year, abstract: String(r.abstract || '').slice(0, 600) })) },
       discover: { query: state.discover.query, papers: state.discover.results.slice(0, 12).map((r) => ({ title: r.title, year: r.year, venue: r.venue, cited: r.cited, abstract: r.abstract })) },
     }[v];
     ai[v] = { loading: true };
@@ -165,6 +173,8 @@
   function home() {
     const rows = [
       ['Discover research', 'Search 250 million scholarly works for the newest and most cited research on your topic, with links to every paper and an AI briefing that cites only those papers.', 'Already have a topic and need the state of the art'],
+      ['Next steps & ideas', 'A plan worked out from where your project is, and AI-suggested research directions built only from the papers you found.', 'Not sure what to do next or what would be new'],
+      ['Study design', 'Describe your planned study; Arguo checks controls, randomisation, sample size, confounders, ethics and preregistration, and the AI compares it with methods of similar studies.', 'How should I design my experiment?'],
       ['Argument thread', 'Link research question, gap, aim, method, result and conclusion into one line, and see where it breaks.', 'Sections that don’t line up · can’t get started'],
       ['Literature matrix', 'One row per paper. Arguo finds recurring limitations, a dominant design and missing samples, so the gap becomes visible.', 'Read a lot, but the review has no argument'],
       ['Citation check', 'Every reference is checked against Crossref for authors, year and title. References that cannot be traced are flagged.', 'Wrong details · AI-invented references'],
@@ -183,7 +193,7 @@
         <p class="fine">Your project is saved only in this browser.</p>
       </section>
       <section class="wrap modules-list">
-        <h2>Seven modules, one line of argument</h2>
+        <h2>Nine modules, one line of argument</h2>
         <ol class="flow">${rows.map(([n, d, p]) => `<li><div><h3>${n}</h3><p>${d}</p></div><span class="pain">For: ${p}</span></li>`).join('')}</ol>
       </section>
       <section class="wrap redline">
@@ -290,6 +300,39 @@
         <ol class="paper-list">${d.results.map(resultCard).join('')}</ol>`
         : '<p class="empty">Type your topic and choose Search.</p>'}`;
     return { main, notes: notesPanel(discoverNotes(), aiBlock('discover')) };
+  }
+
+  function paperRef(v, n) {
+    if (v === 'discover') return `<a href="#paper-${n}" data-action="jump" data-target="paper-${n}">[${n}]</a>`;
+    const r = state.discover.results[n - 1];
+    return r ? `<a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.title)}">[${n}] ${esc(S.discover.shortAuthors(r.authors))}, ${r.year || 'n.d.'}</a>` : `[${n}]`;
+  }
+
+  function design() {
+    const d = state.design;
+    const main = `<p class="intro">Plan your study before you collect data. Describe it in a few lines per box; Arguo checks what reviewers always ask about, and the AI compares your plan with how similar studies were done.</p>
+      <label for="g-type">Study design</label>
+      <select id="g-type" data-bind="design.type" data-rerender="notes"><option value="">Choose a design</option>${Object.entries(S.design.TYPES).map(([k, v]) => `<option value="${k}"${d.type === k ? ' selected' : ''}>${v}</option>`).join('')}</select>
+      ${S.design.FIELDS.map((f) => `<label for="g-${f.key}">${f.label}</label><p class="hint">${f.hint}</p>
+        <textarea id="g-${f.key}" rows="${f.key === 'procedure' ? 6 : 3}" data-bind="design.${f.key}" placeholder="${f.key === 'question' ? esc(state.outline.question) : ''}">${esc(d[f.key])}</textarea>`).join('')}`;
+    const methodsBlock = state.discover.results.length ? aiBlock('methods')
+      : '<section class="ai-box"><h4>Methods in similar studies</h4><p class="ai-rule">Search for similar studies in <a href="#discover">Discover research</a> first. The AI then compares their methods with your plan, citing each paper.</p></section>';
+    return { main, notes: notesPanel(S.design.check(Object.assign({}, d, { question: d.question || state.outline.question })), aiBlock('design') + methodsBlock) };
+  }
+
+  function ideas() {
+    const steps = S.ideas.nextSteps(state);
+    const next = steps.find((x) => !x.done);
+    const main = `<p class="intro">Your plan, worked out from where your project is now. Tick off steps by doing them in each module.</p>
+      ${next ? `<a class="next-card" href="#${next.href}"><span class="eyebrow">Do this next</span><b>${esc(next.title)}</b><span>${esc(next.why)}</span></a>` : '<p class="acct-msg">Every step is done. Time to submit.</p>'}
+      <ol class="steps">${steps.map((x) => `<li class="${x.done ? 'done' : ''}"><span class="step-mark" aria-label="${x.done ? 'Done' : 'To do'}">${x.done ? '✓' : ''}</span>
+        <div><a href="#${x.href}">${esc(x.title)}</a><small>${esc(x.why)}</small></div></li>`).join('')}</ol>
+      <h2 class="sub">Where could your research go?</h2>
+      <p class="intro">Ask for possible new directions built from the papers you found in Discover research and the limitations in your literature matrix. They are prompts to think with: choosing and framing your question is your job.</p>
+      ${state.discover.results.length ? '' : '<p class="empty">Run a search in <a href="#discover">Discover research</a> first, so the ideas rest on real papers.</p>'}`;
+    const notes = [{ level: 'tip', title: 'How to judge a new direction', why: 'An idea is only worth pursuing if it is new, answerable and feasible for you.', how: 'For each idea, check: has someone already done it (search it), can you get the data, and can you finish it in the time you have?' }];
+    const block = state.discover.results.length ? aiBlock('ideas') : '';
+    return { main, notes: notesPanel(notes, block) };
   }
 
   function discoverNotes() {
@@ -461,7 +504,7 @@
     return { main, notes: notesPanel(notes) };
   }
 
-  const VIEWS = { overview, discover, outline, matrix, cite, check, review, submit };
+  const VIEWS = { overview, discover, ideas, design, outline, matrix, cite, check, review, submit };
 
   // ---------- render ----------
   function account() {

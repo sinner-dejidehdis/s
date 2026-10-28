@@ -2,7 +2,7 @@
 // and enforces the red line on the way back. The Groq key lives only in the
 // Worker's secret GROQ_API_KEY; the page never sees it.
 //
-// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey", input: {...} }
+// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey" | "ideas" | "design" | "methods", input: {...} }
 // GET  /api/search?url=<OpenAlex works URL>  (adds OPENALEX_API_KEY when set)
 // -> { notes: [{ level, field?, title, why, how, example?, ask? }], blocked: n }
 
@@ -45,6 +45,39 @@ Never mention a paper, finding or statistic that is not in the list. If abstract
 [topic] ${str(i.query)}
 
 ${(Array.isArray(i.papers) ? i.papers : []).slice(0, 12).map((p, n) => `[${n + 1}] ${str(p && p.title).slice(0, 300)} (${str(p && p.year).slice(0, 4)}; ${str(p && p.venue).slice(0, 120)}; cited ${Number(p && p.cited) || 0})\n${str(p && p.abstract).slice(0, 700) || '(no abstract)'}`).join('\n\n')}`,
+  ideas: (i) => `The writer wants to know where their research could go next and what would be genuinely new.
+Using ONLY the papers and limitations listed below, suggest 3 to 5 possible research directions:
+- "title": the direction as a short question (under 14 words). Do not phrase it as a finished research question for the writer's paper.
+- "why": what in these papers points to it (an open problem, a shared limitation, a conflict, an untested population, method or setting).
+- "how": what kind of study would test it (design, data, comparison) and one first step the writer could take.
+- "ask": one question that helps the writer judge whether this suits them (feasibility, data access, skills).
+- "refs": the numbers of the papers it builds on; may be empty only if it rests on the listed limitations.
+Use level "gap". Never invent papers, findings or statistics. Do not write any part of the writer's paper.
+
+[topic] ${str(i.topic)}
+[their current question] ${str(i.question)}
+[their current gap] ${str(i.gap)}
+[limitations noted in their literature matrix]
+${(Array.isArray(i.limitations) ? i.limitations : []).slice(0, 10).map((l) => '- ' + str(l).slice(0, 300)).join('\n') || '(none)'}
+
+${(Array.isArray(i.papers) ? i.papers : []).slice(0, 10).map((p, n) => `[${n + 1}] ${str(p && p.title).slice(0, 300)} (${str(p && p.year).slice(0, 4)})\n${str(p && p.abstract).slice(0, 450) || '(no abstract)'}`).join('\n\n')}`,
+  design: (i) => `Critique this planned study design as a methods reviewer would, before any data are collected.
+Look for: threats to validity (confounding, selection, measurement, attrition), a missing or weak comparison, sample size, order or carry-over effects, whether the analysis answers the question, ethics and feasibility.
+Give advice and the reasoning; you may list concrete steps the researcher could add to the procedure. Do not write their methods section.
+
+[design type] ${str(i.type)}
+${['question', 'variables', 'sample', 'procedure', 'analysis'].map((k) => `[${k}]\n${str(i[k]).slice(0, 1500)}`).join('\n\n')}`,
+  methods: (i) => `The researcher is planning a study and wants to learn from the methods of similar studies.
+Using ONLY the papers below, describe 3 to 5 approaches these studies used (designs, samples, measures, procedures or analyses) and what the researcher could borrow or avoid.
+- "title": the approach in under 12 words.
+- "why": what the listed papers did, in your own words.
+- "how": how this could inform the researcher's own procedure, as concrete steps or choices.
+- "refs": the numbers of the papers it comes from. Every note must have refs.
+If abstracts do not describe methods, say so and suggest which papers to open. Never invent details. Use level "tip".
+
+[researcher's planned design] ${str(i.type)}: ${str(i.procedure).slice(0, 800)}
+
+${(Array.isArray(i.papers) ? i.papers : []).slice(0, 10).map((p, n) => `[${n + 1}] ${str(p && p.title).slice(0, 300)} (${str(p && p.year).slice(0, 4)})\n${str(p && p.abstract).slice(0, 600) || '(no abstract)'}`).join('\n\n')}`,
   review: (i) => `Help the writer plan a revision from these reviewer comments.
 For each important comment: say what the reviewer most likely wants, whether it is a must-fix, and what kind of change or evidence would answer it. For vague comments, give two or three possible readings. Do not draft the response letter or any reply text.
 
@@ -139,11 +172,13 @@ export default {
     // A survey summarises other people's papers, so only the user's own query counts as their text,
     // and every note must cite results that were actually sent.
     const survey = body.task === 'survey';
+    const ideas = body.task === 'ideas';
+    const methods = body.task === 'methods';
     const sent = survey && Array.isArray(body.input.papers) ? Math.min(body.input.papers.length, 12) : 0;
-    const userText = survey ? str(body.input.query) : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
+    const userText = survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
     const kept = notes.slice(0, 5).map(clean)
-      .map((n) => (survey ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= sent) }) : n))
-      .filter((n) => !copiesUser(n, userText) && (!survey || n.refs.length));
+      .map((n) => (survey || ideas || methods ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= (survey ? sent : Math.min((body.input.papers || []).length, 10))) }) : n))
+      .filter((n) => !copiesUser(n, userText) && (!(survey || methods) || n.refs.length));
     return json({ notes: kept, blocked: Math.min(notes.length, 5) - kept.length }, 200, headers);
   },
 };

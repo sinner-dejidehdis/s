@@ -9,6 +9,8 @@ Prototype of an academic writing workspace for researchers writing in English. P
 | Overview | Progress per module and the next step | Progress tracking |
 | Argument thread | Research question → gap → aim → method → result → conclusion; flags breaks, causal overreach and absolute wording | Sections that don't line up, can't get started |
 | Discover research | Searches OpenAlex (250M+ works) by topic, date range, sort and open access; links to DOI, free full text and Google Scholar; AI briefing that may cite only the listed papers; adds papers to the matrix and reference list | Topic chosen, need the state of the art |
+| Next steps & ideas | A plan from the project's state (next action first) and AI research directions grounded in the papers found | What to do next, what would be new |
+| Study design | Design type and plan; rules for control, randomisation, blinding, sample size, confounders, measurement, ethics, preregistration, missing data and reporting guideline; AI design review and methods of similar studies (cited) | Designing the experiment |
 | Literature matrix | One row per paper; finds recurring limitations, a dominant design and one-sided findings | A review without an argument, no clear gap |
 | Citation check | Checks DOI, year, first author and title against Crossref; formats APA 7, Vancouver or Chicago author-date | Wrong details, AI-invented references |
 | Consistency check | Discussion sentences without a supporting result, causal claims from correlational data, missing limitations | Discussion that outruns the results |
@@ -37,3 +39,5 @@ node --test paper-studio/tests/*.test.js paper-studio/tests/*.test.mjs   # from 
 - `js/cloud.js` accounts (email + password, confirmation and reset by email) and cloud projects through Supabase; the site stays local-only when Supabase is not configured
 - `supabase/schema.sql` the `projects` table with row-level security, run once in the Supabase SQL editor
 - `js/discover.js` OpenAlex search and parsing; falls back to the Worker's `/api/search` relay (which adds the optional `OPENALEX_API_KEY` secret) when a visitor's own OpenAlex budget is used up
+- `js/ideas.js` next-step plan and the input for AI research directions
+- `js/design.js` study design types, reporting guidelines and design rules
