@@ -46,3 +46,7 @@ node --test paper-studio/tests/*.test.js paper-studio/tests/*.test.mjs   # from 
 How the modules connect: papers found in Discover or added by link go into the literature matrix and the reference list; author-year citations typed in the argument thread or consistency check are matched against the matrix, and missing ones can be found and added; the citation check lists every matrix paper and formats the list for the chosen journal.
 - `supabase/analytics.sql` insert-only `events` (anonymous funnel: visit, open_sample, ai_used, search, add_paper, journal_pick, signup, feedback) and `feedback` tables, with the funnel query
 - AI limit: the Worker counts AI checks per visitor IP per day in the KV namespace bound as `LIMITS`; `DAILY_LIMIT` (default 10) sets the number. Page views: set `cfAnalyticsToken` in `js/config.js` for Cloudflare Web Analytics
+
+## Free tools (no sign-up)
+
+Standalone pages for search and sharing, each with its own title, description, FAQ and schema.org data: `citation-checker/` (is this reference real?), `reference-formatter/` (any journal's style), `gap-finder/` (recent papers and a cited AI briefing). They share `js/tools.js` and the workspace modules. `sitemap.xml` and `robots.txt` list them; update the base URL there if the domain changes.

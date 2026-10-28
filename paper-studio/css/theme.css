@@ -268,3 +268,17 @@ input[type=checkbox] { accent-color: var(--accent); }
 .fb-rate button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 0.875rem var(--body); cursor: pointer; }
 .fb-rate button.on { background: var(--grad); color: #fff; border-color: transparent; }
 .fb-thanks { color: var(--ok); font-size: 0.875rem; }
+/* free tool pages */
+.tool-hero { padding-block: 64px 24px; }
+.tool-hero h1 { max-width: 18ch; }
+.tool-body { position: relative; z-index: 1; }
+.tool-card { max-width: 860px; margin: 0 auto; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-lg); padding: 24px; display: grid; gap: 16px; }
+.tool-form { display: grid; gap: 8px; }
+.tool-form label { font-weight: 500; }
+.tool-summary { display: flex; flex-wrap: wrap; gap: 8px; }
+.faq { max-width: 760px; margin: 0 auto; display: grid; gap: 8px; width: 100%; }
+.faq details { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 14px 16px; }
+.faq summary { font-weight: 550; cursor: pointer; }
+.faq p { color: var(--muted); margin-top: 8px; }
+.tool-others { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; max-width: 760px; margin: 0 auto; width: 100%; }
+.tool-others .tile { grid-column: auto; }

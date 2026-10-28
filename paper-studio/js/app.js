@@ -242,14 +242,14 @@
       </div>`;
     return `<div class="home">
       <section class="hero wrap">
-        <a class="hero-badge" href="#discover"><b>NEW</b><span>Discover research with AI briefings grounded in real papers →</span></a>
-        <h1>Research writing that <span class="g">holds together.</span></h1>
-        <p class="lede">Arguo checks your paper from literature to submission: it finds the gaps, flags what doesn’t line up, verifies every reference and shows how published papers do it. Every sentence stays yours.</p>
+        <a class="hero-badge" href="citation-checker/"><b>FREE</b><span>Is that reference real? Check it in seconds →</span></a>
+        <h1>Arguo checks your paper. <span class="g">It never writes it.</span></h1>
+        <p class="lede">Every reference verified against Crossref, so no invented citations. Your reference list formatted for any of 10,000+ journals. Your argument, methods and discussion checked against each other. And not one sentence written for you, so there is nothing to disclose.</p>
         <div class="hero-actions">
           <button class="btn grad" data-action="open-sample">Try the example project</button>
           <button class="btn" data-action="new-blank">Start your paper</button>
         </div>
-        <div class="trust"><span>250M+ papers via OpenAlex</span><span>References verified with Crossref</span><span>10,000+ journal styles</span><span>Never writes your text</span></div>
+        <div class="trust"><span>No invented references</span><span>10,000+ journal styles</span><span>Nothing to disclose to journals</span><span>250M+ papers via OpenAlex</span></div>
         ${preview}
       </section>
 
@@ -257,6 +257,15 @@
         <div class="section-head"><span class="kicker">One workspace</span><h2>Every step of the paper, connected.</h2>
           <p>Papers you find flow into your matrix, citations you write are matched to it, and your reference list formats itself for the journal you choose.</p></div>
         <div class="bento">${tiles.map(([k, n, d, p, wide]) => `<a class="tile${wide === 'full' ? ' full' : wide ? ' wide' : ''}" href="#${k}"><span class="tile-ico">${icon(k)}</span><h3>${n}</h3><p>${d}</p><span class="pain">${p}</span></a>`).join('')}</div>
+      </section>
+
+      <section class="section wrap" id="free-tools">
+        <div class="section-head"><span class="kicker">Free tools · no sign-up</span><h2>Try one job before the whole workspace.</h2></div>
+        <div class="bento">
+          <a class="tile" href="citation-checker/"><span class="tile-ico">${icon('cite')}</span><h3>Citation Checker</h3><p>Is that reference real? Spot AI-invented citations, wrong years and misspelled authors.</p><span class="pain">Fake or wrong references</span></a>
+          <a class="tile" href="reference-formatter/"><span class="tile-ico">${icon('submit')}</span><h3>Reference Formatter</h3><p>Paste DOIs, pick your journal, copy a verified list in its official style.</p><span class="pain">Reformatting for every journal</span></a>
+          <a class="tile" href="gap-finder/"><span class="tile-ico">${icon('discover')}</span><h3>Research Gap Finder</h3><p>Latest papers on your topic and a briefing on open questions, citing only real papers.</p><span class="pain">Where is the gap?</span></a>
+        </div>
       </section>
 
       <section class="section wrap">
@@ -899,7 +908,7 @@
     const navFor = v === 'home' || v === 'account' ? '#' + v : '#overview';
     document.querySelectorAll('.top-nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === navFor));
     paintAccountLink();
-    if (v === 'home') { app.innerHTML = home(); return; }
+    if (v === 'home') { app.innerHTML = home(); if (location.hash === '#tools') setTimeout(() => { const t = document.getElementById('free-tools'); if (t) t.scrollIntoView({ behavior: 'smooth' }); }, 50); return; }
     if (v === 'account') { app.innerHTML = account(); return; }
     if (v === 'privacy' || v === 'terms') { app.innerHTML = S.legal[v](); return; }
     const st = status();
