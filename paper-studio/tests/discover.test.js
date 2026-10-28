@@ -57,3 +57,20 @@ test('design rules flag the sample study\'s gaps and accept a complete experimen
     procedure: 'Randomised by computer in blocks; assessors blinded; validated PSQI; ethics approval and consent; preregistered on OSF.', analysis: 'ANCOVA; missing data by multiple imputation.' });
   assert.ok(!good.some((n) => n.level === 'issue'));
 });
+
+test('pasted links are recognised as DOI, arXiv, OpenAlex, page or title', () => {
+  assert.deepStrictEqual(D.idFromLink('https://doi.org/10.1016/j.ypmed.2016.01.001'), { doi: '10.1016/j.ypmed.2016.01.001' });
+  assert.deepStrictEqual(D.idFromLink('https://onlinelibrary.wiley.com/doi/full/10.1111/jsr.13000'), { doi: '10.1111/jsr.13000' });
+  assert.deepStrictEqual(D.idFromLink('https://arxiv.org/abs/2401.01234v2'), { doi: '10.48550/arxiv.2401.01234' });
+  assert.deepStrictEqual(D.idFromLink('https://openalex.org/W2741809807'), { openalex: 'W2741809807' });
+  assert.deepStrictEqual(D.idFromLink('https://pubmed.ncbi.nlm.nih.gov/26791323/'), { page: 'https://pubmed.ncbi.nlm.nih.gov/26791323/' });
+  assert.deepStrictEqual(D.idFromLink('Screen time and sleep among school-aged children'), { title: 'Screen time and sleep among school-aged children' });
+});
+
+test('lookup reads a page link through the server, then OpenAlex by DOI', async () => {
+  const urls = [];
+  const f = async (u) => { urls.push(u); return u.includes('/api/resolve') ? { ok: true, json: async () => ({ doi: '10.1/abc' }) } : { ok: true, status: 200, json: async () => WORK }; };
+  const r = await D.lookup('https://pubmed.ncbi.nlm.nih.gov/1/', { fetch: f, proxy: 'https://api.test' });
+  assert.strictEqual(r.doi, '10.1/abc');
+  assert.ok(urls[1].includes('/works/doi:10.1%2Fabc'));
+});

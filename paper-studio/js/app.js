@@ -9,6 +9,10 @@
   if (!state.discover) state.discover = S.sample.blankDiscover();
   if (!state.design) state.design = S.design.blank();
   let searching = false;
+  let linkBusy = '';
+  let linkErr = '';
+  let openPaper = '';
+  const paperAi = {};
   let searchErr = '';
   let pending = '';
   let verifying = false;
@@ -352,18 +356,101 @@
 
   function matrix() {
     const cols = S.matrix.COLUMNS;
-    const main = `<p class="intro">One row per paper, in your own words. Don’t paste abstracts: summarising yourself is how you see how the papers relate.</p>
+    const main = `<p class="intro">One row per paper. Paste a link and Arguo fills in the details and a first reading of the abstract; then read the paper and make the notes your own. Click a title for a full analysis.</p>
+      <form class="search-bar" data-form="add-link">
+        <label for="m-link" class="sr">Paper link, DOI or title</label>
+        <input id="m-link" placeholder="Paste a DOI, a link to the article (journal, arXiv, PubMed…) or its title">
+        <button class="btn primary"${linkBusy ? ' disabled' : ''}>${linkBusy ? esc(linkBusy) : 'Add paper'}</button>
+      </form>
+      ${linkErr ? `<p class="acct-msg error">${esc(linkErr)}</p>` : ''}
       <div class="table-wrap"><table class="matrix">
         <thead><tr>${cols.map((c) => `<th scope="col">${c.label}</th>`).join('')}<th><span class="sr">Actions</span></th></tr></thead>
         <tbody>${state.matrix.map((r, i) => `<tr>${cols.map((c) => c.key === 'relation'
           ? `<td><label class="sr" for="m-${r.id}-relation">Relation to my study</label><select id="m-${r.id}-relation" data-bind="matrix.${i}.relation">
               <option value="">Choose</option>${S.matrix.RELATIONS.map((x) => `<option${r.relation === x ? ' selected' : ''}>${x}</option>`).join('')}</select></td>`
-          : `<td><label class="sr" for="m-${r.id}-${c.key}">${c.label}</label><textarea id="m-${r.id}-${c.key}" rows="3" placeholder="${c.placeholder}" data-bind="matrix.${i}.${c.key}">${esc(r[c.key])}</textarea></td>`).join('')}
+          : `<td>${c.key === 'source' && r.meta ? `<button class="paper-open" data-action="open-paper" data-id="${r.id}">${esc(r.meta.title)}</button>` : ''}
+              ${c.key !== 'source' && (r.aiDraft || []).includes(c.key) ? '<span class="ai-chip" title="Drafted by AI from the abstract. Check it against the paper.">AI draft</span>' : ''}
+              <label class="sr" for="m-${r.id}-${c.key}">${c.label}</label><textarea id="m-${r.id}-${c.key}" rows="3" placeholder="${c.placeholder}" data-bind="matrix.${i}.${c.key}">${esc(r[c.key])}</textarea></td>`).join('')}
           <td><button class="icon-btn" data-action="del-row" data-index="${i}" aria-label="Delete row ${i + 1}">Delete</button></td></tr>`).join('')}</tbody>
       </table></div>
-      <button class="btn" data-action="add-row">Add a paper</button>
+      <button class="btn" data-action="add-row">Add an empty row</button>
       ${state.sample ? '<p class="fine">The papers in the example are real; the summaries are for demonstration only. Check the originals before citing them.</p>' : ''}`;
     return { main, notes: notesPanel(S.matrix.analyze(state.matrix), aiBlock('matrix')) };
+  }
+
+  function paperView() {
+    const i = state.matrix.findIndex((r) => r.id === openPaper);
+    const r = state.matrix[i];
+    if (!r) return { main: '<p class="empty">This paper is no longer in your matrix. <a href="#matrix">Back to the literature matrix</a></p>', notes: '' };
+    const m = r.meta || {};
+    const a = paperAi[r.id] || {};
+    const analysis = r.analysis || [];
+    const main = `<p><a href="#matrix">← Literature matrix</a></p>
+      <h2 class="paper-h">${esc(m.title || r.source)}</h2>
+      <p class="paper-meta">${esc((m.authors || []).join(', ') || r.source)}${m.year ? ` · ${m.year}` : ''}${m.venue ? ` · <i>${esc(m.venue)}</i>` : ''}${m.cited ? ` · cited ${m.cited.toLocaleString()}` : ''}${m.type ? ` · ${esc(m.type)}` : ''}</p>
+      <div class="paper-links">
+        ${m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener">${m.doi ? 'Publisher page (DOI)' : 'Open record'}</a>` : ''}
+        ${m.oaUrl ? `<a href="${esc(m.oaUrl)}" target="_blank" rel="noopener">Free full text</a>` : ''}
+        ${m.title ? `<a href="https://scholar.google.com/scholar?q=${encodeURIComponent(m.title)}" target="_blank" rel="noopener">Google Scholar</a>` : ''}
+        ${m.doi ? `<a href="https://www.connectedpapers.com/api/redirect/doi/${encodeURIComponent(m.doi)}" target="_blank" rel="noopener">Related papers (Connected Papers)</a>` : ''}
+      </div>
+      <h3 class="sub">Abstract</h3>
+      <p class="paper-abs-full">${m.abstract ? esc(m.abstract) : 'No abstract in the index. Open the paper to read it.'}</p>
+      <h3 class="sub">Your reading notes</h3>
+      ${S.matrix.COLUMNS.filter((c) => c.key !== 'source').map((c) => c.key === 'relation'
+        ? `<label for="p-relation">${c.label}</label><select id="p-relation" data-bind="matrix.${i}.relation"><option value="">Choose</option>${S.matrix.RELATIONS.map((x) => `<option${r.relation === x ? ' selected' : ''}>${x}</option>`).join('')}</select>`
+        : `<label for="p-${c.key}">${c.label}${(r.aiDraft || []).includes(c.key) ? ' <span class="ai-chip">AI draft</span>' : ''}</label><textarea id="p-${c.key}" rows="2" data-bind="matrix.${i}.${c.key}">${esc(r[c.key])}</textarea>`).join('')}
+      <p class="fine">AI drafts come from the abstract only. Replace them with your own notes once you have read the paper.</p>`;
+    const body = a.loading ? '<p class="ai-status">Reading the paper’s record…</p>'
+      : a.error ? `<p class="ai-status error">${esc(a.error)}</p>`
+        : analysis.length ? analysis.map((n) => noteHtml(n).replace('<b>How to fix</b>', '<b>Why it matters</b>')).join('') : '';
+    const block = `<section class="ai-box">
+        <div class="ai-head"><h4>AI analysis</h4><button class="btn small-btn" data-action="analyse-paper" data-id="${r.id}"${a.loading ? ' disabled' : ''}>${analysis.length ? 'Analyse again' : 'Analyse this paper'}</button></div>
+        <p class="ai-rule">Based on the title and abstract, not the full text. Key points, methods, limitations, how it relates to your question, and what to look for when you read it.</p>
+        ${body}</section>`;
+    return { main, notes: notesPanel([{ level: 'tip', title: 'Read the full paper before you cite it', why: 'An abstract leaves out the details reviewers care about: sample, measures and limitations.', how: 'Open the free full text or the publisher page, then update your reading notes.' }], block) };
+  }
+
+  async function analysePaper(id, fill) {
+    const r = state.matrix.find((x) => x.id === id);
+    if (!r || !r.meta) return;
+    paperAi[id] = { loading: true };
+    refreshNotes();
+    try {
+      const m = r.meta;
+      const res = await fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: 'paper', input: { question: state.outline.question, title: m.title, authors: (m.authors || []).join(', '), year: m.year, venue: m.venue, type: m.type, abstract: m.abstract } }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
+      r.analysis = data.notes || [];
+      if (fill && data.fields) {
+        r.aiDraft = r.aiDraft || [];
+        ['sample', 'method', 'finding', 'limitation'].forEach((k) => {
+          if (!String(r[k] || '').trim() && data.fields[k]) { r[k] = data.fields[k]; r.aiDraft.push(k); }
+        });
+      }
+      paperAi[id] = {};
+    } catch (e) { paperAi[id] = { error: e.message === 'Failed to fetch' ? 'Could not reach the AI server. Previews block outside requests; it works on the deployed site.' : e.message }; }
+    save();
+    if (current() === 'paper' || current() === 'matrix') render();
+  }
+
+  async function addFromLink(form) {
+    const input = form.querySelector('#m-link');
+    const link = input.value;
+    linkErr = ''; linkBusy = 'Finding the paper…'; render();
+    try {
+      const meta = await S.discover.lookup(link, { proxy: AI_API });
+      if (state.matrix.some((x) => x.meta && x.meta.id === meta.id)) throw new Error('That paper is already in your matrix.');
+      const row = Object.assign(S.matrix.blankRow(), S.discover.toMatrixRow(meta), { sourceId: meta.id, meta });
+      const empty = state.matrix.findIndex((x) => !x.source.trim() && !x.finding.trim());
+      if (empty >= 0) state.matrix[empty] = row; else state.matrix.push(row);
+      if (!state.refs.input.includes(meta.doi || meta.title)) state.refs.input = (state.refs.input.trim() + '\n' + S.discover.toReference(meta)).trim();
+      linkBusy = 'Summarising…'; save(); render();
+      await analysePaper(row.id, true);
+      toast('Paper added. Check the AI draft against the paper.');
+    } catch (e) { linkErr = e.message; }
+    linkBusy = ''; render();
   }
 
   const STATUS = {
@@ -504,7 +591,7 @@
     return { main, notes: notesPanel(notes) };
   }
 
-  const VIEWS = { overview, discover, ideas, design, outline, matrix, cite, check, review, submit };
+  const VIEWS = { overview, discover, ideas, design, paper: paperView, outline, matrix, cite, check, review, submit };
 
   // ---------- render ----------
   function account() {
@@ -576,10 +663,11 @@
     if (v === 'account') { app.innerHTML = account(); return; }
     if (v === 'privacy' || v === 'terms') { app.innerHTML = S.legal[v](); return; }
     const st = status();
-    const m = MODULES.find((x) => x.id === v);
+    if (v === 'paper' && !state.matrix.some((r) => r.id === openPaper)) { location.hash = 'matrix'; return; }
+    const m = MODULES.find((x) => x.id === (v === 'paper' ? 'matrix' : v));
     const view = VIEWS[v]();
     app.innerHTML = `<div class="workspace wrap">
-      <nav class="side" aria-label="Modules">${MODULES.map((x) => `<a href="#${x.id}"${x.id === v ? ' aria-current="page"' : ''}>
+      <nav class="side" aria-label="Modules">${MODULES.map((x) => `<a href="#${x.id}"${x.id === (v === 'paper' ? 'matrix' : v) ? ' aria-current="page"' : ''}>
         <span>${x.name}</span>${st[x.id] && st[x.id].issues ? `<b>${st[x.id].issues}</b>` : ''}</a>`).join('')}</nav>
       <section class="module">
         <header class="module-head"><h1>${m.name}</h1><p>${m.pain}</p></header>
@@ -609,6 +697,8 @@
     const el = e.target.closest('[data-bind]');
     if (!el) return;
     setPath(state, el.dataset.bind, el.type === 'checkbox' ? el.checked : el.value);
+    const mm = el.dataset.bind.match(/^matrix\.(\d+)\.(\w+)$/);
+    if (mm && state.matrix[mm[1]] && state.matrix[mm[1]].aiDraft) state.matrix[mm[1]].aiDraft = state.matrix[mm[1]].aiDraft.filter((k) => k !== mm[2]);
     save();
     const re = el.dataset.rerender;
     if (re === 'all') { render(); return; }
@@ -686,10 +776,21 @@
     'add-row': () => { state.matrix.push(S.matrix.blankRow()); save(); render(); },
     'del-row': (el) => { state.matrix.splice(Number(el.dataset.index), 1); save(); render(); },
     verify: () => { if (!verifying) verifyAll(); },
+    'open-paper': (el) => {
+      openPaper = el.dataset.id;
+      location.hash = 'paper';
+      const r = state.matrix.find((x) => x.id === openPaper);
+      // Rows added before abstracts were stored (or example rows): fetch the full record once.
+      if (r && r.meta && r.meta.doi && !r.meta.abstract && !r.meta.refreshed) {
+        r.meta.refreshed = true;
+        S.discover.lookup(r.meta.doi, { proxy: AI_API }).then((m) => { Object.assign(r.meta, m, { id: r.meta.id, refreshed: true }); save(); if (current() === 'paper') render(); }, () => {});
+      }
+    },
+    'analyse-paper': (el) => { if (!(paperAi[el.dataset.id] || {}).loading) analysePaper(el.dataset.id, false); },
     'to-matrix': (el) => {
       const r = state.discover.results[Number(el.dataset.i)];
       const empty = state.matrix.findIndex((m) => !m.source.trim() && !m.finding.trim());
-      const row = Object.assign(S.matrix.blankRow(), S.discover.toMatrixRow(r), { sourceId: r.id });
+      const row = Object.assign(S.matrix.blankRow(), S.discover.toMatrixRow(r), { sourceId: r.id, meta: r });
       if (empty >= 0) state.matrix[empty] = row; else state.matrix.push(row);
       if (!state.refs.input.includes(r.doi || r.title)) state.refs.input = (state.refs.input.trim() + '\n' + S.discover.toReference(r)).trim();
       save(); render(); toast('Added to your literature matrix and reference list');
@@ -707,7 +808,7 @@
 
   document.addEventListener('submit', (e) => {
     const form = e.target.closest('[data-form]');
-    if (form) { e.preventDefault(); if (form.dataset.form === 'discover') runSearch(); else accountSubmit(form); }
+    if (form) { e.preventDefault(); if (form.dataset.form === 'discover') runSearch(); else if (form.dataset.form === 'add-link') addFromLink(form); else accountSubmit(form); }
   });
 
   window.addEventListener('hashchange', () => { pending = ''; render(); window.scrollTo(0, 0); });

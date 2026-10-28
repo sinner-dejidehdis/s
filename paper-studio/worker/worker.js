@@ -2,7 +2,8 @@
 // and enforces the red line on the way back. The Groq key lives only in the
 // Worker's secret GROQ_API_KEY; the page never sees it.
 //
-// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey" | "ideas" | "design" | "methods", input: {...} }
+// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey" | "ideas" | "design" | "methods" | "paper"
+// GET  /api/resolve?url=<article page>  (DOI and title from citation meta tags), input: {...} }
 // GET  /api/search?url=<OpenAlex works URL>  (adds OPENALEX_API_KEY when set)
 // -> { notes: [{ level, field?, title, why, how, example?, ask? }], blocked: n }
 
@@ -78,6 +79,18 @@ If abstracts do not describe methods, say so and suggest which papers to open. N
 [researcher's planned design] ${str(i.type)}: ${str(i.procedure).slice(0, 800)}
 
 ${(Array.isArray(i.papers) ? i.papers : []).slice(0, 10).map((p, n) => `[${n + 1}] ${str(p && p.title).slice(0, 300)} (${str(p && p.year).slice(0, 4)})\n${str(p && p.abstract).slice(0, 600) || '(no abstract)'}`).join('\n\n')}`,
+  paper: (i) => `Read this paper's record and help a researcher decide how it relates to their work. You only have the metadata and abstract, not the full text; say so where it matters.
+Return JSON: {"fields":{"sample":"","method":"","finding":"","limitation":""},"notes":[...]}
+- "fields": short reading notes (under 30 words each) for a literature matrix: who or what was studied, the design and analysis, the main finding, limitations stated or evident. Use "" when the abstract does not say.
+- "notes": 3 to 5 notes with levels "tip" (key point, method or strength), "gap" (limitation or open question) and "ask" (a question to keep in mind while reading the full paper). Include one note on how the paper relates to the researcher's question, if given.
+Never invent findings or numbers that are not in the record.
+
+[researcher's question] ${str(i.question)}
+[title] ${str(i.title)}
+[authors] ${str(i.authors).slice(0, 300)}
+[year] ${str(i.year).slice(0, 4)}  [venue] ${str(i.venue).slice(0, 200)}  [type] ${str(i.type).slice(0, 30)}
+[abstract]
+${str(i.abstract) || '(no abstract available)'}`,
   review: (i) => `Help the writer plan a revision from these reviewer comments.
 For each important comment: say what the reviewer most likely wants, whether it is a must-fix, and what kind of change or evidence would answer it. For vague comments, give two or three possible readings. Do not draft the response letter or any reply text.
 
@@ -126,11 +139,36 @@ function json(body, status, headers) {
 // Relays an OpenAlex works search for visitors whose own budget ran out.
 async function search(url, env, headers) {
   const target = url.searchParams.get('url') || '';
-  if (!target.startsWith('https://api.openalex.org/works?')) return json({ error: 'Only OpenAlex work searches are allowed.' }, 400, headers);
+  if (!/^https:\/\/api\.openalex\.org\/works[?/]/.test(target)) return json({ error: 'Only OpenAlex work requests are allowed.' }, 400, headers);
   const u = new URL(target);
   if (env.OPENALEX_API_KEY) u.searchParams.set('api_key', env.OPENALEX_API_KEY);
   const res = await fetch(u.toString(), { headers: { 'User-Agent': 'Arguo (academic writing feedback)' } });
   return new Response(res.body, { status: res.status, headers: { 'Content-Type': 'application/json', ...headers } });
+}
+
+// Finds the DOI and title of an article page whose link has no DOI in it,
+// from the citation meta tags most publishers include.
+async function resolve(url, headers) {
+  let target;
+  try { target = new URL(url.searchParams.get('url') || ''); } catch { return json({ error: 'That is not a valid link.' }, 400, headers); }
+  if (target.protocol !== 'https:' && target.protocol !== 'http:') return json({ error: 'Use an http or https link.' }, 400, headers);
+  if (/^(localhost|127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(target.hostname) || /^172\.(1[6-9]|2\d|3[01])\./.test(target.hostname)) return json({ error: 'That link is not allowed.' }, 400, headers);
+  let html = '';
+  try {
+    const res = await fetch(target.toString(), { headers: { 'User-Agent': 'Mozilla/5.0 (Arguo citation lookup)', Accept: 'text/html' }, redirect: 'follow', cf: { cacheTtl: 3600 } });
+    html = (await res.text()).slice(0, 400000);
+  } catch { return json({ error: 'Could not open that page.' }, 502, headers); }
+  const meta = (names) => {
+    for (const n of names) {
+      const m = html.match(new RegExp(`<meta[^>]+(?:name|property)=["']${n}["'][^>]*content=["']([^"']+)["']`, 'i')) || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*(?:name|property)=["']${n}["']`, 'i'));
+      if (m) return m[1].trim();
+    }
+    return '';
+  };
+  const doiInPage = (html.match(/\b10\.\d{4,9}\/[^\s"'<>]+/) || [''])[0];
+  const doi = (meta(['citation_doi', 'dc.identifier', 'DC.Identifier', 'prism.doi']) || doiInPage).replace(/^doi:/i, '').replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+  const title = meta(['citation_title', 'dc.title', 'DC.title', 'og:title']);
+  return json({ doi: /^10\./.test(doi) ? doi : '', title }, 200, headers);
 }
 
 export default {
@@ -139,6 +177,7 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     const url = new URL(request.url);
     if (url.pathname === '/api/search' && request.method === 'GET') return search(url, env, headers);
+    if (url.pathname === '/api/resolve' && request.method === 'GET') return resolve(url, headers);
     if (url.pathname !== '/api/feedback' || request.method !== 'POST') return json({ error: 'Not found' }, 404, headers);
     if (!env.GROQ_API_KEY) return json({ error: 'The server is missing GROQ_API_KEY.' }, 500, headers);
 
@@ -164,9 +203,15 @@ export default {
     if (!res.ok) return json({ error: `AI service error (${res.status}).` }, 502, headers);
 
     let notes = [];
+    let fields = null;
     try {
       const data = await res.json();
-      notes = JSON.parse(data.choices[0].message.content).notes || [];
+      const parsed = JSON.parse(data.choices[0].message.content);
+      notes = parsed.notes || [];
+      if (body.task === 'paper' && parsed.fields && typeof parsed.fields === 'object') {
+        fields = {};
+        ['sample', 'method', 'finding', 'limitation'].forEach((k) => { fields[k] = typeof parsed.fields[k] === 'string' ? parsed.fields[k].slice(0, 300) : ''; });
+      }
     } catch { return json({ error: 'The AI reply could not be read. Try again.' }, 502, headers); }
 
     // A survey summarises other people's papers, so only the user's own query counts as their text,
@@ -175,11 +220,11 @@ export default {
     const ideas = body.task === 'ideas';
     const methods = body.task === 'methods';
     const sent = survey && Array.isArray(body.input.papers) ? Math.min(body.input.papers.length, 12) : 0;
-    const userText = survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
+    const userText = body.task === 'paper' ? str(body.input.question) : survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
     const kept = notes.slice(0, 5).map(clean)
       .map((n) => (survey || ideas || methods ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= (survey ? sent : Math.min((body.input.papers || []).length, 10))) }) : n))
       .filter((n) => !copiesUser(n, userText) && (!(survey || methods) || n.refs.length));
-    return json({ notes: kept, blocked: Math.min(notes.length, 5) - kept.length }, 200, headers);
+    return json({ notes: kept, fields, blocked: Math.min(notes.length, 5) - kept.length }, 200, headers);
   },
 };
 

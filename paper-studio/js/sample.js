@@ -25,6 +25,13 @@
     'Zhang, W., & Li, M. (2021). Bedtime phone use and sleep quality among college students. Journal of Campus Sleep Studies, 12(3), 45–52.',
   ];
 
+  function meta(r, type) {
+    return { id: 'sample-' + r.doi, title: r.title, year: r.year, authors: r.authors.map((a) => `${a.given} ${a.family}`), venue: r.journal,
+      type: type || 'article', cited: 0, doi: r.doi, url: `https://doi.org/${r.doi}`, oaUrl: '', abstract: '' };
+  }
+  const SCOTT = { doi: '10.1136/bmjopen-2019-031161', title: 'Social media use and adolescent sleep patterns: cross-sectional findings from the UK millennium cohort study',
+    journal: 'BMJ Open', year: 2019, authors: [{ family: 'Scott', given: 'Holly' }, { family: 'Biello', given: 'Stephany M' }, { family: 'Woods', given: 'Heather Cleland' }] };
+
   function create() {
     const entries = S.cite.parse(REFS.join('\n'));
     return {
@@ -40,10 +47,10 @@
         conclusion: 'Social media use causes insomnia in university students, so universities should completely restrict night-time internet access.',
       },
       matrix: [
-        { id: 'r1', source: 'Levenson et al. (2016)', sample: 'US adults aged 19–32, national sample', method: 'Cross-sectional survey', finding: 'More frequent and higher-volume social media use went with more sleep disturbance', limitation: 'Cross-sectional design; self-report', relation: 'Supports' },
-        { id: 'r2', source: 'Woods & Scott (2016)', sample: 'Secondary school pupils in Scotland', method: 'Cross-sectional survey', finding: 'Night-time use and emotional investment went with poorer sleep quality, anxiety and depression', limitation: 'Cross-sectional design; self-report; one region', relation: 'Supports' },
-        { id: 'r3', source: 'Hale & Guan (2015)', sample: 'School-aged children and adolescents', method: 'Systematic review', finding: 'Most included studies linked screen time to later bedtimes and shorter sleep', limitation: 'Included studies mostly cross-sectional design; mostly self-report', relation: 'Background' },
-        { id: 'r4', source: 'Scott, Biello & Woods (2019)', sample: 'Adolescents in the UK Millennium Cohort Study', method: 'Cross-sectional analysis of cohort data', finding: 'More social media use went with later sleep onset and more night waking', limitation: 'Cross-sectional design (one wave); self-report', relation: 'Supports' },
+        { id: 'r1', meta: meta(REC.levenson), source: 'Levenson et al. (2016)', sample: 'US adults aged 19–32, national sample', method: 'Cross-sectional survey', finding: 'More frequent and higher-volume social media use went with more sleep disturbance', limitation: 'Cross-sectional design; self-report', relation: 'Supports' },
+        { id: 'r2', meta: meta(REC.woods), source: 'Woods & Scott (2016)', sample: 'Secondary school pupils in Scotland', method: 'Cross-sectional survey', finding: 'Night-time use and emotional investment went with poorer sleep quality, anxiety and depression', limitation: 'Cross-sectional design; self-report; one region', relation: 'Supports' },
+        { id: 'r3', meta: meta(REC.hale, 'review'), source: 'Hale & Guan (2015)', sample: 'School-aged children and adolescents', method: 'Systematic review', finding: 'Most included studies linked screen time to later bedtimes and shorter sleep', limitation: 'Included studies mostly cross-sectional design; mostly self-report', relation: 'Background' },
+        { id: 'r4', meta: meta(SCOTT), source: 'Scott, Biello & Woods (2019)', sample: 'Adolescents in the UK Millennium Cohort Study', method: 'Cross-sectional analysis of cohort data', finding: 'More social media use went with later sleep onset and more night waking', limitation: 'Cross-sectional design (one wave); self-report', relation: 'Supports' },
       ],
       refs: {
         input: REFS.join('\n'),

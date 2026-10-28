@@ -71,3 +71,18 @@ test('methods notes need refs; design notes do not', async () => {
   const d = await (await call({ task: 'design', input: { type: 'cross', procedure: 'p' } }, groq([{ level: 'issue', title: 'Confounding' }]))).json();
   assert.strictEqual(d.notes.length, 1);
 });
+
+test('paper analysis returns matrix fields and notes', async () => {
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ fields: { sample: '1,788 US adults', method: 'Survey', finding: 'More use, more sleep disturbance', limitation: 42 }, notes: [{ level: 'gap', title: 'Cross-sectional' }] }) } }] }));
+  const res = await worker.fetch(new Request('https://x.dev/api/feedback', { method: 'POST', body: JSON.stringify({ task: 'paper', input: { title: 'T', abstract: 'A' } }) }), { GROQ_API_KEY: 'k' });
+  const data = await res.json();
+  assert.deepStrictEqual(data.fields, { sample: '1,788 US adults', method: 'Survey', finding: 'More use, more sleep disturbance', limitation: '' });
+  assert.strictEqual(data.notes.length, 1);
+});
+
+test('resolve reads citation_doi from an article page and refuses private hosts', async () => {
+  globalThis.fetch = async () => new Response('<html><head><meta name="citation_doi" content="10.1016/j.ypmed.2016.01.001"><meta name="citation_title" content="The association"></head></html>');
+  const ok = await (await worker.fetch(new Request('https://x.dev/api/resolve?url=' + encodeURIComponent('https://pubmed.ncbi.nlm.nih.gov/1/')), {})).json();
+  assert.deepStrictEqual(ok, { doi: '10.1016/j.ypmed.2016.01.001', title: 'The association' });
+  assert.strictEqual((await worker.fetch(new Request('https://x.dev/api/resolve?url=' + encodeURIComponent('http://127.0.0.1/admin')), {})).status, 400);
+});

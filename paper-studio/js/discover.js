@@ -85,5 +85,51 @@
     return `${a} (${r.year || 'n.d.'}). ${r.title}. ${r.venue || ''}${r.doi ? `. https://doi.org/${r.doi}` : ''}`.replace(/\.\s*\./g, '.');
   }
 
-  S.discover = { SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference };
+  // What a pasted link points to: a DOI, an arXiv id, an OpenAlex work, or an
+  // ordinary web page that the Worker has to read.
+  function idFromLink(link) {
+    const s = decodeURIComponent(String(link || '').trim());
+    const ox = s.match(/openalex\.org\/(?:works\/)?(W\d+)/i);
+    if (ox) return { openalex: ox[1] };
+    const ax = s.match(/arxiv\.org\/(?:abs|pdf)\/(\d{4}\.\d{4,5})(?:v\d+)?/i) || s.match(/^arxiv:\s*(\d{4}\.\d{4,5})/i);
+    if (ax) return { doi: `10.48550/arxiv.${ax[1]}` };
+    const doi = s.match(/\b(10\.\d{4,9}\/[^\s?#"<>]+)/);
+    if (doi) return { doi: doi[1].replace(/[.,;)\]]+$/, '').replace(/\/(full|abstract|pdf|epdf)$/i, '') };
+    if (/^https?:\/\//i.test(s)) return { page: s };
+    return s.length > 10 ? { title: s } : null;
+  }
+
+  // Resolves a pasted link to one OpenAlex record.
+  async function lookup(link, opts) {
+    opts = opts || {};
+    const f = opts.fetch || (typeof fetch !== 'undefined' ? fetch.bind(root) : null);
+    let id = idFromLink(link);
+    if (!id) throw new Error('Paste a DOI, a link to the article, or its title.');
+    if (id.page) {
+      if (!opts.proxy) throw new Error('This link needs the Arguo server to read the page.');
+      let r;
+      try { r = await f(opts.proxy + '/api/resolve?url=' + encodeURIComponent(id.page)); } catch (e) { r = null; }
+      const info = r && r.ok ? await r.json() : {};
+      if (info.doi) id = { doi: info.doi };
+      else if (info.title) id = { title: info.title };
+      else throw new Error('Could not find the article details on that page. Try its DOI or title instead.');
+    }
+    const url = id.openalex ? `${API}/${id.openalex}?select=${SELECT}`
+      : id.doi ? `${API}/doi:${encodeURIComponent(id.doi)}?select=${SELECT}`
+        : `${API}?search=${encodeURIComponent(id.title)}&per-page=1&select=${SELECT}`;
+    let res;
+    try { res = await f(url); } catch (e) { res = null; }
+    if ((!res || res.status === 429 || res.status === 403) && opts.proxy) {
+      try { res = await f(opts.proxy + '/api/search?url=' + encodeURIComponent(url)); } catch (e) { res = null; }
+    }
+    if (!res) throw new Error('Could not reach OpenAlex. Previews block outside requests; this works on the deployed site.');
+    if (res.status === 404) throw new Error('No record found for that link. Check the DOI, or paste the title instead.');
+    if (!res.ok) throw new Error(`Lookup failed (${res.status}).`);
+    const data = await res.json();
+    const w = data.results ? data.results[0] : data;
+    if (!w || !w.id) throw new Error('No record found for that link.');
+    return parse(w);
+  }
+
+  S.discover = { SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
 })(typeof window !== 'undefined' ? window : globalThis);
