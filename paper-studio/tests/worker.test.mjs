@@ -86,3 +86,13 @@ test('resolve reads citation_doi from an article page and refuses private hosts'
   assert.deepStrictEqual(ok, { doi: '10.1016/j.ypmed.2016.01.001', title: 'The association' });
   assert.strictEqual((await worker.fetch(new Request('https://x.dev/api/resolve?url=' + encodeURIComponent('http://127.0.0.1/admin')), {})).status, 400);
 });
+
+test('section review keeps refs to sent papers and drops notes that rewrite the user', async () => {
+  const text = 'This study examines social media and sleep in university students during the night before exams';
+  const res = await call({ task: 'section', input: { label: 'Research question', text, papers: [{ title: 'A' }] } }, groq([
+    { level: 'issue', title: 'No explicit question', how: 'State it as a question.', example: 'Paper 1 asks whether…', refs: [1, 4] },
+    { level: 'tip', title: 'Rewrite', how: 'Try: this study examines social media and sleep in university students during the night before exams and' },
+  ]));
+  const data = await res.json();
+  assert.deepStrictEqual(data.notes.map((n) => [n.title, n.refs]), [['No explicit question', [1]]]);
+});

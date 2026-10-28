@@ -2,7 +2,7 @@
 // and enforces the red line on the way back. The Groq key lives only in the
 // Worker's secret GROQ_API_KEY; the page never sees it.
 //
-// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey" | "ideas" | "design" | "methods" | "paper"
+// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey" | "ideas" | "design" | "methods" | "paper" | "section"
 // GET  /api/resolve?url=<article page>  (DOI and title from citation meta tags), input: {...} }
 // GET  /api/search?url=<OpenAlex works URL>  (adds OPENALEX_API_KEY when set)
 // -> { notes: [{ level, field?, title, why, how, example?, ask? }], blocked: n }
@@ -91,6 +91,20 @@ Never invent findings or numbers that are not in the record.
 [year] ${str(i.year).slice(0, 4)}  [venue] ${str(i.venue).slice(0, 200)}  [type] ${str(i.type).slice(0, 30)}
 [abstract]
 ${str(i.abstract) || '(no abstract available)'}`,
+  section: (i) => `Review one section of a manuscript against the writer's argument thread, as a careful supervisor would.
+Section: ${str(i.label).slice(0, 40)} (${str(i.section).slice(0, 80)}).
+Check that it is consistent with the argument thread, does its job for this kind of section, and follows the conventions reviewers expect.
+Return 3 to 5 notes. For each: "why" explains the problem precisely, quoting at most 6 words of the writer's text to locate it; "how" gives concrete steps to revise it.
+For "example", show how published authors handle the same thing: describe or briefly quote (under 25 words) how one of the listed papers does it, and put its number in "refs". If no listed paper shows it, give an example on a clearly different topic instead (refs empty). Never write a replacement for the writer's own text and never invent papers.
+
+[argument thread]
+${['question', 'gap', 'aim', 'method', 'result', 'conclusion'].map((k) => `${k}: ${str(i.outline && i.outline[k]).slice(0, 400)}`).join('\n')}
+
+[writer's ${str(i.label).slice(0, 40)} section]
+${str(i.text).slice(0, 3500)}
+
+[published papers on the topic, for examples]
+${(Array.isArray(i.papers) ? i.papers : []).slice(0, 6).map((p, n) => `[${n + 1}] ${str(p && p.title).slice(0, 200)} (${str(p && p.year).slice(0, 4)})\n${str(p && p.abstract).slice(0, 500) || '(no abstract)'}`).join('\n\n') || '(none)'}`,
   review: (i) => `Help the writer plan a revision from these reviewer comments.
 For each important comment: say what the reviewer most likely wants, whether it is a must-fix, and what kind of change or evidence would answer it. For vague comments, give two or three possible readings. Do not draft the response letter or any reply text.
 
@@ -219,9 +233,11 @@ export default {
     const survey = body.task === 'survey';
     const ideas = body.task === 'ideas';
     const methods = body.task === 'methods';
+    const section = body.task === 'section';
     const sent = survey && Array.isArray(body.input.papers) ? Math.min(body.input.papers.length, 12) : 0;
-    const userText = body.task === 'paper' ? str(body.input.question) : survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
+    const userText = section ? str(body.input.text) : body.task === 'paper' ? str(body.input.question) : survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
     const kept = notes.slice(0, 5).map(clean)
+      .map((n) => (section ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= Math.min((body.input.papers || []).length, 6)) }) : n))
       .map((n) => (survey || ideas || methods ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= (survey ? sent : Math.min((body.input.papers || []).length, 10))) }) : n))
       .filter((n) => !copiesUser(n, userText) && (!(survey || methods) || n.refs.length));
     return json({ notes: kept, fields, blocked: Math.min(notes.length, 5) - kept.length }, 200, headers);

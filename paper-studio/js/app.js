@@ -8,6 +8,7 @@
   let state = S.store.load() || S.sample.create();
   if (!state.discover) state.discover = S.sample.blankDiscover();
   if (!state.design) state.design = S.design.blank();
+  ['question', 'gap', 'aim', 'method'].forEach((k) => { if (typeof state.check[k] !== 'string') state.check[k] = ''; });
   let searching = false;
   let linkBusy = '';
   let linkErr = '';
@@ -30,7 +31,7 @@
     { id: 'design', name: 'Study design', pain: 'How did similar studies do it? Is my design sound?' },
     { id: 'outline', name: 'Argument thread', pain: 'Sections that don’t line up · can’t get started' },
     { id: 'cite', name: 'Citation check', pain: 'Wrong details · AI-invented references' },
-    { id: 'check', name: 'Consistency check', pain: 'Discussion that outruns the results' },
+    { id: 'check', name: 'Consistency check', pain: 'Six sections, each checked against your argument thread' },
     { id: 'review', name: 'Reviewer comments', pain: 'A major revision you can’t break down' },
     { id: 'submit', name: 'Submission checklist', pain: 'Missing items at submission' },
   ];
@@ -137,9 +138,9 @@
     const a = ai[v] || {};
     const body = a.loading ? '<p class="ai-status">Reading your text…</p>'
       : a.error ? `<p class="ai-status error">${esc(a.error)}</p>`
-        : a.notes ? (a.notes.length ? a.notes.map((n) => (v === 'discover' ? noteHtml(n).replace('<b>How to fix</b>', '<b>Read first</b>') : v === 'ideas' ? noteHtml(n).replace('<b>How to fix</b>', '<b>How to test it</b>').replace('>Possible gap<', '>Direction<') : v === 'methods' ? noteHtml(n).replace('<b>How to fix</b>', '<b>For your study</b>').replace('>Suggestion<', '>Approach<') : noteHtml(n)) + (n.refs && n.refs.length ? `<p class="note-refs">Based on ${n.refs.map((r) => paperRef(v, r)).join(' ')}</p>` : '')).join('') : '<p class="ai-status">No further problems found.</p>')
+        : a.notes ? (a.notes.length ? a.notes.map((n) => (v.startsWith('check-') ? noteHtml(n).replace('See an example from another topic', 'See how published papers do it') : v === 'discover' ? noteHtml(n).replace('<b>How to fix</b>', '<b>Read first</b>') : v === 'ideas' ? noteHtml(n).replace('<b>How to fix</b>', '<b>How to test it</b>').replace('>Possible gap<', '>Direction<') : v === 'methods' ? noteHtml(n).replace('<b>How to fix</b>', '<b>For your study</b>').replace('>Suggestion<', '>Approach<') : noteHtml(n)) + (n.refs && n.refs.length ? `<p class="note-refs">Based on ${n.refs.map((r) => paperRef(v, r)).join(' ')}</p>` : '')).join('') : '<p class="ai-status">No further problems found.</p>')
           + (a.blocked ? `<p class="ai-status">${a.blocked} AI ${a.blocked === 1 ? 'note was' : 'notes were'} hidden because ${a.blocked === 1 ? 'it' : 'they'} repeated your wording.</p>` : '') : '';
-    const label = { discover: 'AI research briefing', ideas: 'Possible new directions', design: 'AI design review', methods: 'Methods in similar studies' }[v] || 'AI feedback';
+    const label = v.startsWith('check-') ? 'AI section review' : { discover: 'AI research briefing', ideas: 'Possible new directions', design: 'AI design review', methods: 'Methods in similar studies' }[v] || 'AI feedback';
     if (v === 'discover' && !state.discover.results.length) return '';
     return `<section class="ai-box">
         <div class="ai-head"><h4>${label}</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : { discover: 'Summarise these results', ideas: 'Suggest directions', design: 'Review my design', methods: 'Compare with similar studies' }[v] || 'Get AI feedback'}</button></div>
@@ -147,6 +148,20 @@
         <p class="ai-rule">This module’s text is sent to our AI provider, Groq, which does not train on it (<a href="#privacy">privacy</a>). The AI follows the same rule: diagnose, never write.</p>
         ${body}
       </section>`;
+  }
+
+  // Papers with abstracts the AI may quote as examples: Discover results first, then matrix papers.
+  function examplePapers() {
+    const seen = new Set();
+    return [...state.discover.results, ...state.matrix.map((r) => r.meta).filter(Boolean)]
+      .filter((p) => p && p.abstract && !seen.has(p.id) && seen.add(p.id)).slice(0, 6);
+  }
+
+  function sectionInput(v) {
+    const t = S.consistency.TABS.find((x) => 'check-' + x.key === v);
+    if (!t) return null;
+    return { label: t.label, section: t.section, outline: state.outline, text: state.check[t.field] || '',
+      papers: examplePapers().map((p) => ({ title: p.title, year: p.year, abstract: String(p.abstract).slice(0, 500) })) };
   }
 
   async function askAi(v) {
@@ -159,12 +174,12 @@
       design: Object.assign({}, state.design, { question: state.design.question || state.outline.question }),
       methods: { type: S.design.TYPES[state.design.type] || '', procedure: state.design.procedure, papers: state.discover.results.slice(0, 10).map((r) => ({ title: r.title, year: r.year, abstract: String(r.abstract || '').slice(0, 600) })) },
       discover: { query: state.discover.query, papers: state.discover.results.slice(0, 12).map((r) => ({ title: r.title, year: r.year, venue: r.venue, cited: r.cited, abstract: r.abstract })) },
-    }[v];
+    }[v] || sectionInput(v);
     ai[v] = { loading: true };
     refreshNotes();
     try {
       const res = await fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: { check: 'consistency', discover: 'survey' }[v] || v, input }) });
+        body: JSON.stringify({ task: v.startsWith('check-') ? 'section' : { check: 'consistency', discover: 'survey' }[v] || v, input }) });
       const data = await res.json().catch(() => ({}));
       ai[v] = res.ok ? { notes: data.notes || [], blocked: data.blocked || 0 } : { error: data.error || `Request failed (${res.status}).` };
     } catch (e) {
@@ -307,6 +322,10 @@
   }
 
   function paperRef(v, n) {
+    if (v.startsWith('check-')) {
+      const p = examplePapers()[n - 1];
+      return p ? `<a href="${esc(p.url)}" target="_blank" rel="noopener" title="${esc(p.title)}">[${n}] ${esc(S.discover.shortAuthors(p.authors))}, ${p.year || 'n.d.'}</a>` : `[${n}]`;
+    }
     if (v === 'discover') return `<a href="#paper-${n}" data-action="jump" data-target="paper-${n}">[${n}]</a>`;
     const r = state.discover.results[n - 1];
     return r ? `<a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.title)}">[${n}] ${esc(S.discover.shortAuthors(r.authors))}, ${r.year || 'n.d.'}</a>` : `[${n}]`;
@@ -628,16 +647,40 @@
     return `<div class="flagged"><h3>Sentences to review in the discussion</h3><ol>${flagged.map((f) => `<li><q>${esc(f.sentence)}</q><span>${f.reasons.map(esc).join('; ')}</span></li>`).join('')}</ol></div>`;
   }
 
+  let checkTab = 'question';
+
+  function tabIssues(t) {
+    if (t.key === 'conclusion') return state.check.discussion.trim() ? checkResult().notes.filter((n) => n.level === 'issue').length : 0;
+    return (state.check[t.field] || '').trim() ? S.consistency.sectionCheck(t.key, state.check[t.field], state.outline).filter((n) => n.level === 'issue').length : 0;
+  }
+
   function check() {
-    const r = checkResult();
-    const main = `<p class="intro">Paste your Results and Discussion. They are checked against the research question and method in your argument thread.</p>
-      <div class="readonly"><span>Research question (from the argument thread)</span><p>${esc(state.outline.question) || 'Not filled in yet.'}</p><a href="#outline">Edit</a></div>
-      <label for="f-results">Results</label>
-      <textarea id="f-results" rows="6" data-bind="check.results">${esc(state.check.results)}</textarea>
-      <label for="f-discussion">Discussion</label>
-      <textarea id="f-discussion" rows="8" data-bind="check.discussion">${esc(state.check.discussion)}</textarea>
-      <div id="flagged">${flaggedList(r.flagged)}</div>`;
-    return { main, notes: notesPanel(r.notes, citedBlock(state.check.results + ' ' + state.check.discussion) + aiBlock('check')) };
+    const tabs = S.consistency.TABS;
+    const t = tabs.find((x) => x.key === checkTab) || tabs[0];
+    const text = state.check[t.field] || '';
+    const conclusion = t.key === 'conclusion';
+    const r = conclusion ? checkResult() : null;
+    const notes = conclusion ? r.notes : S.consistency.sectionCheck(t.key, text, state.outline);
+    const main = `<p class="intro">Check each section of your manuscript against the matching node of your argument thread. Paste a section, read the notes, and use the guide and published examples to revise it yourself.</p>
+      <div class="tabs" role="tablist">${tabs.map((x, i) => {
+        const n = tabIssues(x);
+        const filled = (state.check[x.field] || '').trim();
+        return `<button role="tab" class="tab${x.key === t.key ? ' on' : ''}" aria-selected="${x.key === t.key}" data-action="check-tab" data-tab="${x.key}">
+          <span class="tab-n">${i + 1}</span>${x.label}${n ? `<b>${n}</b>` : filled ? '<i class="tab-ok" aria-label="checked">✓</i>' : ''}</button>`;
+      }).join('')}</div>
+      <div class="readonly"><span>${t.label} in your argument thread</span><p>${esc(state.outline[t.node]) || 'Not filled in yet.'}</p><a href="#outline">Edit</a></div>
+      <label for="f-sec">Your ${esc(t.section)}</label>
+      <textarea id="f-sec" rows="${conclusion ? 9 : 7}" data-bind="check.${t.field}" placeholder="Paste this section of your manuscript">${esc(text)}</textarea>
+      ${conclusion ? `<details class="pattern"${state.check.results.trim() ? '' : ' open'}><summary>Results used for this check (from the Result tab)</summary><p>${esc(state.check.results) || 'Paste your results in the Result tab first.'}</p></details>` : ''}
+      <div id="flagged">${conclusion ? flaggedList(r.flagged) : ''}</div>
+      <div class="guide-grid">
+        <section class="guide"><h4>What reviewers look for</h4><ul>${t.look.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section>
+        <section class="guide"><h4>A common structure</h4><p class="pattern-line">${esc(t.pattern)}</p><p class="guide-example"><b>Example from another topic</b> ${esc(t.example)}</p></section>
+      </div>
+      <div class="tab-nav">${tabs.indexOf(t) > 0 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[tabs.indexOf(t) - 1].key}">← ${tabs[tabs.indexOf(t) - 1].label}</button>` : '<span></span>'}
+        ${tabs.indexOf(t) < tabs.length - 1 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[tabs.indexOf(t) + 1].key}">${tabs[tabs.indexOf(t) + 1].label} →</button>` : ''}</div>`;
+    const papersNote = examplePapers().length ? '' : '<p class="ai-rule">Tip: search in <a href="#discover">Discover research</a> or add papers with abstracts to your matrix, and the AI will show how those published papers handle this section.</p>';
+    return { main, notes: notesPanel(notes, citedBlock(text) + aiBlock('check-' + t.key).replace('</section>', papersNote + '</section>')) };
   }
 
   const LETTER = `<details class="guide" open><summary>How a response letter is structured</summary>
@@ -796,7 +839,7 @@
     const view = VIEWS[v]();
     const notes = document.getElementById('notes');
     if (notes) notes.innerHTML = view.notes;
-    if (v === 'check') document.getElementById('flagged').innerHTML = flaggedList(checkResult().flagged);
+    if (v === 'check') document.getElementById('flagged').innerHTML = checkTab === 'conclusion' ? flaggedList(checkResult().flagged) : '';
     const st = status();
     document.querySelectorAll('.side a').forEach((a) => {
       const id = a.getAttribute('href').slice(1);
@@ -908,6 +951,7 @@
       save(); render(); toast('Added to your literature matrix and reference list');
     },
     'find-cited': (el) => findCited(el.dataset.key, el.dataset.text),
+    'check-tab': (el) => { checkTab = el.dataset.tab; render(); },
     'add-cited': (el) => {
       const f = citeFind[el.dataset.key];
       const meta = f && f.results && f.results[Number(el.dataset.i)];

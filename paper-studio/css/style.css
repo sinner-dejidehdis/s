@@ -354,3 +354,17 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); f
 .journal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .journal-list li { display: flex; gap: 10px; align-items: baseline; }
 .journal-list small { color: var(--muted); font-size: var(--step--1); }
+
+/* consistency tabs */
+.tabs { display: flex; flex-wrap: wrap; gap: 2px 4px; padding-bottom: 2px; border-bottom: 1px solid var(--line); }
+.tab { flex: none; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: var(--step--1); color: var(--muted); background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 10px; cursor: pointer; }
+.tab.on { color: var(--ink); font-weight: 500; border-bottom-color: var(--accent); }
+.tab-n { width: 18px; height: 18px; border-radius: 50%; background: var(--margin); font: 500 0.6875rem/18px var(--mono); text-align: center; }
+.tab.on .tab-n { background: var(--accent); color: var(--surface); }
+.tab b { font: 500 0.6875rem/1 var(--mono); color: var(--pen); background: var(--pen-soft); padding: 3px 6px; border-radius: 999px; }
+.tab-ok { font-style: normal; color: var(--ok); }
+.guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.guide-grid .guide h4 { font-size: var(--step-0); margin-bottom: 6px; }
+.guide-grid .guide ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.pattern-line { font-family: var(--mono); font-size: var(--step--1); color: var(--accent); margin-bottom: 8px; }
+.tab-nav { display: flex; justify-content: space-between; gap: 10px; }

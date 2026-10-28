@@ -63,6 +63,10 @@
         ],
       },
       check: {
+        question: 'Social media is now part of students’ bedtime routines. This study examines social media and sleep in university students.',
+        gap: 'Many studies have linked screen time to poorer sleep in adolescents (Hale & Guan, 2015; Woods & Scott, 2016). Most measured total screen time.',
+        aim: 'The relationship between bedtime social media use, type of use and sleep quality.',
+        method: 'An online questionnaire measured sleep quality with the Pittsburgh Sleep Quality Index. Data were analysed with multiple regression adjusting for gender, year of study and academic stress.',
         results: 'After adjusting for gender, year of study and academic stress, each additional hour of bedtime social media use was associated with a 1.2-point increase in PSQI score (p < 0.01). The coefficient was larger in the passive-scrolling group than in the active-interaction group. Gender and year of study did not moderate the association.',
         discussion: 'We found that longer bedtime social media use was associated with poorer sleep quality, consistent with Levenson et al. (2016). The stronger association for passive scrolling may reflect longer, less intentional sessions. Our results also show that social media use damages students’ academic performance and friendships. This study proves that limiting phone use will completely solve students’ sleep problems.',
       },
@@ -91,7 +95,7 @@
       outline: { question: '', gap: '', aim: '', method: '', result: '', conclusion: '' },
       matrix: [S.matrix.blankRow(), S.matrix.blankRow(), S.matrix.blankRow()],
       refs: { input: '', style: 'apa', results: [] },
-      check: { results: '', discussion: '' },
+      check: { question: '', gap: '', aim: '', method: '', results: '', discussion: '' },
       review: { input: '', tasks: [] },
       submit: { checked: {} }, discover: blankDiscover(), design: { type: '', question: '', variables: '', sample: '', procedure: '', analysis: '' } };
   }

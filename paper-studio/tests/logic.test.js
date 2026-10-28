@@ -116,3 +116,17 @@ test('a corrected outline passes all outline rules', () => {
   });
   assert.deepStrictEqual(S.outline.check(fixed).map((n) => n.level), ['ok']);
 });
+
+test('each consistency tab checks its own section against the argument thread', () => {
+  require(path.join(__dirname, '..', 'js', 'discover.js'));
+  const p = S.sample.create();
+  const t = (k, f) => S.consistency.sectionCheck(k, p.check[f], p.outline).map((n) => n.title);
+  assert.ok(t('question', 'question').includes('No explicit question in this section'));
+  assert.ok(t('gap', 'gap').includes('The missing piece is not named'));
+  assert.ok(t('aim', 'aim').includes('No action verb in the aims'));
+  assert.ok(t('method', 'method').includes('No sample size is given'));
+  assert.ok(t('result', 'results').some((x) => x.startsWith('p values without')));
+  assert.strictEqual(S.consistency.TABS.length, 6);
+  const good = S.consistency.sectionCheck('gap', 'Earlier work linked screen time to poorer sleep (Hale & Guan, 2015; Woods & Scott, 2016). However, few studies distinguish passive from active social media use among university students, which matters because interventions target specific behaviours.', p.outline);
+  assert.deepStrictEqual(good.map((n) => n.level), ['ok']);
+});
