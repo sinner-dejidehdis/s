@@ -20,6 +20,9 @@
   const ai = {}; // per view: { loading, notes, error, blocked }
   const AI_API = window.ARGUO_API || (window.ARGUO_CONFIG || {}).apiUrl || 'https://arguo-api.arguolucid.workers.dev';
   const C = S.cloud;
+  const track = (name, detail) => C.logEvent && C.logEvent(name, detail);
+  let quota = null; // { remaining, limit } from the last AI reply
+  const fb = { open: false, rating: 0, sent: false, err: '', busy: false };
   const acct = { mode: 'signin', msg: '', err: '', busy: false, projects: null, recovery: false, confirmOpen: '' };
   let cloudState = ''; // '', 'saving', 'saved', 'error'
 
@@ -145,6 +148,7 @@
         <div class="ai-head"><h4>${label}</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : { discover: 'Summarise these results', ideas: 'Suggest directions', design: 'Review my design', methods: 'Compare with similar studies' }[v] || 'Get AI feedback'}</button></div>
         ${v === 'discover' ? '<p class="ai-rule">The AI summarises only the papers listed here and links each point to them. Always read the papers themselves.</p>' : ''}
         <p class="ai-rule">This module’s text is sent to our AI provider, Groq, which does not train on it (<a href="#privacy">privacy</a>). The AI follows the same rule: diagnose, never write.</p>
+        ${quota && quota.remaining != null ? `<p class="ai-quota">${quota.remaining} of ${quota.limit} free AI checks left today</p>` : ''}
         ${body}
       </section>`;
   }
@@ -180,6 +184,8 @@
       const res = await fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task: v.startsWith('check-') ? 'section' : { check: 'consistency', discover: 'survey' }[v] || v, input }) });
       const data = await res.json().catch(() => ({}));
+      if (data.limit) quota = { remaining: data.remaining, limit: data.limit };
+      if (res.ok) track('ai_used', v);
       ai[v] = res.ok ? { notes: data.notes || [], blocked: data.blocked || 0 } : { error: data.error || `Request failed (${res.status}).` };
     } catch (e) {
       ai[v] = { error: 'Could not reach the AI server. Previews block outside requests; it works on the deployed site.' };
@@ -489,7 +495,9 @@
       const res = await fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task: 'paper', input: { question: state.outline.question, title: m.title, authors: (m.authors || []).join(', '), year: m.year, venue: m.venue, type: m.type, abstract: m.abstract } }) });
       const data = await res.json().catch(() => ({}));
+      if (data.limit) quota = { remaining: data.remaining, limit: data.limit };
       if (!res.ok) throw new Error(data.error || `Request failed (${res.status}).`);
+      track('ai_used', 'paper');
       r.analysis = data.notes || [];
       if (fill && data.fields) {
         r.aiDraft = r.aiDraft || [];
@@ -566,6 +574,7 @@
       const meta = await S.discover.lookup(link, { proxy: AI_API });
       if (state.matrix.some((x) => x.meta && x.meta.id === meta.id)) throw new Error('That paper is already in your matrix.');
       const row = addToMatrix(meta);
+      track('add_paper', 'link');
       linkBusy = 'Summarising…'; save(); render();
       await analysePaper(row.id, true);
       toast('Paper added. Check the AI draft against the paper.');
@@ -672,6 +681,7 @@
     try {
       const style = await S.styles.parentOf(x);
       state.refs.journal = { title: x.title, name: x.name, style, format: x.format };
+      track('journal_pick');
       S.styles.journalInfo(x.title, { proxy: AI_API }).then((info) => { if (state.refs.journal && state.refs.journal.name === x.name) { state.refs.journal.info = info; save(); render(); } }, () => {});
       journalUi.results = []; journalUi.err = '';
       save();
@@ -875,7 +885,7 @@
     acct.busy = true; acct.err = ''; acct.msg = ''; render();
     try {
       if (kind === 'signin') await C.signIn(email, pass);
-      if (kind === 'signup') { const r = await C.signUp(email, pass); if (r.needsConfirm) acct.msg = 'Check your email and click the link to confirm your account, then sign in.'; }
+      if (kind === 'signup') { track('signup'); const r = await C.signUp(email, pass); if (r.needsConfirm) acct.msg = 'Check your email and click the link to confirm your account, then sign in.'; }
       if (kind === 'reset') { await C.sendReset(email); acct.msg = 'If that email has an account, a reset link is on its way.'; }
       if (kind === 'set-password') { await C.setPassword(pass); acct.recovery = false; acct.msg = 'Password updated.'; }
     } catch (e) { acct.err = e.message; }
@@ -947,6 +957,7 @@
       const d = state.discover;
       const r = await S.discover.search(d, { proxy: AI_API });
       Object.assign(d, { results: r.results, total: r.total, sample: false });
+      track('search');
       ai.discover = null;
       if (!r.results.length) searchErr = 'No papers found. Try fewer or broader terms, or a longer time range.';
     } catch (e) { searchErr = e.message; }
@@ -981,8 +992,10 @@
   }
 
   const ACTIONS = {
-    'open-sample': () => { if (!state.sample) state = S.sample.create(); save(); location.hash = 'overview'; },
-    'new-blank': () => { state = S.sample.blank(); save(); location.hash = 'outline'; },
+    'open-sample': () => {
+      track('open_sample'); if (!state.sample) state = S.sample.create(); save(); location.hash = 'overview'; },
+    'new-blank': () => {
+      track('new_blank'); state = S.sample.blank(); save(); location.hash = 'outline'; },
     'acct-mode': (el) => { acct.mode = el.dataset.mode; acct.msg = ''; acct.err = ''; render(); },
     'sign-out': async () => { try { await C.signOut(); } catch (e) { /* session already gone */ } state.cloudId = undefined; S.store.save(state); acct.projects = null; render(); },
     'cloud-save': () => { pushCloud().then(() => { acct.projects = null; render(); }); },
@@ -1047,8 +1060,53 @@
 
   document.addEventListener('submit', (e) => {
     const form = e.target.closest('[data-form]');
+    if (form && form.dataset.form === 'feedback') { e.preventDefault(); sendFeedback(form); return; }
     if (form) { e.preventDefault(); if (form.dataset.form === 'discover') runSearch(); else if (form.dataset.form === 'add-link') addFromLink(form); else if (form.dataset.form === 'journal') findJournal(form); else accountSubmit(form); }
   });
+
+  // ---------- feedback ----------
+  function feedbackHtml() {
+    if (!C.enabled()) return '';
+    if (!fb.open) return '<button class="fb-btn" data-action="fb-open">Feedback</button>';
+    const body = fb.sent ? '<p class="fb-thanks">Thank you. Every message is read.</p>'
+      : `<form data-form="feedback" class="fb-form">
+          <p class="fb-q">How useful is Arguo so far?</p>
+          <div class="fb-rate">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="${fb.rating === n ? 'on' : ''}" data-action="fb-rate" data-n="${n}" aria-label="${n} out of 5">${n}</button>`).join('')}</div>
+          <label for="fb-msg">What should we fix or add?</label>
+          <textarea id="fb-msg" rows="3" required></textarea>
+          <label for="fb-email">Email, if you want a reply (optional)</label>
+          <input id="fb-email" type="email" autocomplete="email">
+          ${fb.err ? `<p class="acct-msg error">${esc(fb.err)}</p>` : ''}
+          <button class="btn primary"${fb.busy ? ' disabled' : ''}>${fb.busy ? 'Sending…' : 'Send feedback'}</button>
+        </form>`;
+    return `<section class="fb-panel" role="dialog" aria-label="Feedback"><div class="fb-head"><b>Send feedback</b><button class="icon-btn" data-action="fb-close" aria-label="Close">✕</button></div>${body}</section>`;
+  }
+  function paintFeedback() {
+    let el = document.getElementById('fb');
+    if (!el) { el = document.createElement('div'); el.id = 'fb'; document.body.appendChild(el); }
+    el.innerHTML = feedbackHtml();
+  }
+  async function sendFeedback(form) {
+    fb.busy = true; fb.err = '';
+    const message = form.querySelector('#fb-msg').value;
+    const email = form.querySelector('#fb-email').value;
+    paintFeedback();
+    try { await C.sendFeedback({ rating: fb.rating, message, email, page: current() }); fb.sent = true; track('feedback'); }
+    catch (e) { fb.err = e.message; }
+    fb.busy = false; paintFeedback();
+  }
+  ACTIONS['fb-open'] = () => { fb.open = true; fb.sent = false; paintFeedback(); const t = document.getElementById('fb-msg'); if (t) t.focus(); };
+  ACTIONS['fb-close'] = () => { fb.open = false; paintFeedback(); };
+  ACTIONS['fb-rate'] = (el) => { fb.rating = Number(el.dataset.n); document.querySelectorAll('.fb-rate button').forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === fb.rating)); };
+
+  function loadAnalytics() {
+    const token = (window.ARGUO_CONFIG || {}).cfAnalyticsToken;
+    if (!token) return;
+    const sc = document.createElement('script');
+    sc.defer = true; sc.src = 'https://static.cloudflareinsights.com/beacon.min.js';
+    sc.setAttribute('data-cf-beacon', JSON.stringify({ token }));
+    document.head.appendChild(sc);
+  }
 
   window.addEventListener('hashchange', () => { pending = ''; render(); window.scrollTo(0, 0); });
   C.onChange((event) => {
@@ -1058,5 +1116,6 @@
     render();
   });
   render();
-  C.init().then(render, render);
+  C.init().then(() => { render(); paintFeedback(); track('visit', current()); }, render);
+  loadAnalytics();
 })();

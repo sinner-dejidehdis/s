@@ -44,3 +44,5 @@ node --test paper-studio/tests/*.test.js paper-studio/tests/*.test.mjs   # from 
 - `js/styles.js` journal style search (CSL registry via zotero.org), parent-style lookup and Crossref formatting
 
 How the modules connect: papers found in Discover or added by link go into the literature matrix and the reference list; author-year citations typed in the argument thread or consistency check are matched against the matrix, and missing ones can be found and added; the citation check lists every matrix paper and formats the list for the chosen journal.
+- `supabase/analytics.sql` insert-only `events` (anonymous funnel: visit, open_sample, ai_used, search, add_paper, journal_pick, signup, feedback) and `feedback` tables, with the funnel query
+- AI limit: the Worker counts AI checks per visitor IP per day in the KV namespace bound as `LIMITS`; `DAILY_LIMIT` (default 10) sets the number. Page views: set `cfAnalyticsToken` in `js/config.js` for Cloudflare Web Analytics

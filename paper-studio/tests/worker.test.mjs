@@ -96,3 +96,14 @@ test('section review keeps refs to sent papers and drops notes that rewrite the 
   const data = await res.json();
   assert.deepStrictEqual(data.notes.map((n) => [n.title, n.refs]), [['No explicit question', [1]]]);
 });
+
+test('each visitor gets DAILY_LIMIT AI checks per day', async () => {
+  const store = new Map();
+  const env = { GROQ_API_KEY: 'k', DAILY_LIMIT: '2', LIMITS: { get: async (k) => store.get(k) || null, put: async (k, v) => { store.set(k, v); } } };
+  const ask = () => { globalThis.fetch = async () => groq([]); return worker.fetch(new Request('https://x.dev/api/feedback', { method: 'POST', headers: { 'CF-Connecting-IP': '1.2.3.4' }, body: JSON.stringify({ task: 'outline', input: {} }) }), env); };
+  assert.strictEqual((await (await ask()).json()).remaining, 1);
+  assert.strictEqual((await (await ask()).json()).remaining, 0);
+  const third = await ask();
+  assert.strictEqual(third.status, 429);
+  assert.match((await third.json()).error, /2 free AI checks/);
+});

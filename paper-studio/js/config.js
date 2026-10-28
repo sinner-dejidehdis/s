@@ -4,5 +4,7 @@
 window.ARGUO_CONFIG = {
   apiUrl: 'https://arguo-api.arguolucid.workers.dev',
   supabaseUrl: 'https://tydpspiuqvpcfgxjqiwt.supabase.co',
+  // Cloudflare Web Analytics token (Analytics & Logs -> Web Analytics). Empty = off.
+  cfAnalyticsToken: '',
   supabaseAnonKey: 'sb_publishable_9IxCr3rPE5QDBgkVxGS-Hg_bmMttwFD',
 };

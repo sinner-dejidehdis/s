@@ -29,7 +29,9 @@
       <li><b>Account data.</b> Your email address and a securely hashed password, plus the dates you signed up and last signed in.</li>
       <li><b>Text sent for AI feedback.</b> Only when you press “Get AI feedback”, and only the content of that module.</li>
       <li><b>References you check.</b> When you use the citation check, the text of each reference is sent to Crossref to look up the record.</li>
-      <li><b>Technical data.</b> Like any website, our hosting provider receives your IP address, browser type and request times. We use this only to run and protect the service.</li>
+      <li><b>Usage events.</b> Anonymous records of which features are used (for example “opened the example” or “used AI feedback”), tied to a random code that lasts for one browser session. They never include what you write.</li>
+      <li><b>Feedback you send.</b> Your rating, message, the page you were on, and your email only if you give it.</li>
+            <li><b>Technical data.</b> Like any website, our hosting provider receives your IP address, browser type and request times. We use this only to run and protect the service.</li>
     </ul>
 
     <h2>Why we use it (legal bases)</h2>
@@ -46,7 +48,8 @@
       <thead><tr><th>Provider</th><th>What for</th><th>What it receives</th></tr></thead>
       <tbody>
         <tr><td>Cloudflare</td><td>Hosting the website and our AI relay server</td><td>Technical data; text sent for AI feedback passes through</td></tr>
-        <tr><td>Supabase</td><td>Accounts and saved projects</td><td>Account data and saved projects</td></tr>
+        <tr><td>Supabase</td><td>Accounts, saved projects, usage events and feedback</td><td>Account data, saved projects, usage events and feedback</td></tr>
+        <tr><td>Cloudflare Web Analytics</td><td>Counting page views</td><td>Page views without cookies or personal profiles</td></tr>
         <tr><td>Groq</td><td>Generating AI feedback</td><td>The text you ask about. Under Groq’s terms it is not used for training, is not retained by default, and logs may be kept up to 30 days for reliability and abuse prevention</td></tr>
         <tr><td>Crossref</td><td>Looking up references</td><td>The reference text you check</td></tr>
         <tr><td>Google Fonts, jsDelivr</td><td>Loading fonts and code libraries</td><td>Your IP address and browser details</td></tr>

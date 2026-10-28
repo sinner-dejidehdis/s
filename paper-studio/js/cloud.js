@@ -58,7 +58,21 @@
   }
   async function remove(id) { fail((await client.from('projects').delete().eq('id', id)).error); }
 
+  // Anonymous product events and feedback. Both tables accept inserts only;
+  // nobody can read them with the public key.
+  let session = '';
+  try { session = root.sessionStorage.getItem('arguo.s') || ''; if (!session) { session = Math.random().toString(36).slice(2, 12); root.sessionStorage.setItem('arguo.s', session); } } catch (e) { session = 'nostore'; }
+  function logEvent(name, detail) {
+    if (!client) return;
+    client.from('events').insert({ name: String(name).slice(0, 40), detail: detail ? String(detail).slice(0, 80) : null, session, signed_in: Boolean(user) }).then(() => {}, () => {});
+  }
+  async function sendFeedback(f) {
+    if (!client) throw new Error('Feedback is not set up on this site yet.');
+    fail((await client.from('feedback').insert({ rating: f.rating || null, message: String(f.message || '').slice(0, 4000), email: f.email ? String(f.email).slice(0, 200) : null, page: String(f.page || '').slice(0, 40) })).error);
+  }
+
   S.cloud = {
+    logEvent, sendFeedback,
     enabled: () => Boolean(client),
     user: () => user,
     onChange: (fn) => listeners.push(fn),

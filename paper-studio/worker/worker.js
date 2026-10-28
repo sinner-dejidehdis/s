@@ -185,6 +185,20 @@ async function resolve(url, headers) {
   return json({ doi: /^10\./.test(doi) ? doi : '', title }, 200, headers);
 }
 
+// Daily AI checks per visitor, counted by IP address in the LIMITS KV
+// namespace. DAILY_LIMIT (default 10) is set in the Worker's variables.
+// Without a LIMITS binding there is no per-visitor limit.
+async function takeQuota(request, env) {
+  const limit = Number(env.DAILY_LIMIT) || 10;
+  if (!env.LIMITS) return { ok: true, remaining: null, limit };
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const key = `ai:${new Date().toISOString().slice(0, 10)}:${ip}`;
+  const used = Number(await env.LIMITS.get(key)) || 0;
+  if (used >= limit) return { ok: false, remaining: 0, limit };
+  await env.LIMITS.put(key, String(used + 1), { expirationTtl: 60 * 60 * 48 });
+  return { ok: true, remaining: limit - used - 1, limit };
+}
+
 export default {
   async fetch(request, env) {
     const headers = cors(request.headers.get('Origin') || '', env);
@@ -201,6 +215,9 @@ export default {
     if (!build || typeof body.input !== 'object') return json({ error: 'Unknown task.' }, 400, headers);
     const prompt = build(body.input);
     if (prompt.length > MAX_INPUT_CHARS) return json({ error: 'Too much text at once. Check one section at a time.' }, 413, headers);
+
+    const quota = await takeQuota(request, env);
+    if (!quota.ok) return json({ error: `You have used today’s ${quota.limit} free AI checks. They reset at midnight UTC.`, remaining: 0, limit: quota.limit }, 429, headers);
 
     const res = await fetch(GROQ_URL, {
       method: 'POST',
@@ -240,7 +257,7 @@ export default {
       .map((n) => (section ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= Math.min((body.input.papers || []).length, 6)) }) : n))
       .map((n) => (survey || ideas || methods ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= (survey ? sent : Math.min((body.input.papers || []).length, 10))) }) : n))
       .filter((n) => !copiesUser(n, userText) && (!(survey || methods) || n.refs.length));
-    return json({ notes: kept, fields, blocked: Math.min(notes.length, 5) - kept.length }, 200, headers);
+    return json({ notes: kept, fields, blocked: Math.min(notes.length, 5) - kept.length, remaining: quota.remaining, limit: quota.limit }, 200, headers);
   },
 };
 
