@@ -50,3 +50,7 @@ How the modules connect: papers found in Discover or added by link go into the l
 ## Free tools (no sign-up)
 
 Standalone pages for search and sharing, each with its own title, description, FAQ and schema.org data: `citation-checker/` (is this reference real?), `reference-formatter/` (any journal's style), `gap-finder/` (recent papers and a cited AI briefing). They share `js/tools.js` and the workspace modules. `sitemap.xml` and `robots.txt` list them; update the base URL there if the domain changes.
+
+## Guided tour
+
+The first time someone clicks either start button, a 10-step tour opens on the example project (stored as `arguo.tour` in localStorage once finished or skipped). Each step explains one module (Learn), then asks for one small action on the real page with the target highlighted (Try it) and ticks it when done. It can be minimised, skipped, or replayed from the sidebar. Tour events (`tour_start`, `tour_step`, `tour_end`) go to the analytics table.

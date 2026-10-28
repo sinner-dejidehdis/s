@@ -917,7 +917,7 @@
     const view = VIEWS[v]();
     app.innerHTML = `<div class="workspace wrap">
       <nav class="side" aria-label="Modules">${GROUPS_NAV.map(([g, ids]) => `<p class="side-label">${g}</p>` + ids.map((id) => MODULES.find((x) => x.id === id)).map((x) => `<a href="#${x.id}"${x.id === (v === 'paper' ? 'matrix' : v) ? ' aria-current="page"' : ''}>
-        ${icon(x.id)}<span>${x.name}</span>${st[x.id] && st[x.id].issues ? `<b>${st[x.id].issues}</b>` : ''}</a>`).join('')).join('')}</nav>
+        ${icon(x.id)}<span>${x.name}</span>${st[x.id] && st[x.id].issues ? `<b>${st[x.id].issues}</b>` : ''}</a>`).join('')).join('')}<button class="side-tour" data-action="tour-start">✦ Take the guided tour</button></nav>
       <section class="module">
         <header class="module-head"><h1><span class="tile-ico">${icon(m.id)}</span>${m.name}</h1><p>${m.pain}</p></header>
         <div class="module-body"><div class="editor">${view.main}</div><aside class="notes" id="notes" aria-label="Notes">${view.notes}</aside></div>
@@ -1002,9 +1002,20 @@
 
   const ACTIONS = {
     'open-sample': () => {
-      track('open_sample'); if (!state.sample) state = S.sample.create(); save(); location.hash = 'overview'; },
+      track('open_sample');
+      if (!tourSeen()) { startTour('sample'); return; }
+      if (!state.sample) state = S.sample.create(); save(); location.hash = 'overview'; },
     'new-blank': () => {
-      track('new_blank'); state = S.sample.blank(); save(); location.hash = 'outline'; },
+      track('new_blank');
+      if (!tourSeen()) { startTour('blank'); return; }
+      state = S.sample.blank(); save(); location.hash = 'outline'; },
+    'tour-start': () => startTour('replay'),
+    'tour-next': () => tourGo(tour.i + 1),
+    'tour-back': () => tourGo(tour.i - 1),
+    'tour-skip': () => endTour(false),
+    'tour-finish': (el) => endTour(el.dataset.blank === '1'),
+    'tour-here': () => { location.hash = TOUR[tour.i].view; },
+    'tour-min': () => { tour.min = !tour.min; paintTour(); },
     'acct-mode': (el) => { acct.mode = el.dataset.mode; acct.msg = ''; acct.err = ''; render(); },
     'sign-out': async () => { try { await C.signOut(); } catch (e) { /* session already gone */ } state.cloudId = undefined; S.store.save(state); acct.projects = null; render(); },
     'cloud-save': () => { pushCloud().then(() => { acct.projects = null; render(); }); },
@@ -1117,7 +1128,98 @@
     document.head.appendChild(sc);
   }
 
-  window.addEventListener('hashchange', () => { pending = ''; render(); window.scrollTo(0, 0); });
+  // ---------- guided tour: learn what a module does, then try one thing in it ----------
+  const TOUR = [
+    { view: 'overview', title: 'Welcome to Arguo', learn: ['Arguo checks your paper at every stage and never writes it for you.', 'The sidebar follows the life of a paper: Plan (find and read research, design the study), Write (argument, references, consistency) and Revise & submit.', 'This tour uses an example project about social media and sleep. It contains deliberate mistakes so you can see what each module catches.'],
+      try: 'Look at the module cards below. A red count means problems to fix.', target: '.status-grid' },
+    { view: 'discover', title: 'Discover research', learn: ['Search 250M+ papers for the newest or most-cited work on your topic.', 'Every result links to the paper. “Summarise these results” gives an AI briefing that cites only these papers.', 'Use it when you have a topic and need to know the state of the art.'],
+      try: 'Add one paper to your literature matrix.', target: '.paper-links', done: { click: '[data-action="to-matrix"]' } },
+    { view: 'matrix', title: 'Literature matrix', learn: ['One row per paper: sample, method, finding, limitation, and how it relates to your study.', 'Paste a DOI or link to add a paper; the AI drafts reading notes from the abstract, marked “AI draft” until you edit them.', 'The notes on the right spot shared limitations and one-sided evidence: that is where gaps hide.'],
+      try: 'Click a paper title to open its detail page.', target: '.paper-open', done: { click: '.paper-open' } },
+    { view: 'ideas', title: 'Next steps & ideas', learn: ['A plan built from where your project is, with the one thing to do next at the top.', 'Below it, the AI can suggest research directions, each built on papers you found.'],
+      try: 'Read the “Do this next” card. Click Next when you are ready.', target: '.next-card' },
+    { view: 'design', title: 'Study design', learn: ['Describe your planned study before collecting data.', 'Arguo checks what reviewers always ask: controls, randomisation, sample size, confounders, ethics, preregistration and the right reporting guideline.', 'The AI can review the design and compare it with methods of similar studies.'],
+      try: 'Change the study design type and watch the notes change.', target: '#g-type', done: { change: '#g-type' } },
+    { view: 'outline', title: 'Argument thread', learn: ['Six nodes: question, gap, aim, method, result, conclusion. If they line up, every section knows its job.', 'The notes flag breaks, such as a causal conclusion from survey data.', 'Each node has an example from another topic, so you see the pattern without copying.'],
+      try: 'The example conclusion says social media “causes” insomnia. Edit it and watch the note update.', target: '#f-conclusion', done: { input: '#f-conclusion' } },
+    { view: 'cite', title: 'Citation check', learn: ['Every paper in your matrix appears here; paste any others.', '“Check references” verifies each one against Crossref and flags references that do not exist.', 'Choose your target journal and the list is formatted in its official style.'],
+      try: 'Switch the reference style and see the entries reformat.', target: '#f-style', done: { change: '#f-style' } },
+    { view: 'check', title: 'Consistency check', learn: ['Six tabs, one for each node of your argument thread. Paste the matching section of your manuscript.', 'Each tab shows what reviewers look for, a common structure and an example, and the AI can show how published papers do it.'],
+      try: 'Open the Conclusion tab to see sentences flagged in the example discussion.', target: '.tabs', done: { click: '.tab[data-tab="conclusion"]' } },
+    { view: 'review', title: 'Reviewer comments', learn: ['Paste comments from reviewers or your supervisor; they become a task list.', 'Must-fix and vague comments are flagged, and you write a plan for each one.'],
+      try: 'Tick one task as addressed.', target: '.task-top', done: { change: '.task-top input[type=checkbox]' } },
+    { view: 'submit', title: 'Submission checklist', learn: ['It adapts to your target journal and study design.', 'Items Arguo can verify are ticked automatically; a link takes you to fix any that fail.'],
+      try: 'Tick one item you have done.', target: '.check-item input[type=checkbox]', done: { change: '.check-item input[type=checkbox]' } },
+  ];
+  const tour = { on: false, i: 0, done: {}, intent: 'sample', min: false };
+  function tourSeen() { try { return localStorage.getItem('arguo.tour') === 'done'; } catch (e) { return true; } }
+  function startTour(intent) {
+    tour.on = true; tour.i = 0; tour.done = {}; tour.intent = intent;
+    if (!state.sample) state = S.sample.create();
+    save(); track('tour_start', intent);
+    if (location.hash === '#' + TOUR[0].view) render(); else location.hash = TOUR[0].view;
+  }
+  function tourGo(i) {
+    if (i < 0) return;
+    if (i >= TOUR.length) { tour.i = TOUR.length; paintTour(); return; }
+    tour.i = i; tour.min = false; track('tour_step', TOUR[i].view);
+    if (location.hash === '#' + TOUR[i].view) render(); else location.hash = TOUR[i].view;
+  }
+  function endTour(blank) {
+    tour.on = false;
+    try { localStorage.setItem('arguo.tour', 'done'); } catch (e) { /* storage blocked */ }
+    track('tour_end', tour.i >= TOUR.length ? 'finished' : 'skipped_' + tour.i);
+    document.querySelectorAll('.tour-target').forEach((el) => el.classList.remove('tour-target'));
+    if (blank) { state = S.sample.blank(); save(); location.hash = 'outline'; } else render();
+    paintTour();
+  }
+  function paintTour() {
+    let el = document.getElementById('tour');
+    if (!el) { el = document.createElement('div'); el.id = 'tour'; document.body.appendChild(el); }
+    document.body.classList.toggle('touring', tour.on);
+    document.querySelectorAll('.tour-target').forEach((x) => x.classList.remove('tour-target'));
+    if (!tour.on) { el.innerHTML = ''; return; }
+    if (tour.i >= TOUR.length) {
+      el.innerHTML = `<section class="tour-card" role="dialog" aria-label="Tour complete"><p class="tour-step">Tour complete</p><h3>You’ve seen every module.</h3>
+        <p>Start your own paper whenever you are ready. You can replay this tour from the sidebar at any time.</p>
+        <div class="tour-actions"><button class="btn grad" data-action="tour-finish" data-blank="1">Start my paper</button><button class="btn" data-action="tour-finish">Keep exploring the example</button></div></section>`;
+      return;
+    }
+    const st = TOUR[tour.i];
+    const here = current() === st.view || (st.view === 'matrix' && current() === 'paper');
+    const ok = tour.done[tour.i];
+    if (tour.min) {
+      el.innerHTML = `<button class="tour-pill${ok ? ' ok' : ''}" data-action="tour-min" aria-label="Show the guide">${ok ? '✓' : '✦'} Step ${tour.i + 1}/${TOUR.length} · ${esc(st.try)}</button>`;
+    } else el.innerHTML = `<section class="tour-card" role="dialog" aria-label="Guided tour">
+      <div class="tour-top"><p class="tour-step">Step ${tour.i + 1} of ${TOUR.length}</p><span><button class="icon-btn" data-action="tour-min">Minimise</button><button class="icon-btn" data-action="tour-skip">Skip tour</button></span></div>
+      <div class="tour-bar"><i style="width:${((tour.i + 1) / TOUR.length) * 100}%"></i></div>
+      <h3>${st.title}</h3>
+      <p class="tour-label">Learn</p><ul>${st.learn.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <p class="tour-label">Try it</p><p class="tour-try${ok ? ' ok' : ''}">${ok ? '✓ ' : ''}${esc(st.try)}</p>
+      ${here ? '' : '<button class="link-btn" data-action="tour-here">Go back to this step</button>'}
+      <div class="tour-actions">${tour.i ? '<button class="btn" data-action="tour-back">Back</button>' : (tour.intent === 'blank' ? '<button class="btn" data-action="tour-finish" data-blank="1">Skip and start writing</button>' : '')}
+        <button class="btn ${ok || !st.done ? 'grad' : ''}" data-action="tour-next">${tour.i === TOUR.length - 1 ? 'Finish' : 'Next'}</button></div>
+    </section>`;
+    if (here && st.target) {
+      const t = document.querySelector(st.target);
+      if (t) {
+        t.classList.add('tour-target');
+        // Keep the target in the top part of the screen, clear of the guide card.
+        const top = t.getBoundingClientRect().top + window.scrollY - (window.innerWidth <= 760 ? 90 : 140);
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+    }
+  }
+  function tourWatch(type, e) {
+    if (!tour.on || tour.i >= TOUR.length) return;
+    const d = TOUR[tour.i].done;
+    if (d && d[type] && e.target.closest(d[type]) && !tour.done[tour.i]) { tour.done[tour.i] = true; setTimeout(paintTour, 0); }
+  }
+  ['click', 'change', 'input'].forEach((type) => document.addEventListener(type, (e) => tourWatch(type, e), true));
+  const renderPage = render;
+  render = function () { renderPage(); paintTour(); };
+
+  window.addEventListener('hashchange', () => { pending = ''; window.scrollTo(0, 0); render(); });
   C.onChange((event) => {
     if (event === 'PASSWORD_RECOVERY') { acct.recovery = true; history.replaceState(null, '', '#account'); }
     if (event === 'SIGNED_IN' && /access_token|type=/.test(location.hash)) history.replaceState(null, '', '#account');
