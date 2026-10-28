@@ -117,7 +117,6 @@
     const refs = state.refs.results || [];
     const c = S.consistency.check({ question: o.question, method: o.method, ...state.check });
     const rs = S.review.summary(state.review.tasks);
-    const checked = S.checklist.ALL.filter((i) => state.submit.checked[i.id]).length;
     const issues = (ns) => ns.filter((n) => n.level === 'issue').length;
     return {
       design: { value: state.design.type ? S.design.TYPES[state.design.type].split(' (')[0] : 'Not planned yet', issues: S.design.check(state.design).filter((n) => n.level === 'issue').length && state.design.type ? S.design.check(state.design).filter((n) => n.level === 'issue').length : 0 },
@@ -129,7 +128,7 @@
       check: { value: !state.check.results.trim() || !state.check.discussion.trim() ? 'Nothing pasted yet'
         : c.flagged.length ? `${c.flagged.length} sentences to review` : 'No problems found', issues: issues(c.notes) },
       review: { value: `${rs.done}/${rs.total} addressed`, issues: rs.majorOpen },
-      submit: { value: `${checked}/${S.checklist.ALL.length} items`, issues: 0 },
+      submit: { value: (() => { const it = S.checklist.build(state).flatMap((g) => g.items); return `${it.filter((i) => S.checklist.isDone(i, state)).length}/${it.length} items`; })(), issues: 0 },
     };
   }
 
@@ -576,17 +575,22 @@
     return notes;
   }
 
-  function cite() {
-    const added = syncRefs();
-    if (added) setTimeout(() => toast(`${added} ${added === 1 ? 'paper' : 'papers'} from your literature matrix added`), 0);
+  function journalPicker() {
     const j = state.refs.journal;
-    const picker = j
-      ? `<div class="journal-chip"><span>Formatting for <b>${esc(j.title)}</b> · ${esc(j.style)} style</span><button class="link-btn" data-action="journal-clear">Change journal</button></div>`
+    return j
+      ? `<div class="journal-chip"><span>Target journal: <b>${esc(j.title)}</b> · ${esc(j.style)} style${j.info && j.info.publisher ? ` · ${esc(j.info.publisher)}` : ''}</span><button class="link-btn" data-action="journal-clear">Change journal</button></div>`
       : `<form class="search-bar" data-form="journal"><label for="j-q" class="sr">Target journal</label>
           <input id="j-q" value="${esc(journalUi.q)}" placeholder="Target journal, e.g. Sleep Medicine Reviews, Nature, PLOS ONE">
           <button class="btn"${journalUi.loading ? ' disabled' : ''}>${journalUi.loading ? 'Loading journals…' : 'Find journal'}</button></form>
         ${journalUi.err ? `<p class="acct-msg error">${esc(journalUi.err)}</p>` : ''}
         ${journalUi.results.length ? `<ul class="journal-list">${journalUi.results.map((x, i) => `<li><button class="link-btn" data-action="journal-pick" data-i="${i}">${esc(x.title)}</button><small>${esc(x.format)}</small></li>`).join('')}</ul>` : ''}`;
+  }
+
+  function cite() {
+    const added = syncRefs();
+    if (added) setTimeout(() => toast(`${added} ${added === 1 ? 'paper' : 'papers'} from your literature matrix added`), 0);
+    const j = state.refs.journal;
+    const picker = journalPicker();
     const main = `<p class="intro">Every paper in your literature matrix is listed here. Paste any other references, one per line. Arguo checks each against Crossref, then formats it for your target journal.</p>
       <h3 class="sub">Target journal</h3>
       ${picker}
@@ -618,6 +622,7 @@
     try {
       const style = await S.styles.parentOf(x);
       state.refs.journal = { title: x.title, name: x.name, style, format: x.format };
+      S.styles.journalInfo(x.title, { proxy: AI_API }).then((info) => { if (state.refs.journal && state.refs.journal.name === x.name) { state.refs.journal.info = info; save(); render(); } }, () => {});
       journalUi.results = []; journalUi.err = '';
       save();
       formatAll();
@@ -738,14 +743,31 @@
   }
 
   function submit() {
-    const main = `<p class="intro">Go through each item before you submit. Your target journal’s Guide for Authors has the final say.</p>
-      ${S.checklist.GROUPS.map((g) => `<fieldset class="checks"><legend>${g.name}</legend>${g.items.map(([id, label, how]) => `
-        <div class="check-item"><input type="checkbox" id="c-${id}" data-bind="submit.checked.${id}" data-rerender="notes"${state.submit.checked[id] ? ' checked' : ''}>
-        <label for="c-${id}">${label}${how ? `<small>${how}</small>` : ''}</label></div>`).join('')}</fieldset>`).join('')}`;
-    const left = S.checklist.ALL.filter((i) => !state.submit.checked[i.id]);
-    const notes = left.length
-      ? [{ level: 'tip', title: `${left.length} ${left.length === 1 ? 'item' : 'items'} left to check`, why: left.slice(0, 6).map((i) => i.label).join('; ') + (left.length > 6 ? '…' : ''), how: 'Editors often return a manuscript straight away when statements or ethics details are missing.' }]
-      : [{ level: 'ok', title: 'Checklist complete', why: '', how: 'Read your cover letter once more before you submit.' }];
+    const groups = S.checklist.build(state);
+    const items = groups.flatMap((g) => g.items);
+    const d = state.design.type ? S.design.TYPES[state.design.type] : '';
+    const main = `<p class="intro">The checklist adapts to your target journal and study design. Items Arguo can verify from your project are checked automatically; tick the rest yourself. The journal’s Guide for Authors has the final say.</p>
+      <h3 class="sub">Target journal</h3>
+      ${journalPicker()}
+      <p class="fine">${d ? `Study design: ${esc(d)} (<a href="#design">change</a>).` : 'Choose your study design in <a href="#design">Study design</a> to get design-specific items.'}</p>
+      ${groups.map((g) => `<fieldset class="checks"><legend>${g.name}</legend>${g.items.map((i) => {
+        const done = S.checklist.isDone(i, state);
+        const control = i.auto === true ? '<span class="auto-mark" title="Checked by Arguo">✓</span>'
+          : `<input type="checkbox" id="c-${i.id}" data-bind="submit.checked.${i.id}" data-rerender="all"${state.submit.checked[i.id] ? ' checked' : ''}>`;
+        return `<div class="check-item${done ? ' is-done' : ''}">${control}
+          <label${i.auto === true ? '' : ` for="c-${i.id}"`}>${esc(i.label)}
+            ${i.auto === true ? '<em class="auto-chip">Checked by Arguo</em>' : i.auto === false ? `<a class="auto-chip warn" href="#${i.fix}">${esc(i.autoNote)}: fix it →</a>` : ''}
+            ${i.how ? `<small>${esc(i.how)}</small>` : ''}
+            ${i.links.length ? `<small>${i.links.map((l) => `<a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.text)}</a>`).join(' · ')}</small>` : ''}</label></div>`;
+      }).join('')}</fieldset>`).join('')}`;
+    const left = items.filter((i) => !S.checklist.isDone(i, state));
+    const notes = [];
+    if (!state.refs.journal) notes.push({ level: 'ask', title: 'Choose your target journal', why: 'Requirements differ between journals: scope, length, reference style, fees.', how: 'Search for it above. The checklist and your reference list then follow that journal.' });
+    const info = state.refs.journal && state.refs.journal.info;
+    if (info && info.isOa && !info.doaj) notes.push({ level: 'issue', title: 'Open-access journal not listed in DOAJ', why: 'Most legitimate open-access journals are in the Directory of Open Access Journals.', how: 'Check the publisher, editorial board and indexing before you submit. Ask your library if unsure.' });
+    notes.push(left.length
+      ? { level: 'tip', title: `${left.length} ${left.length === 1 ? 'item' : 'items'} left`, why: left.slice(0, 6).map((i) => i.label).join('; ') + (left.length > 6 ? '…' : ''), how: 'Editors often return a manuscript straight away when statements or ethics details are missing.' }
+      : { level: 'ok', title: 'Checklist complete', why: '', how: 'Read your cover letter once more before you submit.' });
     return { main, notes: notesPanel(notes) };
   }
 

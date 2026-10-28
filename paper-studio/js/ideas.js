@@ -25,7 +25,7 @@
       add('Make the discussion match the results', `${c.flagged.length} sentences to review.`, 'check', !c.notes.some((n) => n.level === 'issue'));
     } else add('Check your results and discussion', 'Paste them into the consistency check once you have a draft.', 'check', false);
     if (tasks.length) add('Address the must-fix reviewer comments', `${tasks.filter((t) => t.done).length} of ${tasks.length} addressed.`, 'review', !tasks.some((t) => t.priority === 'Must fix' && !t.done));
-    const left = S.checklist.ALL.filter((i) => !(p.submit && p.submit.checked[i.id])).length;
+    const left = S.checklist.build(p).flatMap((g) => g.items).filter((i) => !S.checklist.isDone(i, p)).length;
     add('Complete the submission checklist', `${left} items left.`, 'submit', left === 0);
     return steps;
   }

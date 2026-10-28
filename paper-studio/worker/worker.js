@@ -153,7 +153,7 @@ function json(body, status, headers) {
 // Relays an OpenAlex works search for visitors whose own budget ran out.
 async function search(url, env, headers) {
   const target = url.searchParams.get('url') || '';
-  if (!/^https:\/\/api\.openalex\.org\/works[?/]/.test(target)) return json({ error: 'Only OpenAlex work requests are allowed.' }, 400, headers);
+  if (!/^https:\/\/api\.openalex\.org\/(works|sources)[?/]/.test(target)) return json({ error: 'Only OpenAlex work requests are allowed.' }, 400, headers);
   const u = new URL(target);
   if (env.OPENALEX_API_KEY) u.searchParams.set('api_key', env.OPENALEX_API_KEY);
   const res = await fetch(u.toString(), { headers: { 'User-Agent': 'Arguo (academic writing feedback)' } });

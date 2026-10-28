@@ -94,3 +94,22 @@ test('journal styles: search ranks exact and prefix matches, dependent styles re
   const txt = await St.formatDoi('10.1/x', 'nature', { fetch: async (u, o) => { assert.ok(o.headers.Accept.includes('style=nature')); return { ok: true, text: async () => '1.Levenson, J. C. The association. Prev. Med. 85, 36–41 (2016).\n' }; } });
   assert.strictEqual(txt, 'Levenson, J. C. The association. Prev. Med. 85, 36–41 (2016).');
 });
+
+test('the submission checklist adapts to journal and design and auto-checks what it can', () => {
+  for (const f of ['outline', 'consistency', 'review', 'cite', 'checklist', 'sample', 'ideas', 'design']) require(path.join(__dirname, '..', 'js', f + '.js'));
+  const S = globalThis.Sigao;
+  const p = S.sample.create();
+  p.refs.journal = { title: 'Sleep Health', style: 'apa', format: 'author-date', info: { publisher: 'Elsevier', isOa: true, doaj: false, apc: 3000, works: 2000 } };
+  p.design.type = 'experiment';
+  const items = S.checklist.build(p).flatMap((g) => g.items);
+  const by = (id) => items.find((i) => i.id === id);
+  assert.ok(by('scope').label.includes('Sleep Health'));
+  assert.ok(by('reporting').label.includes('CONSORT'));
+  assert.ok(by('registered'));
+  assert.ok(by('apc').label.includes('3,000'));
+  assert.strictEqual(by('predatory').auto, true);
+  assert.strictEqual(by('refs').auto, false, 'sample has unverified references');
+  p.design.type = 'review';
+  const rev = S.checklist.build(p).flatMap((g) => g.items);
+  assert.ok(!rev.some((i) => i.id === 'consent') && rev.some((i) => i.id === 'prospero'));
+});

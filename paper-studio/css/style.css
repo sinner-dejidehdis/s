@@ -368,3 +368,9 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); f
 .guide-grid .guide ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
 .pattern-line { font-family: var(--mono); font-size: var(--step--1); color: var(--accent); margin-bottom: 8px; }
 .tab-nav { display: flex; justify-content: space-between; gap: 10px; }
+
+/* adaptive checklist */
+.auto-mark { flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--ok); color: var(--surface); font-size: 0.6875rem; line-height: 18px; text-align: center; margin-top: 3px; }
+.auto-chip { font-style: normal; font-size: 0.6875rem; font-weight: 500; color: var(--ok); background: var(--ok-soft); border-radius: 999px; padding: 0 7px; margin-left: 6px; }
+.auto-chip.warn { color: var(--warn); background: var(--warn-soft); }
+.check-item.is-done > label { color: var(--muted); }

@@ -53,5 +53,24 @@
   // The built-in formatter closest to a style, for references without a DOI.
   function fallback(format) { return format === 'numeric' ? 'vancouver' : format === 'note' ? 'chicago' : 'apa'; }
 
-  S.styles = { load, search, parentOf, formatDoi, fallback };
+  // Facts about the journal from OpenAlex: publisher, open access, APC, DOAJ listing, homepage.
+  async function journalInfo(title, opts) {
+    opts = opts || {};
+    const f = getFetch(opts);
+    const url = 'https://api.openalex.org/sources?search=' + encodeURIComponent(title) + '&per-page=5&select=display_name,issn_l,homepage_url,host_organization_name,is_oa,is_in_doaj,apc_usd,works_count,summary_stats,type';
+    let res;
+    try { res = await f(url); } catch (e) { res = null; }
+    if ((!res || res.status === 429 || res.status === 403) && opts.proxy) {
+      try { res = await f(opts.proxy + '/api/search?url=' + encodeURIComponent(url)); } catch (e) { res = null; }
+    }
+    if (!res || !res.ok) return null;
+    const list = (await res.json()).results || [];
+    const want = title.toLowerCase();
+    const j = list.find((x) => String(x.display_name).toLowerCase() === want) || list.find((x) => x.type === 'journal') || list[0];
+    if (!j) return null;
+    return { name: j.display_name, issn: j.issn_l || '', homepage: j.homepage_url || '', publisher: j.host_organization_name || '', isOa: Boolean(j.is_oa),
+      doaj: Boolean(j.is_in_doaj), apc: j.apc_usd == null ? null : j.apc_usd, works: j.works_count || 0, hIndex: (j.summary_stats && j.summary_stats.h_index) || null };
+  }
+
+  S.styles = { load, search, parentOf, formatDoi, fallback, journalInfo };
 })(typeof window !== 'undefined' ? window : globalThis);

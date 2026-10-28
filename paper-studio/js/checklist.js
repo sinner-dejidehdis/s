@@ -39,5 +39,61 @@
 
   const ALL = GROUPS.flatMap((g) => g.items.map(([id, label, how]) => ({ id, label, how, group: g.name })));
 
-  S.checklist = { GROUPS, ALL };
+  // The checklist for this project: wording follows the target journal and
+  // study design, items that do not apply are dropped, and items Arguo can
+  // verify from the project are checked automatically.
+  function build(p) {
+    const j = (p.refs && p.refs.journal) || null;
+    const info = (j && j.info) || null;
+    const type = (p.design && p.design.type) || '';
+    const guide = S.design && S.design.GUIDELINES[type];
+    const human = !['review', 'lab'].includes(type);
+    const jt = j ? j.title : 'the journal';
+    const q = encodeURIComponent((j ? j.title : '') + ' guide for authors');
+    const guideLink = j ? [{ href: info && info.homepage ? info.homepage : `https://www.google.com/search?q=${q}`, text: info && info.homepage ? `${jt} website` : `Find the ${jt} guide for authors` }] : [];
+
+    const o = p.outline || {};
+    const refs = (p.refs && p.refs.results) || [];
+    const auto = {};
+    if (S.outline) auto.thread = S.outline.filled(o) === 6 && !S.outline.check(o).some((n) => n.level === 'issue');
+    if (S.consistency && p.check && String(p.check.discussion || '').trim()) auto.limits = !S.consistency.check({ question: o.question, method: o.method, ...p.check }).notes.some((n) => n.title === 'The discussion has no limitations');
+    if (refs.length) auto.refs = refs.every((r) => r.status === 'verified');
+    if (j && refs.length) auto.format = refs.every((r) => !r.doi || r.formattedStyle === j.style);
+    if (S.design && type && p.design) {
+      const all = Object.values(p.design).join(' ');
+      if (type === 'experiment') auto.registered = /clinicaltrials|isrctn|registered|registration|pre-?regist/i.test(all) || null;
+    }
+
+    const groups = GROUPS.map((g) => ({ name: g.name, items: g.items.map(([id, label, how]) => ({ id, label, how, links: [] })) }));
+    const find = (id) => groups.flatMap((g) => g.items).find((i) => i.id === id);
+    const set = (id, patch) => { const it = find(id); if (it) Object.assign(it, patch); };
+
+    set('scope', { label: `The topic fits ${jt}’s Aims & Scope`, links: guideLink });
+    set('length', { label: `Word count, abstract and keywords meet ${j ? jt + '’s' : 'the'} Guide for Authors`, links: guideLink });
+    set('recent', { label: j ? `You cite recent work, including from ${jt} itself` : 'You cite relevant work from the last three years' });
+    if (info) {
+      set('predatory', { label: `${jt} is a legitimate journal`, how: [info.publisher && `Published by ${info.publisher}.`, info.doaj ? 'Listed in DOAJ.' : info.isOa ? 'Open access but not listed in DOAJ: check it carefully.' : '', info.works ? `${info.works.toLocaleString()} articles indexed in OpenAlex.` : ''].filter(Boolean).join(' '), auto: info.works > 500 ? true : null });
+    }
+    set('format', { label: j ? `References are in ${jt}’s style` : 'Reference style matches the journal', how: j ? `Format them in the citation check (${j.style} style).` : 'Choose your target journal in the citation check.' });
+    if (guide) set('reporting', { label: `You followed ${guide}`, how: `The reporting guideline for your design. Many journals ask you to upload the completed checklist; see the EQUATOR Network.` });
+    if (!human) {
+      groups.forEach((g) => { g.items = g.items.filter((i) => !['ethics', 'consent'].includes(i.id) || (type === 'lab' && i.id === 'ethics')); });
+      if (type === 'lab') set('ethics', { label: 'Animal or biosafety approval, if your work needs it', how: 'Name the committee and approval number.' });
+    }
+    const extra = [];
+    if (type === 'experiment') extra.push({ id: 'registered', label: 'The trial was registered before enrolment', how: 'Give the registry and number (e.g. ClinicalTrials.gov, ISRCTN). Most medical journals refuse unregistered trials.', links: [{ href: 'https://clinicaltrials.gov', text: 'ClinicalTrials.gov' }] });
+    if (type === 'review') extra.push({ id: 'prospero', label: 'The review protocol was registered', how: 'PROSPERO for health-related reviews, or OSF.', links: [{ href: 'https://www.crd.york.ac.uk/prospero/', text: 'PROSPERO' }] });
+    if (info && info.isOa) extra.push({ id: 'apc', label: info.apc ? `You can cover the article processing charge (about US$${info.apc.toLocaleString()})` : 'You know whether there is an article processing charge', how: 'Check for waivers or institutional agreements that cover the fee.', links: guideLink });
+    if (extra.length) groups[0].items.push(...extra.filter((e) => e.id === 'apc')), groups[2].items.push(...extra.filter((e) => e.id !== 'apc'));
+
+    groups.forEach((g) => g.items.forEach((i) => {
+      if (i.auto === undefined) i.auto = auto[i.id] === undefined ? null : auto[i.id];
+      if (i.auto === false) { i.fix = { thread: 'outline', limits: 'check', refs: 'cite', format: 'cite' }[i.id] || ''; i.autoNote = 'Arguo found problems here'; }
+    }));
+    return groups;
+  }
+
+  function isDone(item, p) { return item.auto === true || Boolean(p.submit && p.submit.checked[item.id]); }
+
+  S.checklist = { GROUPS, ALL, build, isDone };
 })(typeof window !== 'undefined' ? window : globalThis);
