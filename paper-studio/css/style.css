@@ -302,3 +302,23 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); f
 .foot { border-top: 1px solid var(--line); background: var(--surface); }
 .foot .wrap { display: flex; gap: 16px; padding-block: 16px; font-size: var(--step--1); color: var(--muted); }
 .foot a { color: var(--muted); }
+
+/* discover */
+.search-bar { display: flex; gap: 8px; }
+.search-bar input { flex: 1 1 auto; min-width: 0; }
+.inline-check { display: inline-flex; gap: 6px; align-items: center; font-size: var(--step--1); }
+.inline-check input { margin: 0; }
+.paper-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.paper { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 8px; transition: box-shadow 0.3s; }
+.paper.flash { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 1px var(--accent); }
+.paper-top { display: flex; gap: 10px; }
+.paper-n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--margin); color: var(--muted); font: 500 0.75rem/24px var(--mono); text-align: center; }
+.paper-main { min-width: 0; display: grid; gap: 2px; }
+.paper-title { font-weight: 500; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.paper-title:hover { color: var(--accent); text-decoration: underline; }
+.paper-meta, .paper-noabs { font-size: var(--step--1); color: var(--muted); }
+.paper-abs summary { font-size: var(--step--1); color: var(--accent); cursor: pointer; }
+.paper-abs p { margin-top: 6px; font-size: var(--step--1); color: var(--muted); }
+.paper-links { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: var(--step--1); padding-left: 34px; }
+.note-refs { font-size: var(--step--1); color: var(--muted); margin-top: -8px; padding-bottom: 8px; }
+.note-refs a { font-family: var(--mono); }

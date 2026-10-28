@@ -2,12 +2,13 @@
 // and enforces the red line on the way back. The Groq key lives only in the
 // Worker's secret GROQ_API_KEY; the page never sees it.
 //
-// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review", input: {...} }
+// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey", input: {...} }
+// GET  /api/search?url=<OpenAlex works URL>  (adds OPENALEX_API_KEY when set)
 // -> { notes: [{ level, field?, title, why, how, example?, ask? }], blocked: n }
 
 const MODEL = 'openai/gpt-oss-120b';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MAX_INPUT_CHARS = 12000; // keeps one request under the free tier's 8K tokens per minute
+const MAX_INPUT_CHARS = 16000; // about 4K tokens, so prompt + reply stay under the free tier's 8K tokens per minute
 
 const RULES = `You are Arguo, a feedback tool for academic writers. You never write the user's paper.
 Hard rules:
@@ -33,6 +34,17 @@ Look for: limitations several papers share, one design or population dominating,
 Point at patterns and ask questions. Do not write the gap statement or the literature review.
 
 ${(Array.isArray(i.rows) ? i.rows : []).slice(0, 15).map((r, n) => `[paper ${n + 1}] ${['source', 'sample', 'method', 'finding', 'limitation', 'relation'].map((k) => `${k}: ${str(r && r[k]).slice(0, 300)}`).join(' | ')}`).join('\n')}`,
+  survey: (i) => `The writer has chosen a topic and wants to know the current state of research on it.
+Below are real search results, numbered. Using ONLY these results, write a research briefing as notes:
+- 3 to 5 notes, each a theme, debate, method trend or open question in this body of work (level "gap" for open questions, otherwise "tip").
+- "why": 2-3 sentences summarising what these papers found, in your own words.
+- "how": which of the papers to read first for this theme, and why.
+- "refs": an array with the numbers of the papers the note is based on. Every note must have refs.
+Never mention a paper, finding or statistic that is not in the list. If abstracts are missing, say what can be inferred from titles only and that the reader should check the papers.
+
+[topic] ${str(i.query)}
+
+${(Array.isArray(i.papers) ? i.papers : []).slice(0, 12).map((p, n) => `[${n + 1}] ${str(p && p.title).slice(0, 300)} (${str(p && p.year).slice(0, 4)}; ${str(p && p.venue).slice(0, 120)}; cited ${Number(p && p.cited) || 0})\n${str(p && p.abstract).slice(0, 700) || '(no abstract)'}`).join('\n\n')}`,
   review: (i) => `Help the writer plan a revision from these reviewer comments.
 For each important comment: say what the reviewer most likely wants, whether it is a must-fix, and what kind of change or evidence would answer it. For vague comments, give two or three possible readings. Do not draft the response letter or any reply text.
 
@@ -60,6 +72,7 @@ function clean(note) {
     level: LEVELS.has(note.level) ? note.level : 'tip',
     field: pick('field', 20), title: pick('title', 140) || 'Note', why: pick('why', 600),
     how: pick('how', 600), example: pick('example', 600), ask: pick('ask', 300),
+    refs: Array.isArray(note.refs) ? note.refs.map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 12) : undefined,
   };
 }
 
@@ -68,7 +81,7 @@ function cors(origin, env) {
   const ok = allowed.includes('*') || allowed.includes(origin);
   return {
     'Access-Control-Allow-Origin': ok ? (allowed.includes('*') ? '*' : origin) : 'null',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 }
@@ -77,11 +90,22 @@ function json(body, status, headers) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
 }
 
+// Relays an OpenAlex works search for visitors whose own budget ran out.
+async function search(url, env, headers) {
+  const target = url.searchParams.get('url') || '';
+  if (!target.startsWith('https://api.openalex.org/works?')) return json({ error: 'Only OpenAlex work searches are allowed.' }, 400, headers);
+  const u = new URL(target);
+  if (env.OPENALEX_API_KEY) u.searchParams.set('api_key', env.OPENALEX_API_KEY);
+  const res = await fetch(u.toString(), { headers: { 'User-Agent': 'Arguo (academic writing feedback)' } });
+  return new Response(res.body, { status: res.status, headers: { 'Content-Type': 'application/json', ...headers } });
+}
+
 export default {
   async fetch(request, env) {
     const headers = cors(request.headers.get('Origin') || '', env);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     const url = new URL(request.url);
+    if (url.pathname === '/api/search' && request.method === 'GET') return search(url, env, headers);
     if (url.pathname !== '/api/feedback' || request.method !== 'POST') return json({ error: 'Not found' }, 404, headers);
     if (!env.GROQ_API_KEY) return json({ error: 'The server is missing GROQ_API_KEY.' }, 500, headers);
 
@@ -112,8 +136,14 @@ export default {
       notes = JSON.parse(data.choices[0].message.content).notes || [];
     } catch { return json({ error: 'The AI reply could not be read. Try again.' }, 502, headers); }
 
-    const userText = JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
-    const kept = notes.slice(0, 5).map(clean).filter((n) => !copiesUser(n, userText));
+    // A survey summarises other people's papers, so only the user's own query counts as their text,
+    // and every note must cite results that were actually sent.
+    const survey = body.task === 'survey';
+    const sent = survey && Array.isArray(body.input.papers) ? Math.min(body.input.papers.length, 12) : 0;
+    const userText = survey ? str(body.input.query) : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
+    const kept = notes.slice(0, 5).map(clean)
+      .map((n) => (survey ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= sent) }) : n))
+      .filter((n) => !copiesUser(n, userText) && (!survey || n.refs.length));
     return json({ notes: kept, blocked: Math.min(notes.length, 5) - kept.length }, 200, headers);
   },
 };

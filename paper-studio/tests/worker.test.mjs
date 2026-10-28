@@ -35,3 +35,24 @@ test('matrix and review tasks are accepted', async () => {
   assert.strictEqual((await call({ task: 'matrix', input: { rows: [{ source: 'A (2020)', limitation: 'self-report' }] } }, ok)).status, 200);
   assert.strictEqual((await call({ task: 'review', input: { comments: '1. Strengthen the discussion.' } }, groq([]))).status, 200);
 });
+
+test('survey notes must cite papers that were sent', async () => {
+  const res = await call({ task: 'survey', input: { query: 'sleep', papers: [{ title: 'A' }, { title: 'B' }] } }, groq([
+    { level: 'tip', title: 'Theme one', why: 'x', refs: [1, 2] },
+    { level: 'tip', title: 'Invented', why: 'y', refs: [7] },
+    { level: 'gap', title: 'No refs', why: 'z' },
+  ]));
+  const data = await res.json();
+  assert.deepStrictEqual(data.notes.map((n) => [n.title, n.refs]), [['Theme one', [1, 2]]]);
+});
+
+test('search relay only forwards OpenAlex work searches', async () => {
+  const env = { GROQ_API_KEY: 'k', OPENALEX_API_KEY: 'oa' };
+  let seen = '';
+  globalThis.fetch = async (u) => { seen = u; return new Response('{"results":[]}'); };
+  const ok = await worker.fetch(new Request('https://x.dev/api/search?url=' + encodeURIComponent('https://api.openalex.org/works?search=a')), env);
+  assert.strictEqual(ok.status, 200);
+  assert.ok(seen.includes('api_key=oa'));
+  const bad = await worker.fetch(new Request('https://x.dev/api/search?url=' + encodeURIComponent('https://evil.example/')), env);
+  assert.strictEqual(bad.status, 400);
+});

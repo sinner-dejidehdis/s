@@ -6,6 +6,9 @@
   const app = document.getElementById('app');
 
   let state = S.store.load() || S.sample.create();
+  if (!state.discover) state.discover = S.sample.blankDiscover();
+  let searching = false;
+  let searchErr = '';
   let pending = '';
   let verifying = false;
   const ai = {}; // per view: { loading, notes, error, blocked }
@@ -16,8 +19,9 @@
 
   const MODULES = [
     { id: 'overview', name: 'Overview', pain: 'Progress and next step' },
-    { id: 'outline', name: 'Argument thread', pain: 'Sections that don’t line up · can’t get started' },
+    { id: 'discover', name: 'Discover research', pain: 'What’s new in my field? Where do I start?' },
     { id: 'matrix', name: 'Literature matrix', pain: 'A review without an argument · no clear gap' },
+    { id: 'outline', name: 'Argument thread', pain: 'Sections that don’t line up · can’t get started' },
     { id: 'cite', name: 'Citation check', pain: 'Wrong details · AI-invented references' },
     { id: 'check', name: 'Consistency check', pain: 'Discussion that outruns the results' },
     { id: 'review', name: 'Reviewer comments', pain: 'A major revision you can’t break down' },
@@ -108,6 +112,7 @@
     const checked = S.checklist.ALL.filter((i) => state.submit.checked[i.id]).length;
     const issues = (ns) => ns.filter((n) => n.level === 'issue').length;
     return {
+      discover: { value: state.discover.results.length ? `${state.discover.results.length} papers found` : 'No search yet', issues: 0 },
       outline: { value: `${S.outline.filled(o)}/6 nodes`, issues: issues(oNotes), done: S.outline.filled(o) === 6 && !issues(oNotes) },
       matrix: { value: `${state.matrix.filter((r) => r.source.trim()).length} sources`, issues: 0, gaps: mNotes.filter((n) => n.level === 'gap').length },
       cite: { value: `${refs.filter((r) => r.status === 'verified').length}/${refs.length} verified`, issues: refs.filter((r) => r.status === 'mismatch' || r.status === 'notfound').length },
@@ -123,10 +128,13 @@
     const a = ai[v] || {};
     const body = a.loading ? '<p class="ai-status">Reading your text…</p>'
       : a.error ? `<p class="ai-status error">${esc(a.error)}</p>`
-        : a.notes ? (a.notes.length ? a.notes.map(noteHtml).join('') : '<p class="ai-status">No further problems found.</p>')
+        : a.notes ? (a.notes.length ? a.notes.map((n) => (v === 'discover' ? noteHtml(n).replace('<b>How to fix</b>', '<b>Read first</b>') : noteHtml(n)) + (n.refs && n.refs.length ? `<p class="note-refs">Based on ${n.refs.map((r) => `<a href="#paper-${r}" data-action="jump" data-target="paper-${r}">[${r}]</a>`).join(' ')}</p>` : '')).join('') : '<p class="ai-status">No further problems found.</p>')
           + (a.blocked ? `<p class="ai-status">${a.blocked} AI ${a.blocked === 1 ? 'note was' : 'notes were'} hidden because ${a.blocked === 1 ? 'it' : 'they'} repeated your wording.</p>` : '') : '';
+    const label = v === 'discover' ? 'AI research briefing' : 'AI feedback';
+    if (v === 'discover' && !state.discover.results.length) return '';
     return `<section class="ai-box">
-        <div class="ai-head"><h4>AI feedback</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : 'Get AI feedback'}</button></div>
+        <div class="ai-head"><h4>${label}</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : v === 'discover' ? 'Summarise these results' : 'Get AI feedback'}</button></div>
+        ${v === 'discover' ? '<p class="ai-rule">The AI summarises only the papers listed here and links each point to them. Always read the papers themselves.</p>' : ''}
         <p class="ai-rule">This module’s text is sent to our AI provider, Groq, which does not train on it (<a href="#privacy">privacy</a>). The AI follows the same rule: diagnose, never write.</p>
         ${body}
       </section>`;
@@ -138,12 +146,13 @@
       check: { question: state.outline.question, method: state.outline.method, results: state.check.results, discussion: state.check.discussion },
       matrix: { rows: state.matrix },
       review: { comments: state.review.input },
+      discover: { query: state.discover.query, papers: state.discover.results.slice(0, 12).map((r) => ({ title: r.title, year: r.year, venue: r.venue, cited: r.cited, abstract: r.abstract })) },
     }[v];
     ai[v] = { loading: true };
     refreshNotes();
     try {
       const res = await fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: v === 'check' ? 'consistency' : v, input }) });
+        body: JSON.stringify({ task: { check: 'consistency', discover: 'survey' }[v] || v, input }) });
       const data = await res.json().catch(() => ({}));
       ai[v] = res.ok ? { notes: data.notes || [], blocked: data.blocked || 0 } : { error: data.error || `Request failed (${res.status}).` };
     } catch (e) {
@@ -155,6 +164,7 @@
   // ---------- views ----------
   function home() {
     const rows = [
+      ['Discover research', 'Search 250 million scholarly works for the newest and most cited research on your topic, with links to every paper and an AI briefing that cites only those papers.', 'Already have a topic and need the state of the art'],
       ['Argument thread', 'Link research question, gap, aim, method, result and conclusion into one line, and see where it breaks.', 'Sections that don’t line up · can’t get started'],
       ['Literature matrix', 'One row per paper. Arguo finds recurring limitations, a dominant design and missing samples, so the gap becomes visible.', 'Read a lot, but the review has no argument'],
       ['Citation check', 'Every reference is checked against Crossref for authors, year and title. References that cannot be traced are flagged.', 'Wrong details · AI-invented references'],
@@ -173,7 +183,7 @@
         <p class="fine">Your project is saved only in this browser.</p>
       </section>
       <section class="wrap modules-list">
-        <h2>Six modules, one line of argument</h2>
+        <h2>Seven modules, one line of argument</h2>
         <ol class="flow">${rows.map(([n, d, p]) => `<li><div><h3>${n}</h3><p>${d}</p></div><span class="pain">For: ${p}</span></li>`).join('')}</ol>
       </section>
       <section class="wrap redline">
@@ -189,7 +199,7 @@
             <li>Rewrite or continue your paragraphs</li>
             <li>Generate paragraphs, sections or papers</li>
             <li>One-click polishing or “humanising” AI text</li>
-            <li>Invent or suggest references it cannot trace</li>
+            <li>Invent references: every paper it shows is a real, linked record</li>
             <li>Write your response letter for you</li></ul></div>
         </div>
         <p class="fine">Many journals ask authors to disclose AI-generated text. Arguo does not generate any of your manuscript, but check your journal’s policy on disclosing AI-assisted feedback.</p>
@@ -241,6 +251,60 @@
         <details class="pattern"><summary>See how this looks for another topic</summary><p>${esc(f.example)}</p></details>
       </div>`).join('')}</div>`;
     return { main, notes: notesPanel(S.outline.check(state.outline), aiBlock('outline')) };
+  }
+
+  function resultCard(r, i) {
+    const inMatrix = state.matrix.some((m) => m.sourceId === r.id);
+    return `<li class="paper" id="paper-${i + 1}">
+      <div class="paper-top"><span class="paper-n">${i + 1}</span>
+        <div class="paper-main">
+          <a class="paper-title" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>
+          <p class="paper-meta">${esc(S.discover.shortAuthors(r.authors))} · ${r.year || 'n.d.'}${r.venue ? ` · <i>${esc(r.venue)}</i>` : ''}${r.cited ? ` · cited ${r.cited.toLocaleString()}` : ''}${r.type === 'review' ? ' · <span class="pill tone-accent">Review</span>' : ''}${r.type === 'preprint' ? ' · <span class="pill tone-warn">Preprint</span>' : ''}</p>
+        </div></div>
+      ${r.abstract ? `<details class="paper-abs"><summary>Abstract</summary><p>${esc(r.abstract)}</p></details>` : '<p class="paper-noabs">No abstract in the index. Open the paper to read it.</p>'}
+      <div class="paper-links">
+        <a href="${esc(r.url)}" target="_blank" rel="noopener">${r.doi ? 'Publisher page (DOI)' : 'Open record'}</a>
+        ${r.oaUrl ? `<a href="${esc(r.oaUrl)}" target="_blank" rel="noopener">Free full text</a>` : ''}
+        <a href="https://scholar.google.com/scholar?q=${encodeURIComponent(r.title)}" target="_blank" rel="noopener">Google Scholar</a>
+        ${inMatrix ? '<span class="pill tone-ok">In matrix</span>' : `<button class="link-btn" data-action="to-matrix" data-i="${i}">Add to literature matrix</button>`}
+      </div>
+    </li>`;
+  }
+
+  function discover() {
+    const d = state.discover;
+    const opt = (obj, cur) => Object.entries(obj).map(([k, v]) => `<option value="${k}"${String(cur) === k ? ' selected' : ''}>${v}</option>`).join('');
+    const main = `<p class="intro">Already have a topic? Search 250 million scholarly works for the latest and most influential research, then add the papers you read to your literature matrix.</p>
+      <form class="search-bar" data-form="discover">
+        <label for="d-q" class="sr">Topic</label>
+        <input id="d-q" data-bind="discover.query" value="${esc(d.query)}" placeholder="e.g. bedtime social media use and sleep in university students">
+        <button class="btn primary"${searching ? ' disabled' : ''}>${searching ? 'Searching…' : 'Search'}</button>
+      </form>
+      <div class="toolbar">
+        <label for="d-years">Published</label><select id="d-years" data-bind="discover.years">${opt(S.discover.YEARS, d.years)}</select>
+        <label for="d-sort">Sort</label><select id="d-sort" data-bind="discover.sort">${opt(S.discover.SORTS, d.sort)}</select>
+        <label class="inline-check"><input type="checkbox" id="d-oa" data-bind="discover.oa"${d.oa ? ' checked' : ''}> Free full text only</label>
+      </div>
+      ${searchErr ? `<p class="acct-msg error">${esc(searchErr)}</p>` : ''}
+      ${d.results.length ? `<p class="fine">${d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>. ${d.sample ? 'These example results are real papers.' : ''}</p>
+        <ol class="paper-list">${d.results.map(resultCard).join('')}</ol>`
+        : '<p class="empty">Type your topic and choose Search.</p>'}`;
+    return { main, notes: notesPanel(discoverNotes(), aiBlock('discover')) };
+  }
+
+  function discoverNotes() {
+    const d = state.discover;
+    if (!d.results.length) return [{ level: 'tip', title: 'Start with a specific topic', why: 'Broad terms return thousands of loosely related papers.', how: 'Combine your key concepts, population and setting, for example "bedtime social media use sleep quality university students".' }];
+    const notes = [];
+    const years = d.results.map((r) => r.year).filter(Boolean);
+    const reviews = d.results.filter((r) => r.type === 'review').length;
+    if (reviews) notes.push({ level: 'tip', title: `${reviews} ${reviews === 1 ? 'review' : 'reviews'} in these results`, why: 'Recent reviews and meta-analyses map a field quickly and point to its key studies.', how: 'Read the newest review first, then follow its references.' });
+    else notes.push({ level: 'ask', title: 'No review articles here', why: 'A review is the fastest way into a field.', how: 'Add "review" or "meta-analysis" to your search.', ask: 'If nobody has reviewed this topic recently, could that be a gap?' });
+    if (years.length && d.sort !== 'newest' && Math.max(...years) < new Date().getFullYear() - 1) notes.push({ level: 'tip', title: 'Nothing from the last year', why: 'Results are sorted by relevance or citations, which favours older work.', how: 'Switch to "Newest first" to see what has just been published.' });
+    const pre = d.results.filter((r) => r.type === 'preprint').length;
+    if (pre) notes.push({ level: 'tip', title: `${pre} ${pre === 1 ? 'preprint' : 'preprints'}`, why: 'Preprints have not been peer reviewed yet.', how: 'Cite them with care and check whether a published version exists.' });
+    notes.push({ level: 'tip', title: 'Read before you cite', why: 'A search result is a lead, not evidence.', how: 'Open each paper, read it, then add it to the literature matrix in your own words.' });
+    return notes;
   }
 
   function matrix() {
@@ -397,7 +461,7 @@
     return { main, notes: notesPanel(notes) };
   }
 
-  const VIEWS = { overview, outline, matrix, cite, check, review, submit };
+  const VIEWS = { overview, discover, outline, matrix, cite, check, review, submit };
 
   // ---------- render ----------
   function account() {
@@ -513,6 +577,19 @@
   app.addEventListener('input', (e) => { if (!isChoice(e.target)) onEdit(e); });
   app.addEventListener('change', (e) => { if (isChoice(e.target)) onEdit(e); });
 
+  async function runSearch() {
+    if (searching) return;
+    searching = true; searchErr = ''; render();
+    try {
+      const d = state.discover;
+      const r = await S.discover.search(d, { proxy: AI_API });
+      Object.assign(d, { results: r.results, total: r.total, sample: false });
+      ai.discover = null;
+      if (!r.results.length) searchErr = 'No papers found. Try fewer or broader terms, or a longer time range.';
+    } catch (e) { searchErr = e.message; }
+    searching = false; save(); render();
+  }
+
   async function verifyAll() {
     verifying = true;
     state.refs.results = S.cite.parse(state.refs.input).map((e) => Object.assign(e, { status: 'pending' }));
@@ -566,6 +643,15 @@
     'add-row': () => { state.matrix.push(S.matrix.blankRow()); save(); render(); },
     'del-row': (el) => { state.matrix.splice(Number(el.dataset.index), 1); save(); render(); },
     verify: () => { if (!verifying) verifyAll(); },
+    'to-matrix': (el) => {
+      const r = state.discover.results[Number(el.dataset.i)];
+      const empty = state.matrix.findIndex((m) => !m.source.trim() && !m.finding.trim());
+      const row = Object.assign(S.matrix.blankRow(), S.discover.toMatrixRow(r), { sourceId: r.id });
+      if (empty >= 0) state.matrix[empty] = row; else state.matrix.push(row);
+      if (!state.refs.input.includes(r.doi || r.title)) state.refs.input = (state.refs.input.trim() + '\n' + S.discover.toReference(r)).trim();
+      save(); render(); toast('Added to your literature matrix and reference list');
+    },
+    jump: (el) => { const t = document.getElementById(el.dataset.target); if (t) { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 1200); } },
     ai: (el) => { if (!(ai[el.dataset.view] || {}).loading) askAi(el.dataset.view); },
     'copy-bib': () => { const b = bibliography(); if (b) copy(b); else toast('No verified references yet'); },
     'split-review': () => { state.review.tasks = S.review.split(state.review.input); save(); render(); toast(`${state.review.tasks.length} tasks created`); },
@@ -578,7 +664,7 @@
 
   document.addEventListener('submit', (e) => {
     const form = e.target.closest('[data-form]');
-    if (form) { e.preventDefault(); accountSubmit(form); }
+    if (form) { e.preventDefault(); if (form.dataset.form === 'discover') runSearch(); else accountSubmit(form); }
   });
 
   window.addEventListener('hashchange', () => { pending = ''; render(); window.scrollTo(0, 0); });

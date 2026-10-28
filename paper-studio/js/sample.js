@@ -64,8 +64,17 @@
         tasks: [],
       },
       submit: { checked: { scope: true, type: true, ethics: true } },
+      discover: {
+        query: 'social media use and sleep quality', years: 0, sort: 'cited', oa: false, total: 0, sample: true,
+        results: [REC.hale, REC.woods, REC.levenson].map((r, i) => ({
+          id: 'sample-' + i, title: r.title, year: r.year, authors: r.authors.map((a) => `${a.given} ${a.family}`),
+          venue: r.journal, type: i === 0 ? 'review' : 'article', cited: 0, doi: r.doi, url: `https://doi.org/${r.doi}`, oaUrl: '', abstract: '',
+        })),
+      },
     };
   }
+
+  function blankDiscover() { return { query: '', years: 3, sort: 'relevance', oa: false, total: 0, sample: false, results: [] }; }
 
   function blank() {
     return { version: 2, sample: false, title: 'Untitled paper',
@@ -74,7 +83,7 @@
       refs: { input: '', style: 'apa', results: [] },
       check: { results: '', discussion: '' },
       review: { input: '', tasks: [] },
-      submit: { checked: {} } };
+      submit: { checked: {} }, discover: blankDiscover() };
   }
 
   function withTasks(p) {
@@ -82,5 +91,5 @@
     return p;
   }
 
-  S.sample = { create: () => withTasks(create()), blank };
+  S.sample = { create: () => withTasks(create()), blank, blankDiscover };
 })(typeof window !== 'undefined' ? window : globalThis);
