@@ -12,7 +12,7 @@ Prototype of an academic writing workspace for researchers writing in English. P
 | Next steps & ideas | A plan from the project's state (next action first) and AI research directions grounded in the papers found | What to do next, what would be new |
 | Study design | Design type and plan; rules for control, randomisation, blinding, sample size, confounders, measurement, ethics, preregistration, missing data and reporting guideline; AI design review and methods of similar studies (cited) | Designing the experiment |
 | Literature matrix | Add a paper by pasting a DOI, article link (journal, arXiv, PubMed…) or title: metadata from OpenAlex, AI-drafted reading notes marked "AI draft" until edited, and a detail page per paper (abstract, links, AI analysis). One row per paper; finds recurring limitations, a dominant design and one-sided findings | A review without an argument, no clear gap |
-| Citation check | Checks DOI, year, first author and title against Crossref; formats APA 7, Vancouver or Chicago author-date | Wrong details, AI-invented references |
+| Citation check | Includes every matrix paper automatically; checks DOI, year, first author and title against Crossref; pick a target journal (10,000+ CSL journal styles) and DOI references are formatted in its official style by Crossref; built-in APA 7, Vancouver and Chicago otherwise | Wrong details, AI-invented references |
 | Consistency check | Discussion sentences without a supporting result, causal claims from correlational data, missing limitations | Discussion that outruns the results |
 | Reviewer comments | Splits comments into tasks (reviewer headings, major/minor sections, numbered points), flags must-fix and vague comments | A major revision you can't break down |
 | Submission checklist | 23 items on journal fit, manuscript, statements and ethics, files | Missing items at submission |
@@ -41,3 +41,6 @@ node --test paper-studio/tests/*.test.js paper-studio/tests/*.test.mjs   # from 
 - `js/discover.js` OpenAlex search and parsing; falls back to the Worker's `/api/search` relay (which adds the optional `OPENALEX_API_KEY` secret) when a visitor's own OpenAlex budget is used up
 - `js/ideas.js` next-step plan and the input for AI research directions
 - `js/design.js` study design types, reporting guidelines and design rules
+- `js/styles.js` journal style search (CSL registry via zotero.org), parent-style lookup and Crossref formatting
+
+How the modules connect: papers found in Discover or added by link go into the literature matrix and the reference list; author-year citations typed in the argument thread or consistency check are matched against the matrix, and missing ones can be found and added; the citation check lists every matrix paper and formats the list for the chosen journal.

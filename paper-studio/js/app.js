@@ -264,7 +264,7 @@
         <textarea id="f-${f.key}" rows="3" data-bind="outline.${f.key}">${esc(state.outline[f.key])}</textarea>
         <details class="pattern"><summary>See how this looks for another topic</summary><p>${esc(f.example)}</p></details>
       </div>`).join('')}</div>`;
-    return { main, notes: notesPanel(S.outline.check(state.outline), aiBlock('outline')) };
+    return { main, notes: notesPanel(S.outline.check(state.outline), citedBlock(Object.values(state.outline).join(' ')) + aiBlock('outline')) };
   }
 
   function resultCard(r, i) {
@@ -435,6 +435,61 @@
     if (current() === 'paper' || current() === 'matrix') render();
   }
 
+  // One place where a found paper enters the project: a matrix row plus an
+  // entry in the reference list, so the citation check sees it too.
+  function addToMatrix(meta) {
+    const existing = state.matrix.find((x) => x.meta && (x.meta.id === meta.id || (meta.doi && x.meta.doi === meta.doi)));
+    if (existing) return existing;
+    const row = Object.assign(S.matrix.blankRow(), S.discover.toMatrixRow(meta), { sourceId: meta.id, meta });
+    const empty = state.matrix.findIndex((x) => !x.source.trim() && !x.finding.trim());
+    if (empty >= 0) state.matrix[empty] = row; else state.matrix.push(row);
+    syncRefs();
+    return row;
+  }
+
+  function syncRefs() {
+    let added = 0;
+    state.matrix.forEach((r) => {
+      if (!r.meta) return;
+      const have = state.refs.input.toLowerCase();
+      const known = (r.meta.doi && have.includes(r.meta.doi.toLowerCase())) || (r.meta.title && have.includes(r.meta.title.toLowerCase().slice(0, 60)));
+      if (!known) {
+        state.refs.input = (state.refs.input.trim() + '\n' + S.discover.toReference(r.meta)).trim();
+        added++;
+      }
+    });
+    return added;
+  }
+
+  // Citations written in the argument thread or discussion that are not yet in the matrix.
+  const citeFind = {};
+  function citedBlock(text) {
+    const cited = S.discover.citationsIn(text);
+    if (!cited.length) return '';
+    const missing = cited.filter((c) => !S.discover.inMatrix(c, state.matrix));
+    if (!missing.length) return `<section class="ai-box"><h4>Papers you cite</h4><p class="ai-rule">All ${cited.length} papers you cite here are in your literature matrix.</p></section>`;
+    return `<section class="ai-box"><h4>Papers you cite</h4>
+      <p class="ai-rule">You cite ${missing.length === 1 ? 'a paper that is' : `${missing.length} papers that are`} not in your literature matrix yet. Add ${missing.length === 1 ? 'it' : 'them'}, so you keep notes on ${missing.length === 1 ? 'it' : 'them'} and the citation check includes ${missing.length === 1 ? 'it' : 'them'}.</p>
+      ${missing.map((c) => {
+        const f = citeFind[c.key] || {};
+        const cands = f.results ? (f.results.length ? f.results.map((r, i) => `<div class="cand"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>
+              <small>${esc(S.discover.shortAuthors(r.authors))} · ${r.year} · ${esc(r.venue)}</small>
+              <button class="btn small-btn" data-action="add-cited" data-key="${c.key}" data-i="${i}">This one: add to matrix</button></div>`).join('')
+            : '<p class="ai-status">No match found. Add it from a link in the literature matrix.</p>') : '';
+        return `<div class="cited"><p><b>${esc(c.text)}</b>${f.loading ? ' · searching…' : f.error ? ` · ${esc(f.error)}` : ''}</p>
+          ${f.results ? cands : `<button class="btn small-btn" data-action="find-cited" data-key="${c.key}" data-text="${esc(c.text)}">Find this paper</button>`}</div>`;
+      }).join('')}</section>`;
+  }
+
+  async function findCited(key, text) {
+    const c = S.discover.citationsIn(text)[0];
+    if (!c) return;
+    citeFind[key] = { loading: true }; refreshNotes();
+    try { citeFind[key] = { results: await S.discover.findCited(c, state.discover.query || state.title, { proxy: AI_API }) }; }
+    catch (e) { citeFind[key] = { error: e.message }; }
+    refreshNotes();
+  }
+
   async function addFromLink(form) {
     const input = form.querySelector('#m-link');
     const link = input.value;
@@ -442,10 +497,7 @@
     try {
       const meta = await S.discover.lookup(link, { proxy: AI_API });
       if (state.matrix.some((x) => x.meta && x.meta.id === meta.id)) throw new Error('That paper is already in your matrix.');
-      const row = Object.assign(S.matrix.blankRow(), S.discover.toMatrixRow(meta), { sourceId: meta.id, meta });
-      const empty = state.matrix.findIndex((x) => !x.source.trim() && !x.finding.trim());
-      if (empty >= 0) state.matrix[empty] = row; else state.matrix.push(row);
-      if (!state.refs.input.includes(meta.doi || meta.title)) state.refs.input = (state.refs.input.trim() + '\n' + S.discover.toReference(meta)).trim();
+      const row = addToMatrix(meta);
       linkBusy = 'Summarising…'; save(); render();
       await analysePaper(row.id, true);
       toast('Paper added. Check the AI draft against the paper.');
@@ -457,24 +509,37 @@
     verified: ['Verified', 'ok'], mismatch: ['Mismatch', 'warn'], notfound: ['Not found', 'pen'], error: ['Connection failed', 'warn'], pending: ['Checking', 'accent'],
   };
 
+  const journalUi = { q: '', results: [], loading: false, err: '' };
+  let formatting = false;
+
+  function refText(r) {
+    const j = state.refs.journal;
+    if (j && r.formatted && r.formattedStyle === j.style) return r.formatted;
+    return S.cite.format(r.record, j ? S.styles.fallback(j.format) : state.refs.style);
+  }
+
   function citeList() {
     const res = state.refs.results || [];
-    if (!res.length) return '<p class="empty">Paste your references and choose “Check references”. One per line; a DOI helps.</p>';
+    if (!res.length) return '<p class="empty">Papers in your literature matrix appear here automatically. Paste any others, one per line, then choose “Check references”.</p>';
+    const j = state.refs.journal;
     return `<ol class="ref-list">${res.map((r) => {
       const [label, tone] = STATUS[r.status] || STATUS.pending;
+      const fromMatrix = r.doi && state.matrix.some((m) => m.meta && m.meta.doi && m.meta.doi.toLowerCase() === r.doi.toLowerCase());
       return `<li class="ref">
-        <div class="ref-head"><span class="pill tone-${tone}">${label}</span>${r.doi ? `<code>${esc(r.doi)}</code>` : ''}</div>
+        <div class="ref-head"><span class="pill tone-${tone}">${label}</span>${fromMatrix ? '<span class="pill tone-accent">In matrix</span>' : ''}${r.doi ? `<code>${esc(r.doi)}</code>` : ''}</div>
         <p class="ref-raw">${esc(r.raw)}</p>
         ${(r.issues || []).length ? `<ul class="ref-issues">${r.issues.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
         ${r.note ? `<p class="ref-note">${esc(r.note)}</p>` : ''}
-        ${r.record ? `<p class="ref-fixed"><span>Verified entry</span>${esc(S.cite.format(r.record, state.refs.style))}</p>` : ''}
+        ${r.record ? `<p class="ref-fixed"><span>${j ? (r.formattedStyle === j.style ? `Formatted for ${esc(j.title)}` : r.doi ? 'Formatting…' : `No DOI: closest built-in style`) : 'Verified entry'}</span>${esc(refText(r))}</p>` : ''}
       </li>`;
     }).join('')}</ol>`;
   }
 
   function bibliography() {
-    return (state.refs.results || []).filter((r) => r.record).map((r) => S.cite.format(r.record, state.refs.style))
-      .sort((a, b) => a.localeCompare(b)).join('\n');
+    const j = state.refs.journal;
+    const items = (state.refs.results || []).filter((r) => r.record).map(refText);
+    if (j && j.format === 'numeric') return items.map((t, i) => `${i + 1}. ${t}`).join('\n');
+    return items.sort((a, b) => a.localeCompare(b)).join('\n');
   }
 
   function citeNotes() {
@@ -485,23 +550,73 @@
     if (n('notfound')) notes.push({ level: 'issue', title: `${n('notfound')} ${plural(n('notfound'), 'reference', 'references')} not found`, why: 'The authors or title may be wrong, or the paper may not exist at all (for example, a reference invented by an AI tool).', how: 'Find the original and check it. If you cannot find the original, do not cite it.' });
     if (n('mismatch')) notes.push({ level: 'issue', title: `${n('mismatch')} ${plural(n('mismatch'), 'reference differs', 'references differ')} from the record`, why: 'A wrong year, author or title is easy for reviewers and editors to spot.', how: 'Use the verified entry, and fix the matching in-text citation too (for example the year).' });
     if (n('error')) notes.push({ level: 'tip', title: `${n('error')} could not be checked`, why: 'The connection failed.', how: 'Choose “Check references” again later.' });
+    const unchecked = S.cite.parse(state.refs.input).filter((e) => !res.some((r) => r.raw === e.raw)).length;
+    if (unchecked) notes.push({ level: 'tip', title: `${unchecked} ${plural(unchecked, 'reference has', 'references have')} not been checked yet`, why: 'New papers from your literature matrix are added to the list automatically.', how: 'Choose “Check references” to verify and format them.' });
     if (!notes.length && res.length) notes.push({ level: 'ok', title: 'All references verified', why: '', how: 'Make sure every in-text citation matches an entry in the list.' });
-    notes.push({ level: 'tip', title: 'Arguo will not find or generate references for you', why: 'Every reference should be a paper you have read.', how: 'Read and summarise a paper in the literature matrix first, then cite it.' });
+    if (!state.refs.journal) notes.push({ level: 'ask', title: 'Choose your target journal', why: 'Each journal has its own reference style.', how: 'Search for the journal above; references with a DOI are then formatted in its official style.' });
     return notes;
   }
 
   function cite() {
-    const main = `<p class="intro">Paste one reference per line. Entries with a DOI are checked directly; others are searched by title. Records come from Crossref.</p>
-      <label for="f-refs" class="sr">References</label>
+    const added = syncRefs();
+    if (added) setTimeout(() => toast(`${added} ${added === 1 ? 'paper' : 'papers'} from your literature matrix added`), 0);
+    const j = state.refs.journal;
+    const picker = j
+      ? `<div class="journal-chip"><span>Formatting for <b>${esc(j.title)}</b> · ${esc(j.style)} style</span><button class="link-btn" data-action="journal-clear">Change journal</button></div>`
+      : `<form class="search-bar" data-form="journal"><label for="j-q" class="sr">Target journal</label>
+          <input id="j-q" value="${esc(journalUi.q)}" placeholder="Target journal, e.g. Sleep Medicine Reviews, Nature, PLOS ONE">
+          <button class="btn"${journalUi.loading ? ' disabled' : ''}>${journalUi.loading ? 'Loading journals…' : 'Find journal'}</button></form>
+        ${journalUi.err ? `<p class="acct-msg error">${esc(journalUi.err)}</p>` : ''}
+        ${journalUi.results.length ? `<ul class="journal-list">${journalUi.results.map((x, i) => `<li><button class="link-btn" data-action="journal-pick" data-i="${i}">${esc(x.title)}</button><small>${esc(x.format)}</small></li>`).join('')}</ul>` : ''}`;
+    const main = `<p class="intro">Every paper in your literature matrix is listed here. Paste any other references, one per line. Arguo checks each against Crossref, then formats it for your target journal.</p>
+      <h3 class="sub">Target journal</h3>
+      ${picker}
+      <label for="f-refs">References</label>
       <textarea id="f-refs" class="mono" rows="7" data-bind="refs.input">${esc(state.refs.input)}</textarea>
       <div class="toolbar">
         <button class="btn primary" data-action="verify"${verifying ? ' disabled' : ''}>${verifying ? 'Checking…' : 'Check references'}</button>
-        <label for="f-style">Style</label>
-        <select id="f-style" data-bind="refs.style" data-rerender="cite-list">${Object.entries(S.cite.STYLES).map(([k, v]) => `<option value="${k}"${state.refs.style === k ? ' selected' : ''}>${v.label}</option>`).join('')}</select>
-        <button class="btn" data-action="copy-bib">Copy verified references</button>
+        ${j ? '' : `<label for="f-style">Style</label>
+        <select id="f-style" data-bind="refs.style" data-rerender="cite-list">${Object.entries(S.cite.STYLES).map(([k, v]) => `<option value="${k}"${state.refs.style === k ? ' selected' : ''}>${v.label}</option>`).join('')}</select>`}
+        <button class="btn" data-action="copy-bib">Copy reference list</button>
       </div>
       <div id="cite-list">${citeList()}</div>`;
     return { main, notes: notesPanel(citeNotes()) };
+  }
+
+  async function findJournal(form) {
+    journalUi.q = form.querySelector('#j-q').value;
+    journalUi.loading = true; journalUi.err = ''; render();
+    try {
+      const list = await S.styles.load();
+      journalUi.results = S.styles.search(list, journalUi.q, 8);
+      if (!journalUi.results.length) journalUi.err = 'No journal style found with that name. Try the full journal title, or pick a built-in style.';
+    } catch (e) { journalUi.err = 'Could not load the journal list. Previews block outside requests; this works on the deployed site.'; }
+    journalUi.loading = false; render();
+  }
+
+  async function pickJournal(x) {
+    journalUi.loading = true; render();
+    try {
+      const style = await S.styles.parentOf(x);
+      state.refs.journal = { title: x.title, name: x.name, style, format: x.format };
+      journalUi.results = []; journalUi.err = '';
+      save();
+      formatAll();
+    } catch (e) { journalUi.err = e.message; }
+    journalUi.loading = false; render();
+  }
+
+  async function formatAll() {
+    const j = state.refs.journal;
+    if (!j || formatting) return;
+    formatting = true;
+    for (const r of state.refs.results || []) {
+      if (!r.record || !r.doi || r.formattedStyle === j.style) continue;
+      try { r.formatted = await S.styles.formatDoi(r.doi, j.style); r.formattedStyle = j.style; } catch (e) { r.formattedStyle = ''; }
+      const list = document.getElementById('cite-list');
+      if (list && current() === 'cite') list.innerHTML = citeList();
+    }
+    formatting = false; save();
   }
 
   function checkResult() {
@@ -522,7 +637,7 @@
       <label for="f-discussion">Discussion</label>
       <textarea id="f-discussion" rows="8" data-bind="check.discussion">${esc(state.check.discussion)}</textarea>
       <div id="flagged">${flaggedList(r.flagged)}</div>`;
-    return { main, notes: notesPanel(r.notes, aiBlock('check')) };
+    return { main, notes: notesPanel(r.notes, citedBlock(state.check.results + ' ' + state.check.discussion) + aiBlock('check')) };
   }
 
   const LETTER = `<details class="guide" open><summary>How a response letter is structured</summary>
@@ -735,6 +850,7 @@
     verifying = false;
     save();
     if (current() === 'cite') render();
+    formatAll();
   }
 
   function copy(text) {
@@ -788,13 +904,20 @@
     },
     'analyse-paper': (el) => { if (!(paperAi[el.dataset.id] || {}).loading) analysePaper(el.dataset.id, false); },
     'to-matrix': (el) => {
-      const r = state.discover.results[Number(el.dataset.i)];
-      const empty = state.matrix.findIndex((m) => !m.source.trim() && !m.finding.trim());
-      const row = Object.assign(S.matrix.blankRow(), S.discover.toMatrixRow(r), { sourceId: r.id, meta: r });
-      if (empty >= 0) state.matrix[empty] = row; else state.matrix.push(row);
-      if (!state.refs.input.includes(r.doi || r.title)) state.refs.input = (state.refs.input.trim() + '\n' + S.discover.toReference(r)).trim();
+      addToMatrix(state.discover.results[Number(el.dataset.i)]);
       save(); render(); toast('Added to your literature matrix and reference list');
     },
+    'find-cited': (el) => findCited(el.dataset.key, el.dataset.text),
+    'add-cited': (el) => {
+      const f = citeFind[el.dataset.key];
+      const meta = f && f.results && f.results[Number(el.dataset.i)];
+      if (!meta) return;
+      const row = addToMatrix(meta);
+      save(); refreshNotes(); toast('Added to your literature matrix and reference list');
+      analysePaper(row.id, true);
+    },
+    'journal-pick': (el) => pickJournal(journalUi.results[Number(el.dataset.i)]),
+    'journal-clear': () => { state.refs.journal = null; save(); render(); },
     jump: (el) => { const t = document.getElementById(el.dataset.target); if (t) { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 1200); } },
     ai: (el) => { if (!(ai[el.dataset.view] || {}).loading) askAi(el.dataset.view); },
     'copy-bib': () => { const b = bibliography(); if (b) copy(b); else toast('No verified references yet'); },
@@ -808,7 +931,7 @@
 
   document.addEventListener('submit', (e) => {
     const form = e.target.closest('[data-form]');
-    if (form) { e.preventDefault(); if (form.dataset.form === 'discover') runSearch(); else if (form.dataset.form === 'add-link') addFromLink(form); else accountSubmit(form); }
+    if (form) { e.preventDefault(); if (form.dataset.form === 'discover') runSearch(); else if (form.dataset.form === 'add-link') addFromLink(form); else if (form.dataset.form === 'journal') findJournal(form); else accountSubmit(form); }
   });
 
   window.addEventListener('hashchange', () => { pending = ''; render(); window.scrollTo(0, 0); });

@@ -131,5 +131,44 @@
     return parse(w);
   }
 
-  S.discover = { SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
+  // Author-year citations written in the user's own text, e.g. "Levenson et
+  // al. (2016)", "(Woods & Scott, 2016)" or "Hale and Guan 2015".
+  function citationsIn(text) {
+    const out = [];
+    const re = /\b([A-Z][A-Za-z'\u00C0-\u017F-]+)(?:\s+(?:et\s+al\.?|(?:and|&)\s+[A-Z][A-Za-z'\u00C0-\u017F-]+))?,?\s*\(?((?:19|20)\d{2})[a-z]?\)?/g;
+    const STOP = /^(In|The|This|These|Since|From|By|Until|Before|After|During|Between|Of|And|Our|We|Table|Figure|Fig|Section|Study|Studies|January|February|March|April|May|June|July|August|September|October|November|December|Spring|Summer|Autumn|Fall|Winter)$/;
+    let m;
+    while ((m = re.exec(String(text || '')))) {
+      if (STOP.test(m[1])) continue;
+      const key = m[1].toLowerCase() + m[2];
+      if (!out.some((c) => c.key === key)) out.push({ key, author: m[1], year: Number(m[2]), text: m[0].replace(/[()]/g, '').trim() });
+    }
+    return out;
+  }
+
+  function inMatrix(c, rows) {
+    return (rows || []).some((r) => {
+      const hay = (String(r.source || '') + ' ' + ((r.meta && r.meta.authors) || []).join(' ')).toLowerCase();
+      const year = (r.meta && r.meta.year) || Number((String(r.source).match(/(19|20)\d{2}/) || [])[0]);
+      return hay.includes(c.author.toLowerCase()) && year === c.year;
+    });
+  }
+
+  // Candidates for a citation: works from that year whose authors include the name.
+  async function findCited(c, topic, opts) {
+    opts = opts || {};
+    const f = opts.fetch || (typeof fetch !== 'undefined' ? fetch.bind(root) : null);
+    const url = `${API}?search=${encodeURIComponent((c.author + ' ' + (topic || '')).trim())}&filter=publication_year:${c.year}&per-page=10&select=${SELECT}`;
+    let res;
+    try { res = await f(url); } catch (e) { res = null; }
+    if ((!res || res.status === 429 || res.status === 403) && opts.proxy) {
+      try { res = await f(opts.proxy + '/api/search?url=' + encodeURIComponent(url)); } catch (e) { res = null; }
+    }
+    if (!res || !res.ok) throw new Error('Could not search for that paper right now.');
+    const all = ((await res.json()).results || []).map(parse);
+    const named = all.filter((r) => r.authors.some((a) => a.toLowerCase().includes(c.author.toLowerCase())));
+    return (named.length ? named : all).slice(0, 3);
+  }
+
+  S.discover = { citationsIn, inMatrix, findCited, SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
 })(typeof window !== 'undefined' ? window : globalThis);

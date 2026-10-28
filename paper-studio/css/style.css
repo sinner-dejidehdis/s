@@ -343,3 +343,14 @@ input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); f
 .paper-h { font: 600 var(--step-2)/1.25 var(--display); }
 .paper-abs-full { color: var(--muted); max-width: 46em; }
 .editor .paper-links { padding-left: 0; }
+
+/* threads between modules */
+.cited { display: grid; gap: 6px; padding: 8px 0; border-top: 1px solid var(--line); font-size: var(--step--1); }
+.cited .btn { justify-self: start; }
+.cand { display: grid; gap: 2px; padding: 6px 8px; background: var(--margin); border-radius: var(--r); }
+.cand small { color: var(--muted); }
+.cand .btn { margin-top: 4px; }
+.journal-chip { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 10px 14px; background: var(--accent-soft); border-radius: var(--r); font-size: var(--step--1); }
+.journal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.journal-list li { display: flex; gap: 10px; align-items: baseline; }
+.journal-list small { color: var(--muted); font-size: var(--step--1); }

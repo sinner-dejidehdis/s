@@ -74,3 +74,23 @@ test('lookup reads a page link through the server, then OpenAlex by DOI', async 
   assert.strictEqual(r.doi, '10.1/abc');
   assert.ok(urls[1].includes('/works/doi:10.1%2Fabc'));
 });
+
+test('citations in the user\'s text are found and matched against the matrix', () => {
+  const cited = D.citationsIn('Prior work (Levenson et al., 2016; Woods & Scott, 2016) and Hale and Guan 2015 agree. In 2020, Table 2019 shows.');
+  assert.deepStrictEqual(cited.map((c) => c.text), ['Levenson et al., 2016', 'Woods & Scott, 2016', 'Hale and Guan 2015']);
+  const rows = [{ source: 'Levenson et al. (2016)' }, { source: 'Lima (2025)', meta: { authors: ['Ana Lima', 'Ben Hale'], year: 2015 } }];
+  assert.deepStrictEqual(cited.map((c) => D.inMatrix(c, rows)), [true, false, true]);
+});
+
+test('journal styles: search ranks exact and prefix matches, dependent styles resolve to a parent', async () => {
+  require(path.join(__dirname, '..', 'js', 'styles.js'));
+  const St = globalThis.Sigao.styles;
+  const list = [{ title: 'Nature Communications', short: 'Nat Commun', name: 'nature-communications', dependent: true, format: 'numeric' },
+    { title: 'Nature', short: '', name: 'nature', dependent: false, format: 'numeric' }, { title: 'Signature Studies', short: '', name: 'sig', dependent: true, format: 'author-date' }];
+  assert.deepStrictEqual(St.search(list, 'nature').map((x) => x.name), ['nature', 'nature-communications', 'sig']);
+  const xml = '<style><info><link href="http://www.zotero.org/styles/nature" rel="independent-parent"/></info></style>';
+  assert.strictEqual(await St.parentOf(list[0], { fetch: async () => ({ ok: true, text: async () => xml }) }), 'nature');
+  assert.strictEqual(await St.parentOf(list[1]), 'nature');
+  const txt = await St.formatDoi('10.1/x', 'nature', { fetch: async (u, o) => { assert.ok(o.headers.Accept.includes('style=nature')); return { ok: true, text: async () => '1.Levenson, J. C. The association. Prev. Med. 85, 36–41 (2016).\n' }; } });
+  assert.strictEqual(txt, 'Levenson, J. C. The association. Prev. Med. 85, 36–41 (2016).');
+});
