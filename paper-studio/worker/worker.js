@@ -5,6 +5,8 @@
 // POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey" | "ideas" | "design" | "methods" | "paper" | "section"
 // GET  /api/resolve?url=<article page>  (DOI and title from citation meta tags), input: {...} }
 // GET  /api/search?url=<OpenAlex works URL>  (adds OPENALEX_API_KEY when set)
+// POST /api/understand { question } -> { queries: [...] }  (search terms for what the question means)
+// POST /api/rank { question, papers: [{title, abstract}] } -> { order: [indices] }  (most relevant first)
 // -> { notes: [{ level, field?, title, why, how, example?, ask? }], blocked: n }
 
 const MODEL = 'openai/gpt-oss-120b';
@@ -185,6 +187,46 @@ async function resolve(url, headers) {
   return json({ doi: /^10\./.test(doi) ? doi : '', title }, 200, headers);
 }
 
+// Smart search helpers. They only turn a question into search terms and
+// order real search results, so they do not count against the daily AI checks.
+async function groqJSON(env, system, user) {
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: MODEL, messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+      response_format: { type: 'json_object' }, reasoning_effort: 'low', max_completion_tokens: 1200 }),
+  });
+  if (!res.ok) return null;
+  try { return JSON.parse((await res.json()).choices[0].message.content); } catch { return null; }
+}
+
+const UNDERSTAND = `You turn a researcher's question into searches for a scholarly database that matches words, not meaning.
+Work out what the question is really asking: the phenomenon, population, exposure or intervention, outcome and method, including the technical terms and synonyms authors in that field would use (for example "screen time" -> "digital media use", "adolescents" -> "teenagers", "youth").
+Translate non-English questions into English.
+Reply with JSON only: {"queries":["...","...","..."]}: 3 or 4 short keyword queries (2-6 words each, no quotes, no AND/OR), each covering the question from a different angle or wording. Most central first.`;
+
+const RANK = `You rank search results by how directly each paper helps answer the researcher's question, judging by meaning, not shared words.
+Reply with JSON only: {"order":[n, ...]} listing the numbers of the relevant papers, most relevant first. Leave out papers that are clearly off-topic.`;
+
+async function smart(request, env, headers, kind) {
+  if (!env.GROQ_API_KEY) return json({ error: 'The server is missing GROQ_API_KEY.' }, 500, headers);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Send JSON.' }, 400, headers); }
+  const question = str(body && body.question).slice(0, 500).trim();
+  if (!question) return json({ error: 'Type your question first.' }, 400, headers);
+  if (kind === 'understand') {
+    const out = await groqJSON(env, UNDERSTAND, question);
+    const queries = (out && Array.isArray(out.queries) ? out.queries : []).map((q) => str(q).replace(/["()]/g, ' ').trim().slice(0, 120)).filter(Boolean).slice(0, 4);
+    return queries.length ? json({ queries }, 200, headers) : json({ error: 'Could not read the question.' }, 502, headers);
+  }
+  const papers = (Array.isArray(body.papers) ? body.papers : []).slice(0, 30);
+  const list = papers.map((p, n) => `[${n}] ${str(p && p.title).slice(0, 200)}\n${str(p && p.abstract).slice(0, 300)}`).join('\n');
+  const out = await groqJSON(env, RANK, `[question] ${question}\n\n${list}`);
+  const seen = new Set();
+  const order = (out && Array.isArray(out.order) ? out.order : []).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n < papers.length && !seen.has(n) && seen.add(n));
+  return order.length ? json({ order }, 200, headers) : json({ error: 'Could not rank the results.' }, 502, headers);
+}
+
 // Daily AI checks per visitor, counted by IP address in the LIMITS KV
 // namespace. DAILY_LIMIT (default 10) is set in the Worker's variables.
 // Without a LIMITS binding there is no per-visitor limit.
@@ -206,6 +248,8 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/api/search' && request.method === 'GET') return search(url, env, headers);
     if (url.pathname === '/api/resolve' && request.method === 'GET') return resolve(url, headers);
+    if (url.pathname === '/api/understand' && request.method === 'POST') return smart(request, env, headers, 'understand');
+    if (url.pathname === '/api/rank' && request.method === 'POST') return smart(request, env, headers, 'rank');
     if (url.pathname !== '/api/feedback' || request.method !== 'POST') return json({ error: 'Not found' }, 404, headers);
     if (!env.GROQ_API_KEY) return json({ error: 'The server is missing GROQ_API_KEY.' }, 500, headers);
 

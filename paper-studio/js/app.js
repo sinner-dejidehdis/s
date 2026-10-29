@@ -370,7 +370,7 @@
     const main = `<p class="intro">Already have a topic? Search 250 million scholarly works for the latest and most influential research, then add the papers you read to your literature matrix.</p>
       <form class="search-bar" data-form="discover">
         <label for="d-q" class="sr">Topic</label>
-        <input id="d-q" data-bind="discover.query" value="${esc(d.query)}" placeholder="e.g. bedtime social media use and sleep in university students">
+        <input id="d-q" data-bind="discover.query" value="${esc(d.query)}" placeholder="Ask in your own words, e.g. does scrolling on phones at night make students sleep worse?">
         <button class="btn primary"${searching ? ' disabled' : ''}>${searching ? 'Searching…' : 'Search'}</button>
       </form>
       <div class="toolbar">
@@ -379,7 +379,7 @@
         <label class="inline-check"><input type="checkbox" id="d-oa" data-bind="discover.oa"${d.oa ? ' checked' : ''}> Free full text only</label>
       </div>
       ${searchErr ? `<p class="acct-msg error">${esc(searchErr)}</p>` : ''}
-      ${d.results.length ? `<p class="fine">${d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>. ${d.sample ? 'These example results are real papers.' : ''}</p>
+      ${d.results.length ? `<p class="fine">${d.queries && d.queries.length ? `Searched by meaning for: ${d.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}; ranked by how well each paper answers your question.` : d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>. ${d.sample ? 'These example results are real papers.' : ''}</p>
         <ol class="paper-list">${d.results.map(resultCard).join('')}</ol>`
         : '<p class="empty">Type your topic and choose Search.</p>'}`;
     return { main, notes: notesPanel(discoverNotes(), aiBlock('discover')) };
@@ -964,8 +964,8 @@
     searching = true; searchErr = ''; render();
     try {
       const d = state.discover;
-      const r = await S.discover.search(d, { proxy: AI_API });
-      Object.assign(d, { results: r.results, total: r.total, sample: false });
+      const r = await S.discover.smartSearch(d, { proxy: AI_API });
+      Object.assign(d, { results: r.results, total: r.total, queries: r.queries, sample: false });
       track('search');
       ai.discover = null;
       if (!r.results.length) searchErr = 'No papers found. Try fewer or broader terms, or a longer time range.';

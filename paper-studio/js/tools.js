@@ -111,7 +111,7 @@
   async function findGaps(q) {
     ui.q = q; ui.busy = true; ui.err = ''; ui.briefing = null; render();
     try {
-      const r = await S.discover.search({ query: q, years: 5, sort: 'relevance', oa: false }, { proxy: API });
+      const r = await S.discover.smartSearch({ query: q, years: 5, sort: 'relevance', oa: false }, { proxy: API });
       ui.results = r.results.slice(0, 12);
       track('tool_gap', 'search');
       if (!ui.results.length) throw new Error('No papers found. Try broader terms.');

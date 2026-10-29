@@ -65,6 +65,47 @@
     return { total: (data.meta && data.meta.count) || 0, results: (data.results || []).map(parse) };
   }
 
+  // Searches by meaning: the Worker turns the question into several keyword
+  // searches (synonyms, field terms, English), the results are merged by
+  // reciprocal rank, and the AI reorders them by how well they answer the
+  // question. Falls back to a plain keyword search if the AI is unavailable.
+  async function smartSearch(o, opts) {
+    opts = opts || {};
+    const f = opts.fetch || (typeof fetch !== 'undefined' ? fetch.bind(root) : null);
+    if (!String(o.query || '').trim()) throw new Error('Type your topic first.');
+    const post = async (path, body) => {
+      try {
+        const res = await f(opts.proxy + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        return res.ok ? await res.json() : null;
+      } catch (e) { return null; }
+    };
+    const u = opts.proxy ? await post('/api/understand', { question: o.query }) : null;
+    if (!u || !u.queries || !u.queries.length) return Object.assign(await search(o, opts), { queries: [] });
+    const runs = await Promise.all(u.queries.map((q) => search(Object.assign({}, o, { query: q, sort: 'relevance' }), opts).catch(() => null)));
+    const ok = runs.filter(Boolean);
+    if (!ok.length) return Object.assign(await search(o, opts), { queries: [] });
+    const merged = merge(ok.map((r) => r.results));
+    let results = merged.slice(0, 30);
+    if (o.sort === 'newest') results.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    else if (o.sort === 'cited') results.sort((a, b) => b.cited - a.cited);
+    else {
+      const r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) });
+      if (r && Array.isArray(r.order) && r.order.length) results = r.order.map((n) => results[n]).filter(Boolean);
+    }
+    return { total: merged.length, results: results.slice(0, 20), queries: u.queries };
+  }
+
+  // Reciprocal rank fusion: papers found by several searches, and high up, come first.
+  function merge(lists) {
+    const by = new Map();
+    lists.forEach((list) => list.forEach((p, i) => {
+      const e = by.get(p.id) || { p, score: 0 };
+      e.score += 1 / (60 + i);
+      by.set(p.id, e);
+    }));
+    return [...by.values()].sort((a, b) => b.score - a.score).map((e) => e.p);
+  }
+
   function shortAuthors(a) {
     if (!a.length) return 'Unknown authors';
     if (a.length === 1) return a[0];
@@ -170,5 +211,5 @@
     return (named.length ? named : all).slice(0, 3);
   }
 
-  S.discover = { citationsIn, inMatrix, findCited, SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
+  S.discover = { smartSearch, merge, citationsIn, inMatrix, findCited, SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -113,3 +113,24 @@ test('the submission checklist adapts to journal and design and auto-checks what
   const rev = S.checklist.build(p).flatMap((g) => g.items);
   assert.ok(!rev.some((i) => i.id === 'consent') && rev.some((i) => i.id === 'prospero'));
 });
+
+test('smartSearch expands the question, merges and reranks', async () => {
+  const work = (id, title) => ({ id, title, publication_year: 2024, authorships: [] });
+  const fake = async (url, init) => {
+    if (url.endsWith('/api/understand')) return { ok: true, json: async () => ({ queries: ['a', 'b'] }) };
+    if (url.endsWith('/api/rank')) return { ok: true, json: async () => ({ order: [2, 0] }) };
+    const q = new URL(url).searchParams.get('search');
+    const results = q === 'a' ? [work('W1', 'one'), work('W2', 'two')] : [work('W2', 'two'), work('W3', 'three')];
+    return { ok: true, status: 200, json: async () => ({ meta: { count: 2 }, results }) };
+  };
+  const r = await D.smartSearch({ query: 'question', years: 0, sort: 'relevance' }, { fetch: fake, proxy: 'https://x' });
+  assert.deepStrictEqual(r.queries, ['a', 'b']);
+  // merged order: W2 (in both), W1, W3; AI picks [2, 0] -> W3, W2
+  assert.deepStrictEqual(r.results.map((p) => p.id), ['W3', 'W2']);
+});
+
+test('smartSearch falls back to a keyword search without the AI', async () => {
+  const fake = async (url) => (url.includes('/api/') ? { ok: false } : { ok: true, status: 200, json: async () => ({ meta: { count: 1 }, results: [{ id: 'W9', title: 't', authorships: [] }] }) });
+  const r = await D.smartSearch({ query: 'q', years: 0 }, { fetch: fake, proxy: 'https://x' });
+  assert.deepStrictEqual(r.results.map((p) => p.id), ['W9']);
+});
