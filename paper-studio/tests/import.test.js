@@ -27,3 +27,15 @@ test('language check flags without rewriting', () => {
   assert.match(titles, /Overclaiming/); assert.match(titles, /Causal/); assert.match(titles, /Wordy/); assert.match(titles, /passive/);
   assert.ok(n.every((x) => !/insomnia/.test(x.how + (x.example || ''))));
 });
+
+test('cross-check finds citations missing from the list and uncited entries', () => {
+  for (const f of ['text', 'discover', 'cite', 'journals']) require(path.join(__dirname, '..', 'js', f + '.js'));
+  const S = globalThis.Sigao;
+  const x = S.cite.crossCheck('As Levenson et al. (2016) and Smith (2019) found.', 'Levenson, J. C. (2016). A.\nZhang, W. (2021). B.');
+  assert.deepStrictEqual(x.missing.map((c) => c.author), ['Smith']);
+  assert.deepStrictEqual(x.uncited.map((e) => e.author), ['zhang']);
+  const n = S.cite.crossCheck('Shown [1], [2-3] and [5].', 'one entry\ntwo entry\nthree entry\nfour entry');
+  assert.deepStrictEqual([n.missing.map((m) => m.text), n.uncited.map((e) => e.n)], [['[5]'], [4]]);
+  const g = S.journals.group([{ sourceId: 'S1', venue: 'A', cited: 1 }, { sourceId: 'S2', venue: 'B', cited: 5 }, { sourceId: 'S2', venue: 'B', cited: 2 }, { sourceId: 'S3', venue: 'R', sourceType: 'repository', cited: 9 }]);
+  assert.deepStrictEqual(g.map((j) => [j.name, j.papers.length]), [['B', 2], ['A', 1]]);
+});

@@ -37,6 +37,8 @@
       date: w.publication_date || '',
       authors,
       venue: (loc.source && loc.source.display_name) || '',
+      sourceId: (loc.source && loc.source.id) || '',
+      sourceType: (loc.source && loc.source.type) || '',
       type: w.type || '',
       cited: w.cited_by_count || 0,
       doi,

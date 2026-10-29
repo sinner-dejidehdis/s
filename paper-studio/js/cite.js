@@ -136,3 +136,33 @@
 
   S.cite = { parse, verify, compare, fromCrossref, format, titleMatch, STYLES };
 })(typeof window !== 'undefined' ? window : globalThis);
+
+// Cross-check: citations in the text against the reference list, both ways.
+(function (root) {
+  const S = root.Sigao;
+  function crossCheck(text, refsInput) {
+    text = String(text || '');
+    const entries = String(refsInput || '').split(/\n+/).map((l) => l.trim()).filter((l) => l.length > 8);
+    const numeric = (text.match(/\[\d+(?:\s*[,–-]\s*\d+)*\]/g) || []);
+    if (numeric.length >= 2) {
+      const used = new Set();
+      numeric.forEach((m) => m.slice(1, -1).split(',').forEach((part) => {
+        const [a, b] = part.split(/[–-]/).map((x) => Number(x.trim()));
+        for (let n = a; n <= (b || a); n++) used.add(n);
+      }));
+      return { mode: 'numeric', missing: [...used].filter((n) => n > entries.length).map((n) => ({ text: `[${n}]` })),
+        uncited: entries.map((raw, i) => ({ raw, n: i + 1 })).filter((e) => !used.has(e.n)) };
+    }
+    const cited = S.discover.citationsIn(text);
+    const first = entries.map((raw) => ({ raw, author: (raw.replace(/^\[?\d+[\].]?\s*/, '').match(/^[^,(]+/) || [''])[0].trim().split(/\s+/).pop().toLowerCase(),
+      year: Number((raw.match(/\b(19|20)\d{2}\b/) || [])[0]) }));
+    const inList = (c) => first.some((e) => e.year === c.year && (e.author === c.author.toLowerCase() || e.raw.toLowerCase().includes(c.author.toLowerCase())));
+    const inText = (e) => cited.some((c) => c.year === e.year && (e.author === c.author.toLowerCase() || e.raw.toLowerCase().includes(c.author.toLowerCase())));
+    const missing = cited.filter((c) => !inList(c)).map((c) => {
+      const near = first.find((e) => e.author === c.author.toLowerCase() && e.year && e.year !== c.year);
+      return near ? Object.assign({}, c, { text: `${c.text} (the list has ${near.year})` }) : c;
+    });
+    return { mode: 'author-year', cited: cited.length, missing, uncited: first.filter((e) => e.author && !inText(e)) };
+  }
+  S.cite.crossCheck = crossCheck;
+})(typeof window !== 'undefined' ? window : globalThis);

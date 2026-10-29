@@ -39,7 +39,14 @@
     return String(text || '').replace(/\s+/g, ' ').split(/(?<=[.!?])\s+(?=[A-Z("“])/).map((s) => s.trim()).filter(Boolean);
   }
 
+  let memo = { text: null, result: null };
   function check(text) {
+    if (memo.text === text) return memo.result;
+    memo = { text, result: checkFresh(text) };
+    return memo.result;
+  }
+
+  function checkFresh(text) {
     const sents = sentences(text);
     const hits = [];
     sents.forEach((s, i) => {

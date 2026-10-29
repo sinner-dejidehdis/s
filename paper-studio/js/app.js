@@ -11,6 +11,7 @@
   if (!state.design) state.design = S.design.blank();
   if (!state.language) state.language = { text: state.sample ? state.check.discussion : '' };
   let fileBusy = '';
+  const jf = { busy: false, err: '', list: null, queries: [] }; // journal finder
   ['question', 'gap', 'aim', 'method'].forEach((k) => { if (typeof state.check[k] !== 'string') state.check[k] = ''; });
   let searching = false;
   let linkBusy = '';
@@ -648,8 +649,60 @@
     const unchecked = S.cite.parse(state.refs.input).filter((e) => !res.some((r) => r.raw === e.raw)).length;
     if (unchecked) notes.push({ level: 'tip', title: `${unchecked} ${plural(unchecked, 'reference has', 'references have')} not been checked yet`, why: 'New papers from your literature matrix are added to the list automatically.', how: 'Choose “Check references” to verify and format them.' });
     if (!notes.length && res.length) notes.push({ level: 'ok', title: 'All references verified', why: '', how: 'Make sure every in-text citation matches an entry in the list.' });
+    const x = S.cite.crossCheck(allText(), state.refs.input);
+    if (x.missing.length) notes.push({ level: 'issue', title: `${x.missing.length} ${plural(x.missing.length, 'citation is', 'citations are')} missing from the list`, why: 'Every source cited in the text needs a full entry in the reference list; reviewers and editors check this.', how: 'See “Citations in your text vs your reference list” below, then add each missing entry.' });
+    if (x.uncited.length && (x.mode === 'numeric' || x.cited)) notes.push({ level: 'tip', title: `${x.uncited.length} ${plural(x.uncited.length, 'entry is', 'entries are')} never cited`, why: 'Most journals ask that the list contains only works cited in the text.', how: 'Cite each one where it supports a claim, or remove it from the list.' });
     if (!state.refs.journal) notes.push({ level: 'ask', title: 'Choose your target journal', why: 'Each journal has its own reference style.', how: 'Search for the journal above; references with a DOI are then formatted in its official style.' });
     return notes;
+  }
+
+  // All the writing in the project, for matching in-text citations.
+  function allText() {
+    return [...Object.values(state.outline), ...Object.values(state.check), state.language.text].filter((x) => typeof x === 'string').join('\n');
+  }
+  function crossBlock() {
+    const x = S.cite.crossCheck(allText(), state.refs.input);
+    if (x.mode === 'author-year' && !x.cited) return '<section class="ai-box"><h4>Citations in your text vs your reference list</h4><p class="ai-rule">No in-text citations found yet. Paste or import your manuscript in the Consistency or Language check, and Arguo will match every citation against this list.</p></section>';
+    const miss = x.missing.length ? `<p><b>Cited in your text but not in the list (${x.missing.length}):</b> ${x.missing.map((c) => esc(c.text)).join('; ')}</p>` : '';
+    const unc = x.uncited.length ? `<p><b>In the list but never cited in your text (${x.uncited.length}):</b></p><ul>${x.uncited.slice(0, 12).map((e) => `<li>${esc(e.raw.slice(0, 140))}</li>`).join('')}</ul>` : '';
+    return `<section class="ai-box"><h4>Citations in your text vs your reference list</h4>
+      <p class="ai-rule">${x.mode === 'numeric' ? 'Numbered citations ([1], [2–4]) matched by number.' : 'Author–year citations matched by first author and year.'} Checks the text in your argument thread, consistency check and language check.</p>
+      ${miss || unc ? miss + unc + '<p class="fine">Spelling variants, “et al.” lists and papers with the same author and year can be missed or mismatched; confirm each one.</p>' : '<p>Every citation has a matching entry, and every entry is cited.</p>'}</section>`;
+  }
+
+  function journalFinder() {
+    const list = jf.list ? jf.list.map((j, i) => {
+      const n = j.info || {};
+      const facts = [n.publisher, n.isOa ? (n.doaj ? 'Open access (in DOAJ)' : 'Open access') : 'Subscription or hybrid', n.apc != null ? `APC about $${n.apc.toLocaleString()}` : '', n.hIndex ? `h-index ${n.hIndex}` : ''].filter(Boolean);
+      return `<li class="jf-item"><div class="jf-top"><b>${esc(j.name)}</b><button class="btn small-btn" data-action="journal-use" data-i="${i}">Use as target journal</button></div>
+        <p class="fine">${esc(facts.join(' · '))}${n.homepage ? ` · <a href="${esc(n.homepage)}" target="_blank" rel="noopener">Journal site</a>` : ''}</p>
+        <details><summary>${j.papers.length} similar ${j.papers.length === 1 ? 'paper' : 'papers'} published here</summary><ul>${j.papers.map((p) => `<li><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a> (${p.year || 'n.d.'})</li>`).join('')}</ul></details></li>`;
+    }).join('') : '';
+    return `<section class="ai-box"><div class="ai-head"><h4>Which journals publish work like yours?</h4><button class="btn small-btn" data-action="journal-suggest"${jf.busy ? ' disabled' : ''}>${jf.busy ? 'Searching…' : jf.list ? 'Search again' : 'Suggest journals'}</button></div>
+      <p class="ai-rule">Uses your research question and aim to find similar papers from the last 5 years, then lists the journals that published them. Read each journal’s aims and scope and a few recent issues before deciding. Fees and open-access status come from OpenAlex and can be out of date; check them on the journal site.</p>
+      ${jf.err ? `<p class="acct-msg error">${esc(jf.err)}</p>` : ''}
+      ${jf.queries.length ? `<p class="fine">Searched for: ${jf.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}</p>` : ''}
+      ${list ? `<ol class="jf-list">${list}</ol>` : ''}</section>`;
+  }
+
+  async function suggestJournals() {
+    jf.busy = true; jf.err = ''; render();
+    try {
+      const r = await S.journals.suggest([state.outline.question, state.outline.aim].filter(Boolean).join(' ') || state.title, { proxy: AI_API });
+      jf.list = r.journals; jf.queries = r.queries;
+      track('journal_suggest');
+    } catch (e) { jf.err = e.message; }
+    jf.busy = false; render();
+  }
+
+  async function useJournal(j) {
+    try {
+      const list = await S.styles.load();
+      const hit = S.styles.search(list, j.name, 5).find((x) => x.title.toLowerCase() === j.name.toLowerCase());
+      if (hit) { await pickJournal(hit); toast(`Target journal: ${j.name}`); return; }
+      journalUi.q = j.name; journalUi.results = S.styles.search(list, j.name, 8);
+      toast('No exact style match; pick the journal from the list'); render();
+    } catch (e) { toast('Could not load the journal list. Try again.'); }
   }
 
   function journalPicker() {
@@ -682,7 +735,8 @@
         <button class="btn" data-action="export" data-format="ris">Export RIS</button>
       </div>
       <p class="fine">Exports contain every paper in your literature matrix, for Zotero, EndNote, Mendeley or LaTeX.</p>
-      <div id="cite-list">${citeList()}</div>`;
+      <div id="cite-list">${citeList()}</div>
+      ${crossBlock()}`;
     return { main, notes: notesPanel(citeNotes()) };
   }
 
@@ -831,6 +885,7 @@
     const main = `<p class="intro">The checklist adapts to your target journal and study design. Items Arguo can verify from your project are checked automatically; tick the rest yourself. The journal’s Guide for Authors has the final say.</p>
       <h3 class="sub">Target journal</h3>
       ${journalPicker()}
+      ${state.refs.journal ? '' : journalFinder()}
       <p class="fine">${d ? `Study design: ${esc(d)} (<a href="#design">change</a>).` : 'Choose your study design in <a href="#design">Study design</a> to get design-specific items.'}</p>
       ${groups.map((g) => `<fieldset class="checks"><legend>${g.name}</legend>${g.items.map((i) => {
         const done = S.checklist.isDone(i, state);
@@ -880,7 +935,8 @@
       (words[i] || []).forEach((w) => { out = out.replace(new RegExp(`\\b(${esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi'), '<mark>$1</mark>'); });
       return out;
     };
-    return `<h3 class="sub">Sentences to look at (${flagged.size} of ${r.sentences.length})</h3><ol class="lang-list">${[...flagged].map((i) => `<li><p>${mark(r.sentences[i], i)}</p>
+    const shown = [...flagged].slice(0, 60);
+    return `<h3 class="sub">Sentences to look at (${flagged.size} of ${r.sentences.length})</h3>${flagged.size > 60 ? '<p class="fine">Showing the first 60. Revise these, or check one section at a time, to see the rest.</p>' : ''}<ol class="lang-list">${shown.map((i) => `<li><p>${mark(r.sentences[i], i)}</p>
       <small>${[...new Set(r.hits.filter((h) => h.i === i).map((h) => h.label))].join(' · ')}</small></li>`).join('')}</ol>`;
   }
 
@@ -1148,6 +1204,8 @@
       analysePaper(row.id, true);
     },
     'journal-pick': (el) => pickJournal(journalUi.results[Number(el.dataset.i)]),
+    'journal-suggest': () => { if (!jf.busy) suggestJournals(); },
+    'journal-use': (el) => useJournal(jf.list[Number(el.dataset.i)]),
     'journal-clear': () => { state.refs.journal = null; save(); render(); },
     jump: (el) => { const t = document.getElementById(el.dataset.target); if (t) { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 1200); } },
     ai: (el) => { if (!(ai[el.dataset.view] || {}).loading) askAi(el.dataset.view); },
