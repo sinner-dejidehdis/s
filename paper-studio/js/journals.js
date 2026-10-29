@@ -40,7 +40,8 @@
     const r = await S.discover.smartSearch({ query: String(text).slice(0, 400), years: 5, sort: 'relevance' }, opts);
     const groups = group(r.results).slice(0, 8);
     if (!groups.length) throw new Error('No journals found for this topic. Try rewording your research question.');
-    const info = await details(groups.map((g) => g.id), opts);
+    const ox = groups.map((g) => g.id).filter((id) => /openalex\.org/.test(id));
+    const info = ox.length ? await details(ox, opts) : {};
     return { queries: r.queries || [], journals: groups.map((g) => Object.assign(g, { info: info[g.id] || null })) };
   }
 

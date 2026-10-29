@@ -48,6 +48,52 @@
     };
   }
 
+  // Crossref: the fallback when OpenAlex is out of budget. No key needed,
+  // 150M+ records, but no open-access filter and fewer abstracts.
+  const CR = 'https://api.crossref.org/works';
+  const CR_SELECT = 'DOI,title,author,issued,container-title,is-referenced-by-count,abstract,type,ISSN';
+  function parseCrossref(it) {
+    const parts = (it.issued && it.issued['date-parts'] && it.issued['date-parts'][0]) || [];
+    const doi = String(it.DOI || '');
+    return {
+      id: 'doi:' + doi.toLowerCase(),
+      title: String((it.title || [])[0] || 'Untitled').replace(/<[^>]+>/g, ''),
+      year: parts[0] || null,
+      date: parts.length ? parts.map((x) => String(x).padStart(2, '0')).join('-') : '',
+      authors: (it.author || []).map((a) => [a.given, a.family].filter(Boolean).join(' ') || a.name || '').filter(Boolean),
+      venue: (it['container-title'] || [])[0] || '',
+      sourceId: (it.ISSN || [])[0] ? 'issn:' + it.ISSN[0] : '',
+      sourceType: it.type === 'journal-article' ? 'journal' : it.type || '',
+      type: it.type === 'journal-article' ? 'article' : it.type || '',
+      cited: it['is-referenced-by-count'] || 0,
+      doi,
+      url: `https://doi.org/${doi}`,
+      oaUrl: '',
+      abstract: String(it.abstract || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 900),
+    };
+  }
+  async function crossref(params, f) {
+    let res;
+    try { res = await f(`${CR}?${params}&select=${CR_SELECT}&mailto=hello@arguo.app`); } catch (e) { res = null; }
+    if (!res || !res.ok) return null;
+    const data = await res.json();
+    return { total: (data.message && data.message['total-results']) || 0, results: ((data.message && data.message.items) || []).map(parseCrossref) };
+  }
+  function crossrefSearch(o, f, now) {
+    now = now || new Date();
+    const filters = ['type:journal-article'];
+    if (Number(o.years)) filters.push(`from-pub-date:${now.getFullYear() - Number(o.years)}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
+    // Crossref's own date and citation sorts ignore relevance, so take the most
+    // relevant 40 and order those.
+    return crossref(`query.bibliographic=${encodeURIComponent(o.query.trim())}&filter=${filters.join(',')}&rows=40`, f).then((r) => {
+      if (!r) return r;
+      if (o.sort === 'newest') r.results.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      else if (o.sort === 'cited') r.results.sort((a, b) => b.cited - a.cited);
+      r.results = r.results.slice(0, 20);
+      return r;
+    });
+  }
+
   // Tries the browser first (each visitor has their own free OpenAlex budget),
   // then the site's server, which can use an OpenAlex key.
   async function search(o, opts) {
@@ -60,11 +106,14 @@
     if ((!res || res.status === 429 || res.status === 403) && opts.proxy) {
       try { res = await f(opts.proxy + '/api/search?url=' + encodeURIComponent(url)); } catch (e) { res = null; }
     }
-    if (!res) throw new Error('Could not reach OpenAlex. Previews block outside requests; this works on the deployed site.');
-    if (res.status === 429) throw new Error('The search service is busy. Try again in a few minutes.');
-    if (!res.ok) throw new Error(`Search failed (${res.status}).`);
+    if (!res || !res.ok) {
+      const cr = await crossrefSearch(o, f, opts.now);
+      if (cr) return Object.assign(cr, { source: 'crossref' });
+      if (!res) throw new Error('Could not reach the search services. Check your connection and try again.');
+      throw new Error(res.status === 429 ? 'Both search services are busy. Try again in a few minutes.' : `Search failed (${res.status}).`);
+    }
     const data = await res.json();
-    return { total: (data.meta && data.meta.count) || 0, results: (data.results || []).map(parse) };
+    return { total: (data.meta && data.meta.count) || 0, results: (data.results || []).map(parse), source: 'openalex' };
   }
 
   // Searches by meaning: the Worker turns the question into several keyword
@@ -87,14 +136,14 @@
     const ok = runs.filter(Boolean);
     if (!ok.length) return Object.assign(await search(o, opts), { queries: [] });
     const merged = merge(ok.map((r) => r.results));
+    // The AI drops off-topic papers and orders the rest by relevance; the
+    // chosen sort (newest, most cited) is then applied to the relevant ones.
     let results = merged.slice(0, 30);
+    const r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) });
+    if (r && Array.isArray(r.order) && r.order.length) results = r.order.map((n) => results[n]).filter(Boolean);
     if (o.sort === 'newest') results.sort((a, b) => String(b.date).localeCompare(String(a.date)));
     else if (o.sort === 'cited') results.sort((a, b) => b.cited - a.cited);
-    else {
-      const r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) });
-      if (r && Array.isArray(r.order) && r.order.length) results = r.order.map((n) => results[n]).filter(Boolean);
-    }
-    return { total: merged.length, results: results.slice(0, 20), queries: u.queries };
+    return { total: merged.length, results: results.slice(0, 20), queries: u.queries, source: ok.some((r) => r.source === 'crossref') ? 'crossref' : 'openalex' };
   }
 
   // Reciprocal rank fusion: papers found by several searches, and high up, come first.
@@ -142,6 +191,22 @@
     return s.length > 10 ? { title: s } : null;
   }
 
+  // For a title search: the result whose title matches best, if it is close enough.
+  const norm = (t) => String(t || '').toLowerCase().replace(/<[^>]+>/g, '').replace(/[^a-z0-9\u00c0-\u024f\u4e00-\u9fff]+/g, ' ').trim();
+  function titleScore(a, b) {
+    const x = norm(a).split(' ').filter(Boolean), y = norm(b).split(' ').filter(Boolean);
+    if (!x.length || !y.length) return 0;
+    if (norm(a) === norm(b)) return 1;
+    // Word pairs keep word order, so "Is attention all you need?" does not match "Attention is all you need".
+    const pairs = (w) => new Set(w.length > 1 ? w.slice(1).map((v, i) => w[i] + ' ' + v) : w);
+    const px = pairs(x), py = pairs(y);
+    return [...px].filter((w) => py.has(w)).length / Math.max(px.size, py.size);
+  }
+  function bestTitle(list, title) {
+    const scored = (list || []).map((p) => ({ p, s: titleScore(p.title, title) })).sort((a, b) => b.s - a.s);
+    return scored[0] && scored[0].s >= 0.6 ? scored[0].p : null;
+  }
+
   // Resolves a pasted link to one OpenAlex record.
   async function lookup(link, opts) {
     opts = opts || {};
@@ -159,19 +224,35 @@
     }
     const url = id.openalex ? `${API}/${id.openalex}?select=${SELECT}`
       : id.doi ? `${API}/doi:${encodeURIComponent(id.doi)}?select=${SELECT}`
-        : `${API}?search=${encodeURIComponent(id.title)}&per-page=1&select=${SELECT}`;
+        : `${API}?search=${encodeURIComponent(id.title)}&per-page=5&select=${SELECT}`;
     let res;
     try { res = await f(url); } catch (e) { res = null; }
     if ((!res || res.status === 429 || res.status === 403) && opts.proxy) {
       try { res = await f(opts.proxy + '/api/search?url=' + encodeURIComponent(url)); } catch (e) { res = null; }
     }
-    if (!res) throw new Error('Could not reach OpenAlex. Previews block outside requests; this works on the deployed site.');
+    if ((!res || (!res.ok && res.status !== 404)) && !id.openalex) {
+      if (id.doi) {
+        let r2;
+        try { r2 = await f(`${CR}/${encodeURIComponent(id.doi)}?mailto=hello@arguo.app`); } catch (e) { r2 = null; }
+        if (r2 && r2.ok) return parseCrossref((await r2.json()).message);
+      } else {
+        const cr = await crossref(`query.bibliographic=${encodeURIComponent(id.title)}&rows=10`, f);
+        const best = cr && bestTitle(cr.results, id.title);
+        if (best) return best;
+        if (cr) throw new Error('No paper with that title was found. Check the spelling, or paste its DOI or link.');
+      }
+    }
+    if (!res) throw new Error('Could not reach the search services. Check your connection and try again.');
     if (res.status === 404) throw new Error('No record found for that link. Check the DOI, or paste the title instead.');
     if (!res.ok) throw new Error(`Lookup failed (${res.status}).`);
     const data = await res.json();
-    const w = data.results ? data.results[0] : data;
-    if (!w || !w.id) throw new Error('No record found for that link.');
-    return parse(w);
+    if (data.results) {
+      const best = bestTitle(data.results.map(parse), id.title || '');
+      if (!best) throw new Error('No paper with that title was found. Check the spelling, or paste its DOI or link.');
+      return best;
+    }
+    if (!data.id) throw new Error('No record found for that link.');
+    return parse(data);
   }
 
   // Author-year citations written in the user's own text, e.g. "Levenson et
@@ -207,11 +288,16 @@
     if ((!res || res.status === 429 || res.status === 403) && opts.proxy) {
       try { res = await f(opts.proxy + '/api/search?url=' + encodeURIComponent(url)); } catch (e) { res = null; }
     }
-    if (!res || !res.ok) throw new Error('Could not search for that paper right now.');
-    const all = ((await res.json()).results || []).map(parse);
+    let all;
+    if (res && res.ok) all = ((await res.json()).results || []).map(parse);
+    else {
+      const cr = await crossref(`query.author=${encodeURIComponent(c.author)}&query.bibliographic=${encodeURIComponent(topic || '')}&filter=from-pub-date:${c.year},until-pub-date:${c.year}&rows=10`, f);
+      if (!cr) throw new Error('Could not search for that paper right now. Try again in a minute.');
+      all = cr.results;
+    }
     const named = all.filter((r) => r.authors.some((a) => a.toLowerCase().includes(c.author.toLowerCase())));
     return (named.length ? named : all).slice(0, 3);
   }
 
-  S.discover = { smartSearch, merge, citationsIn, inMatrix, findCited, SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
+  S.discover = { smartSearch, merge, titleScore, bestTitle, citationsIn, inMatrix, findCited, SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
 })(typeof window !== 'undefined' ? window : globalThis);

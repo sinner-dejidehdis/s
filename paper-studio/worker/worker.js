@@ -17,7 +17,8 @@ const RULES = `You are Arguo, a feedback tool for academic writers. You never wr
 Hard rules:
 - Diagnose problems, explain why they matter, and explain how to fix them.
 - Never rewrite, paraphrase, continue or complete the user's text. Never give a replacement sentence about the user's own topic.
-- When an example helps, use a clearly different topic (for example urban parks and heat, or soil microbes), never the user's topic.
+- In "how", describe the change in general terms (for example "use an associational verb"); never write replacement words or phrases about the user's own topic.
+- When an example helps, use a clearly different topic (for example urban parks and heat, or soil microbes), never the user's topic. The example must show the fix, written as "Weak: <sentence with the same problem> → Better: <the same sentence done well>", so the writer sees what good looks like.
 - You may ask one short question that helps the writer think.
 - Never invent references, statistics or findings.
 Reply with JSON only: {"notes":[{"level":"issue|tip|gap|ask|ok","field":"<optional key>","title":"<under 12 words>","why":"<1-2 sentences>","how":"<1-2 sentences>","example":"<optional, other topic>","ask":"<optional question>"}]}
@@ -96,7 +97,7 @@ ${str(i.abstract) || '(no abstract available)'}`,
   language: (i) => `Review the academic English of this passage as a careful editor would, without rewriting it.
 Look for: overclaiming, causal verbs on correlational evidence, vague quantities, informal register, unclear pronoun reference, inconsistent terms for the same concept, tense that does not fit the section, sentences whose main claim is buried.
 For each problem, quote at most 5 words from the passage in "title" so the writer can find it, explain why it is a problem, and explain how to fix it in general terms.
-"example" must use a different topic. Never give a corrected version of the writer's sentence.
+"example" must use a different topic, in the form "Weak: … → Better: …". Never give a corrected version of the writer's sentence.
 
 [passage]
 ${str(i.text)}`,
@@ -210,7 +211,7 @@ async function groqJSON(env, system, user) {
 const UNDERSTAND = `You turn a researcher's question into searches for a scholarly database that matches words, not meaning.
 Work out what the question is really asking: the phenomenon, population, exposure or intervention, outcome and method, including the technical terms and synonyms authors in that field would use (for example "screen time" -> "digital media use", "adolescents" -> "teenagers", "youth").
 Translate non-English questions into English.
-Reply with JSON only: {"queries":["...","...","..."]}: 3 or 4 short keyword queries (2-6 words each, no quotes, no AND/OR), each covering the question from a different angle or wording. Most central first.`;
+Reply with JSON only: {"queries":["...","...","..."]}: 3 or 4 keyword queries (3-7 words each, no quotes, no AND/OR). EVERY query must combine the core concepts of the question (for example exposure + outcome + population); never split them into separate queries, because a query with only one concept returns off-topic papers. Vary the wording and synonyms between queries. Most central first.`;
 
 const RANK = `You rank search results by how directly each paper helps answer the researcher's question, judging by meaning, not shared words.
 Reply with JSON only: {"order":[n, ...]} listing the numbers of the relevant papers, most relevant first. Leave out papers that are clearly off-topic.`;

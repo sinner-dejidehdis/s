@@ -506,7 +506,7 @@
         <label class="inline-check"><input type="checkbox" id="d-oa" data-bind="discover.oa"${d.oa ? ' checked' : ''}> Free full text only</label>
       </div>
       ${searchErr ? `<p class="acct-msg error">${esc(searchErr)}</p>` : ''}
-      ${d.results.length ? `<p class="fine">${d.queries && d.queries.length ? `Searched by meaning for: ${d.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}; ranked by how well each paper answers your question. The AI can misread a question or leave out a relevant paper, so check the search terms and try your own keywords too.` : d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>. ${d.sample ? 'These example results are real papers.' : ''}</p>
+      ${d.results.length ? `<p class="fine">${d.queries && d.queries.length ? `Searched by meaning for: ${d.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}; ranked by how well each paper answers your question. The AI can misread a question or leave out a relevant paper, so check the search terms and try your own keywords too.` : d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from ${d.source === 'crossref' ? '<a href="https://www.crossref.org" target="_blank" rel="noopener">Crossref</a> (OpenAlex is busy right now, so the free-full-text filter and some abstracts are unavailable)' : '<a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>'}. ${d.sample ? 'These example results are real papers.' : ''}</p>
         <ol class="paper-list">${d.results.map(resultCard).join('')}</ol>`
         : '<p class="empty">Type your topic and choose Search.</p>'}`;
     return { main, notes: notesPanel(discoverNotes(), aiBlock('discover')) };
@@ -652,7 +652,8 @@
   // One place where a found paper enters the project: a matrix row plus an
   // entry in the reference list, so the citation check sees it too.
   function addToMatrix(meta) {
-    const existing = state.matrix.find((x) => x.meta && (x.meta.id === meta.id || (meta.doi && x.meta.doi === meta.doi)));
+    const same = (a, b) => String(a || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() === String(b || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const existing = state.matrix.find((x) => x.meta && (x.meta.id === meta.id || (meta.doi && x.meta.doi && x.meta.doi.toLowerCase() === meta.doi.toLowerCase()) || (same(x.meta.title, meta.title) && (!x.meta.year || !meta.year || Math.abs(x.meta.year - meta.year) <= 1))));
     if (existing) return existing;
     const row = Object.assign(S.matrix.blankRow(), S.discover.toMatrixRow(meta), { sourceId: meta.id, meta });
     const empty = state.matrix.findIndex((x) => !x.source.trim() && !x.finding.trim());
@@ -709,9 +710,11 @@
     const link = input.value;
     linkErr = ''; linkBusy = 'Finding the paper…'; render();
     try {
+      if (state.matrix.some((x) => x.meta && S.discover.titleScore(x.meta.title, link) >= 0.9)) throw new Error('That paper is already in your matrix.');
       const meta = await S.discover.lookup(link, { proxy: AI_API });
-      if (state.matrix.some((x) => x.meta && x.meta.id === meta.id)) throw new Error('That paper is already in your matrix.');
+      const n = state.matrix.filter((x) => x.meta).length;
       const row = addToMatrix(meta);
+      if (state.matrix.filter((x) => x.meta).length === n) throw new Error('That paper is already in your matrix.');
       track('add_paper', 'link');
       linkBusy = 'Summarising…'; save(); render();
       await analysePaper(row.id, true);
@@ -1234,7 +1237,7 @@
     try {
       const d = state.discover;
       const r = await S.discover.smartSearch(d, { proxy: AI_API });
-      Object.assign(d, { results: r.results, total: r.total, queries: r.queries, sample: false });
+      Object.assign(d, { results: r.results, total: r.total, queries: r.queries, source: r.source, sample: false });
       track('search');
       ai.discover = null;
       if (!r.results.length) searchErr = 'No papers found. Try fewer or broader terms, or a longer time range.';

@@ -48,6 +48,9 @@
   // Compare what the author wrote against the verified record.
   function compare(entry, rec) {
     const issues = [];
+    // A bare DOI or link has no author or title to compare.
+    const rest = entry.raw.replace(/https?:\/\/\S+/g, '').replace(/\b(doi:\s*)?10\.\d{4,9}\/\S+/gi, '');
+    if (words(rest).length < 4) return issues;
     if (entry.year && rec.year && entry.year !== rec.year) issues.push(`Year given as ${entry.year}; the record says ${rec.year}`);
     const first = rec.authors[0] && rec.authors[0].family;
     if (first && !words(entry.raw).includes(words(first)[0] || '###')) issues.push(`First author should be ${first}`);

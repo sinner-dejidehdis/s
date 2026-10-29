@@ -79,7 +79,7 @@
         sample: '612 undergraduates at three universities, recruited by email.', procedure: 'Participants complete an online questionnaire once: demographics, bedtime social media use, PSQI, academic stress scale.',
         analysis: 'Multiple regression of PSQI on bedtime use, adjusting for covariates; interaction with use type.' },
       discover: {
-        query: 'social media use and sleep quality', years: 0, sort: 'cited', oa: false, total: 0, sample: true,
+        query: 'social media use and sleep quality', years: 0, sort: 'relevance', oa: false, total: 0, sample: true,
         results: [REC.hale, REC.woods, REC.levenson].map((r, i) => ({
           id: 'sample-' + i, title: r.title, year: r.year, authors: r.authors.map((a) => `${a.given} ${a.family}`),
           venue: r.journal, type: i === 0 ? 'review' : 'article', cited: 0, doi: r.doi, url: `https://doi.org/${r.doi}`, oaUrl: '', abstract: '',

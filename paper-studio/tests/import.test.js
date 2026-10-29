@@ -39,3 +39,10 @@ test('cross-check finds citations missing from the list and uncited entries', ()
   const g = S.journals.group([{ sourceId: 'S1', venue: 'A', cited: 1 }, { sourceId: 'S2', venue: 'B', cited: 5 }, { sourceId: 'S2', venue: 'B', cited: 2 }, { sourceId: 'S3', venue: 'R', sourceType: 'repository', cited: 9 }]);
   assert.deepStrictEqual(g.map((j) => [j.name, j.papers.length]), [['B', 2], ['A', 1]]);
 });
+
+test('a bare DOI is not flagged for author or title', () => {
+  for (const f of ['text', 'cite']) require(path.join(__dirname, '..', 'js', f + '.js'));
+  const S = globalThis.Sigao;
+  const e = S.cite.parse('10.1016/j.adolescence.2016.05.008')[0];
+  assert.deepStrictEqual(S.cite.compare(e, { year: 2016, title: '#Sleepyteens', authors: [{ family: 'Woods' }] }), []);
+});
