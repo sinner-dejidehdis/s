@@ -44,6 +44,87 @@
     { id: 'submit', name: 'Submission checklist', pain: 'Missing items at submission' },
   ];
 
+  // Task finder: what people come to do, mapped to the view and the exact control.
+  const FIND = [
+    { q: 'Check whether my references are real', view: 'cite', target: 'f-refs', k: 'citation reference fake invented hallucinated doi crossref verify check real' },
+    { q: 'Format my references for a journal', view: 'cite', target: 'j-q', k: 'format style apa vancouver chicago journal reference list bibliography csl' },
+    { q: 'Find papers on my research question', view: 'discover', target: 'd-q', k: 'search find papers literature articles topic question openalex' },
+    { q: 'Import my Zotero / EndNote / Mendeley library', view: 'matrix', target: 'imp-bib', k: 'zotero endnote mendeley bibtex bib ris import library' },
+    { q: 'Export references to Zotero or LaTeX', view: 'cite', target: 'exp-bib', k: 'export bibtex ris zotero latex endnote download' },
+    { q: 'Upload my manuscript (Word or PDF)', view: 'check', target: 'imp-ms', k: 'upload import word docx pdf manuscript file paper draft' },
+    { q: 'Improve my academic English', view: 'language', target: 'f-lang', k: 'english language grammar wording style vague informal overclaim tone polish non-native' },
+    { q: 'Choose a journal to submit to', view: 'submit', target: 'jf', k: 'journal choose where submit recommend find target apc open access impact' },
+    { q: 'Check my discussion against my results', view: 'check', tab: 'conclusion', target: 'f-sec', k: 'discussion results conclusion overclaim causal consistency' },
+    { q: 'Check each section of my paper', view: 'check', tab: 'question', target: 'f-sec', k: 'introduction methods results section consistency manuscript' },
+    { q: 'Match in-text citations to my reference list', view: 'cite', target: 'xcheck', k: 'in-text citation missing uncited match cross check list' },
+    { q: 'Find a research gap', view: 'matrix', target: 'm-link', k: 'gap literature review matrix synthesis limitation' },
+    { q: 'Build a clear argument (question → conclusion)', view: 'outline', k: 'argument outline structure research question aim gap logic start' },
+    { q: 'Plan my study design', view: 'design', k: 'design method sample size control randomisation ethics experiment survey' },
+    { q: 'What should I do next? New research ideas', view: 'ideas', k: 'next step ideas novelty direction innovation plan' },
+    { q: 'Respond to reviewer comments', view: 'review', k: 'reviewer comments revision major minor response rebuttal' },
+    { q: 'Get ready to submit', view: 'submit', k: 'submission checklist submit cover letter ethics registration guideline' },
+    { q: 'See progress on my paper', view: 'overview', k: 'overview progress dashboard project status' },
+  ];
+  let goTarget = null; // { target } to focus after the next render
+  function findTasks(q) {
+    const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
+    if (!words.length) return FIND;
+    return FIND.map((t) => ({ t, n: words.filter((w) => (t.q + ' ' + t.k).toLowerCase().includes(w)).length }))
+      .filter((x) => x.n).sort((a, b) => b.n - a.n).map((x) => x.t);
+  }
+  function goTask(i) {
+    const t = FIND[i];
+    if (!t) return;
+    closeFinder();
+    if (t.tab) checkTab = t.tab;
+    goTarget = t.target || null;
+    track('finder', t.view);
+    if (location.hash === '#' + t.view) { render(); } else location.hash = t.view;
+  }
+  function focusTarget() {
+    if (!goTarget) return;
+    const el = document.getElementById(goTarget);
+    goTarget = null;
+    if (!el) return;
+    setTimeout(() => {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.add('flash-target');
+      if (el.matches('input, textarea')) el.focus({ preventScroll: true });
+      setTimeout(() => el.classList.remove('flash-target'), 2200);
+    }, 60);
+  }
+  function taskList(list, cls) {
+    return list.length ? `<ul class="${cls}">${list.map((t) => `<li><button data-action="go-task" data-i="${FIND.indexOf(t)}">${icon(t.view)}<span>${esc(t.q)}</span></button></li>`).join('')}</ul>`
+      : '<p class="fine">No match. Try another word, such as “journal”, “Zotero” or “English”.</p>';
+  }
+  function openFinder() {
+    let box = document.getElementById('finder');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'finder'; box.className = 'finder'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', 'Find a tool');
+      box.innerHTML = `<div class="finder-card"><input id="finder-q" placeholder="What do you want to do? e.g. check references, choose a journal" autocomplete="off"><div id="finder-list"></div><p class="fine">↑↓ to move · Enter to open · Esc to close</p></div>`;
+      document.body.appendChild(box);
+      box.addEventListener('click', (e) => { if (e.target === box) closeFinder(); });
+      box.querySelector('#finder-q').addEventListener('input', (e) => { box.querySelector('#finder-list').innerHTML = taskList(findTasks(e.target.value), 'task-list'); });
+    }
+    box.hidden = false;
+    const q = box.querySelector('#finder-q'); q.value = '';
+    box.querySelector('#finder-list').innerHTML = taskList(FIND, 'task-list');
+    q.focus();
+  }
+  function closeFinder() { const b = document.getElementById('finder'); if (b) b.hidden = true; }
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openFinder(); return; }
+    const box = document.getElementById('finder');
+    if (!box || box.hidden) return;
+    const items = [...box.querySelectorAll('[data-action=go-task]')];
+    const at = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') closeFinder();
+    else if (e.key === 'ArrowDown') { e.preventDefault(); (items[at + 1] || items[0]).focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); (at <= 0 ? box.querySelector('#finder-q') : items[at - 1]).focus(); }
+    else if (e.key === 'Enter' && document.activeElement.id === 'finder-q' && items[0]) { e.preventDefault(); items[0].click(); }
+  });
+
   const LEVEL = {
     issue: ['Fix', 'pen'], tip: ['Suggestion', 'warn'], gap: ['Possible gap', 'accent'], ask: ['Think about', 'accent'], ok: ['Looks good', 'ok'],
   };
@@ -257,6 +338,11 @@
           <button class="btn grad" data-action="open-sample">Try the example project</button>
           <button class="btn" data-action="new-blank">Start your paper</button>
         </div>
+        <div class="home-find"><p class="home-find-label">Or go straight to what you need:</p>
+          <label for="home-q" class="sr">What do you want to do?</label>
+          <input id="home-q" placeholder="Type what you want to do, e.g. journal, Zotero, English…" autocomplete="off">
+          <div id="home-tasks">${taskList(FIND.slice(0, 8), 'task-grid')}</div>
+          <button class="link-btn" data-action="finder">See all ${FIND.length} tasks</button></div>
         <div class="trust"><span>No invented references</span><span>10,000+ journal styles</span><span>Nothing to disclose to journals</span><span>250M+ papers via OpenAlex</span></div>
         ${preview}
       </section>
@@ -454,7 +540,7 @@
         <button class="btn primary"${linkBusy ? ' disabled' : ''}>${linkBusy ? esc(linkBusy) : 'Add paper'}</button>
       </form>
       ${linkErr ? `<p class="acct-msg error">${esc(linkErr)}</p>` : ''}
-      <div class="toolbar import-bar"><label class="btn file-btn">${fileBusy === 'bib' ? 'Importing…' : 'Import from Zotero, EndNote or Mendeley'}<input type="file" accept=".bib,.ris,.txt" data-file="bib" hidden></label>
+      <div class="toolbar import-bar"><label class="btn file-btn" id="imp-bib">${fileBusy === 'bib' ? 'Importing…' : 'Import from Zotero, EndNote or Mendeley'}<input type="file" accept=".bib,.ris,.txt" data-file="bib" hidden></label>
         <span class="fine">Export your library or a collection as BibTeX (.bib) or RIS (.ris), then choose the file. Up to 300 papers at a time; papers already in the matrix are skipped. Notes, PDFs and tags are not imported.</span></div>
       <div class="table-wrap"><table class="matrix">
         <thead><tr>${cols.map((c) => `<th scope="col">${c.label}</th>`).join('')}<th><span class="sr">Actions</span></th></tr></thead>
@@ -665,7 +751,7 @@
     if (x.mode === 'author-year' && !x.cited) return '<section class="ai-box"><h4>Citations in your text vs your reference list</h4><p class="ai-rule">No in-text citations found yet. Paste or import your manuscript in the Consistency or Language check, and Arguo will match every citation against this list.</p></section>';
     const miss = x.missing.length ? `<p><b>Cited in your text but not in the list (${x.missing.length}):</b> ${x.missing.map((c) => esc(c.text)).join('; ')}</p>` : '';
     const unc = x.uncited.length ? `<p><b>In the list but never cited in your text (${x.uncited.length}):</b></p><ul>${x.uncited.slice(0, 12).map((e) => `<li>${esc(e.raw.slice(0, 140))}</li>`).join('')}</ul>` : '';
-    return `<section class="ai-box"><h4>Citations in your text vs your reference list</h4>
+    return `<section class="ai-box" id="xcheck"><h4>Citations in your text vs your reference list</h4>
       <p class="ai-rule">${x.mode === 'numeric' ? 'Numbered citations ([1], [2–4]) matched by number.' : 'Author–year citations matched by first author and year.'} Checks the text in your argument thread, consistency check and language check.</p>
       ${miss || unc ? miss + unc + '<p class="fine">Spelling variants, “et al.” lists and papers with the same author and year can be missed or mismatched; confirm each one.</p>' : '<p>Every citation has a matching entry, and every entry is cited.</p>'}</section>`;
   }
@@ -678,7 +764,7 @@
         <p class="fine">${esc(facts.join(' · '))}${n.homepage ? ` · <a href="${esc(n.homepage)}" target="_blank" rel="noopener">Journal site</a>` : ''}</p>
         <details><summary>${j.papers.length} similar ${j.papers.length === 1 ? 'paper' : 'papers'} published here</summary><ul>${j.papers.map((p) => `<li><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a> (${p.year || 'n.d.'})</li>`).join('')}</ul></details></li>`;
     }).join('') : '';
-    return `<section class="ai-box"><div class="ai-head"><h4>Which journals publish work like yours?</h4><button class="btn small-btn" data-action="journal-suggest"${jf.busy ? ' disabled' : ''}>${jf.busy ? 'Searching…' : jf.list ? 'Search again' : 'Suggest journals'}</button></div>
+    return `<section class="ai-box" id="jf"><div class="ai-head"><h4>Which journals publish work like yours?</h4><button class="btn small-btn" data-action="journal-suggest"${jf.busy ? ' disabled' : ''}>${jf.busy ? 'Searching…' : jf.list ? 'Search again' : 'Suggest journals'}</button></div>
       <p class="ai-rule">Uses your research question and aim to find similar papers from the last 5 years, then lists the journals that published them. Read each journal’s aims and scope and a few recent issues before deciding. Fees and open-access status come from OpenAlex and can be out of date; check them on the journal site.</p>
       ${jf.err ? `<p class="acct-msg error">${esc(jf.err)}</p>` : ''}
       ${jf.queries.length ? `<p class="fine">Searched for: ${jf.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}</p>` : ''}
@@ -731,7 +817,7 @@
         ${j ? '' : `<label for="f-style">Style</label>
         <select id="f-style" data-bind="refs.style" data-rerender="cite-list">${Object.entries(S.cite.STYLES).map(([k, v]) => `<option value="${k}"${state.refs.style === k ? ' selected' : ''}>${v.label}</option>`).join('')}</select>`}
         <button class="btn" data-action="copy-bib">Copy reference list</button>
-        <button class="btn" data-action="export" data-format="bib">Export BibTeX</button>
+        <button class="btn" id="exp-bib" data-action="export" data-format="bib">Export BibTeX</button>
         <button class="btn" data-action="export" data-format="ris">Export RIS</button>
       </div>
       <p class="fine">Exports contain every paper in your literature matrix, for Zotero, EndNote, Mendeley or LaTeX.</p>
@@ -909,7 +995,7 @@
   }
 
   function importBar() {
-    return `<div class="toolbar import-bar"><label class="btn file-btn">${fileBusy === 'ms' ? 'Reading your manuscript…' : 'Import a manuscript (.docx, .pdf)'}<input type="file" accept=".docx,.pdf,.txt,.md" data-file="ms" hidden></label>
+    return `<div class="toolbar import-bar"><label class="btn file-btn" id="imp-ms">${fileBusy === 'ms' ? 'Reading your manuscript…' : 'Import a manuscript (.docx, .pdf)'}<input type="file" accept=".docx,.pdf,.txt,.md" data-file="ms" hidden></label>
       <span class="fine">Fills all six tabs, the language check and the reference list. The file is read in your browser and is not uploaded. Sections are found by standard headings (Introduction, Methods, Results, Discussion, References); without them, paste each section into its tab. Scanned PDFs (images without text) and old .doc files cannot be read.</span></div>`;
   }
 
@@ -1053,7 +1139,7 @@
     const m = MODULES.find((x) => x.id === (v === 'paper' ? 'matrix' : v));
     const view = VIEWS[v]();
     app.innerHTML = `<div class="workspace wrap">
-      <nav class="side" aria-label="Modules">${GROUPS_NAV.map(([g, ids]) => `<p class="side-label">${g}</p>` + ids.map((id) => MODULES.find((x) => x.id === id)).map((x) => `<a href="#${x.id}"${x.id === (v === 'paper' ? 'matrix' : v) ? ' aria-current="page"' : ''}>
+      <nav class="side" aria-label="Modules">${GROUPS_NAV.map(([g, ids]) => `<p class="side-label">${g}</p>` + ids.map((id) => MODULES.find((x) => x.id === id)).map((x) => `<a href="#${x.id}" title="${esc(x.pain)}"${x.id === (v === 'paper' ? 'matrix' : v) ? ' aria-current="page"' : ''}>
         ${icon(x.id)}<span>${x.name}</span>${st[x.id] && st[x.id].issues ? `<b>${st[x.id].issues}</b>` : ''}</a>`).join('')).join('')}<button class="side-tour" data-action="tour-start">✦ Take the guided tour</button></nav>
       <section class="module">
         <header class="module-head"><h1><span class="tile-ico">${icon(m.id)}</span>${m.name}</h1><p>${m.pain}</p></header>
@@ -1094,7 +1180,10 @@
     timer = setTimeout(refreshNotes, re === 'notes' ? 0 : 250);
   }
   const isChoice = (el) => el.matches('select, input[type=checkbox]');
-  app.addEventListener('input', (e) => { if (!isChoice(e.target)) onEdit(e); });
+  app.addEventListener('input', (e) => {
+    if (e.target.id === 'home-q') { document.getElementById('home-tasks').innerHTML = taskList(findTasks(e.target.value).slice(0, 8), 'task-grid'); return; }
+    if (!isChoice(e.target)) onEdit(e);
+  });
   app.addEventListener('change', (e) => { if (isChoice(e.target)) onEdit(e); });
 
   async function runSearch() {
@@ -1204,6 +1293,8 @@
       analysePaper(row.id, true);
     },
     'journal-pick': (el) => pickJournal(journalUi.results[Number(el.dataset.i)]),
+    'go-task': (el) => goTask(Number(el.dataset.i)),
+    finder: () => openFinder(),
     'journal-suggest': () => { if (!jf.busy) suggestJournals(); },
     'journal-use': (el) => useJournal(jf.list[Number(el.dataset.i)]),
     'journal-clear': () => { state.refs.journal = null; save(); render(); },
@@ -1364,7 +1455,7 @@
   }
   ['click', 'change', 'input'].forEach((type) => document.addEventListener(type, (e) => tourWatch(type, e), true));
   const renderPage = render;
-  render = function () { renderPage(); paintTour(); };
+  render = function () { renderPage(); paintTour(); focusTarget(); };
 
   window.addEventListener('hashchange', () => { pending = ''; window.scrollTo(0, 0); render(); });
   C.onChange((event) => {

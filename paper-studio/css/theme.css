@@ -326,3 +326,33 @@ body.touring .fb-btn { display: none; }
 .jf-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .jf-item .fine { margin: 2px 0 4px; }
 .jf-item details ul { margin: 6px 0 0; padding-left: 1.1em; font-size: .9em; }
+
+/* Task finder: top-bar button, ⌘K dialog, home picker */
+.find-btn { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; margin-right: 10px; padding: 6px 10px 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); font: inherit; font-size: .85rem; cursor: pointer; min-width: 190px; }
+.find-btn:hover { color: var(--ink); border-color: var(--accent); }
+.find-btn kbd { margin-left: auto; font: 500 .7rem/1 'Geist Mono', monospace; border: 1px solid var(--line); border-radius: 5px; padding: 3px 5px; }
+.finder { position: fixed; inset: 0; z-index: 1000; background: rgba(15, 15, 25, .35); backdrop-filter: blur(3px); display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; }
+.finder[hidden] { display: none; }
+.finder-card { width: min(620px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.25); padding: 12px; max-height: 76vh; display: flex; flex-direction: column; }
+.finder-card input { width: 100%; font: inherit; font-size: 1.05rem; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg, transparent); color: var(--ink); }
+.finder-card #finder-list { overflow-y: auto; margin-top: 8px; }
+.finder-card .fine { margin: 8px 4px 0; }
+.task-list, .task-grid { list-style: none; margin: 0; padding: 0; }
+.task-list button, .task-grid button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 1px solid transparent; border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.task-list button:hover, .task-list button:focus { background: var(--accent-soft); outline: none; }
+.task-list svg, .task-grid svg { width: 18px; height: 18px; flex: none; color: var(--accent); }
+.home-find { width: min(760px, 100%); margin: 28px auto 8px; text-align: left; }
+.home-find-label { text-align: center; color: var(--muted); margin: 0 0 10px; font-size: .95rem; }
+.home-find > input { width: 100%; font: inherit; font-size: 1rem; padding: 13px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.04); }
+.task-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 6px; }
+.task-grid button { background: var(--surface); border-color: var(--line); font-size: .92rem; }
+.task-grid button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.home-find > .link-btn { display: block; margin: 4px auto 0; }
+.flash-target { animation: flashT 2.2s ease; border-radius: 10px; }
+@keyframes flashT { 0%, 60% { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 2px var(--accent); } 100% { box-shadow: none; } }
+@media (max-width: 760px) {
+  .find-btn { min-width: 0; padding: 7px; margin-right: 6px; }
+  .find-btn span, .find-btn kbd { display: none; }
+  .task-grid { grid-template-columns: 1fr; }
+  .finder { padding-top: 8vh; }
+}
