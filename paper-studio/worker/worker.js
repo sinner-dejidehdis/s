@@ -135,6 +135,20 @@ function copiesUser(note, userText, n = 8) {
   return false;
 }
 
+// Quoted phrases in "how" or "example" that reuse the writer's own wording
+// (their sections or their argument thread) are removed, with the "e.g." that
+// introduces them, so a note never hands back a sentence about their study.
+function scrub(note, own) {
+  const grams = new Set();
+  const u = words(own);
+  for (let i = 0; i + 4 <= u.length; i++) grams.add(u.slice(i, i + 4).join(' '));
+  const reuses = (t) => { const w = words(t); for (let i = 0; i + 4 <= w.length; i++) if (grams.has(w.slice(i, i + 4).join(' '))) return true; return false; };
+  const strip = (t) => (typeof t === 'string'
+    ? t.replace(/(,?\s*(e\.g\.,?|for example,?|such as|like|for instance,?)\s*)?(“[^”]{3,}”|"[^"]{3,}"|‘[^’]{3,}’)/gi, (m, intro, _x, q) => (reuses(q) ? '' : m)).replace(/\s+([.,;])/g, '$1').trim()
+    : t);
+  return Object.assign(note, { how: strip(note.how), example: reuses(note.example || '') ? undefined : note.example });
+}
+
 const LEVELS = new Set(['issue', 'tip', 'gap', 'ask', 'ok']);
 function clean(note) {
   const pick = (k, max) => (typeof note[k] === 'string' ? note[k].slice(0, max) : undefined);
@@ -246,7 +260,7 @@ async function takeQuota(request, env) {
   const used = Number(await env.LIMITS.get(key)) || 0;
   if (used >= limit) return { ok: false, remaining: 0, limit };
   await env.LIMITS.put(key, String(used + 1), { expirationTtl: 60 * 60 * 48 });
-  return { ok: true, remaining: limit - used - 1, limit };
+  return { ok: true, remaining: limit - used - 1, limit, refund: () => env.LIMITS.put(key, String(used), { expirationTtl: 60 * 60 * 48 }) };
 }
 
 export default {
@@ -282,8 +296,10 @@ export default {
         max_completion_tokens: 2500,
       }),
     });
-    if (res.status === 429) return json({ error: 'The free AI quota is used up for now. Try again in a minute, or tomorrow.' }, 429, headers);
-    if (!res.ok) return json({ error: `AI service error (${res.status}).` }, 502, headers);
+    // A failed call does not count against the visitor's daily checks.
+    if (!res.ok && quota.refund) await quota.refund();
+    if (res.status === 429) return json({ error: 'The AI is busy right now. Try again in a minute.', remaining: quota.remaining === null ? null : quota.remaining + 1, limit: quota.limit }, 429, headers);
+    if (!res.ok) return json({ error: `AI service error (${res.status}). Try again in a minute.` }, 502, headers);
 
     let notes = [];
     let fields = null;
@@ -295,7 +311,7 @@ export default {
         fields = {};
         ['sample', 'method', 'finding', 'limitation'].forEach((k) => { fields[k] = typeof parsed.fields[k] === 'string' ? parsed.fields[k].slice(0, 300) : ''; });
       }
-    } catch { return json({ error: 'The AI reply could not be read. Try again.' }, 502, headers); }
+    } catch { if (quota.refund) await quota.refund(); return json({ error: 'The AI reply could not be read. Try again.' }, 502, headers); }
 
     // A survey summarises other people's papers, so only the user's own query counts as their text,
     // and every note must cite results that were actually sent.
@@ -305,7 +321,8 @@ export default {
     const section = body.task === 'section';
     const sent = survey && Array.isArray(body.input.papers) ? Math.min(body.input.papers.length, 12) : 0;
     const userText = body.task === 'language' ? str(body.input.text) : section ? str(body.input.text) : body.task === 'paper' ? str(body.input.question) : survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
-    const kept = notes.slice(0, 5).map(clean)
+    const own = [userText, section || body.task === 'outline' ? Object.values(body.input.outline || body.input || {}).filter((x) => typeof x === 'string').join(' ') : ''].join(' ');
+    const kept = notes.slice(0, 5).map(clean).map((n) => scrub(n, own))
       .map((n) => (section ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= Math.min((body.input.papers || []).length, 6)) }) : n))
       .map((n) => (survey || ideas || methods ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= (survey ? sent : Math.min((body.input.papers || []).length, 10))) }) : n))
       .filter((n) => !copiesUser(n, userText) && (!(survey || methods) || n.refs.length));
@@ -313,4 +330,4 @@ export default {
   },
 };
 
-export { copiesUser, clean };
+export { copiesUser, clean, scrub };

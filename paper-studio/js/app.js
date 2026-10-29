@@ -258,7 +258,7 @@
   // ---------- AI feedback ----------
   function aiBlock(v) {
     const a = ai[v] || {};
-    const body = a.loading ? '<p class="ai-status">Reading your text…</p>'
+    const body = a.loading ? `<p class="ai-status">${a.wait ? 'The AI is busy; trying again in a few seconds…' : 'Reading your text…'}</p>`
       : a.error ? `<p class="ai-status error">${esc(a.error)}</p>`
         : a.notes ? (a.notes.length ? a.notes.map((n) => (v.startsWith('check-') ? noteHtml(n).replace('See an example from another topic', 'See how published papers do it') : v === 'discover' ? noteHtml(n).replace('<b>How to fix</b>', '<b>Read first</b>') : v === 'ideas' ? noteHtml(n).replace('<b>How to fix</b>', '<b>How to test it</b>').replace('>Possible gap<', '>Direction<') : v === 'methods' ? noteHtml(n).replace('<b>How to fix</b>', '<b>For your study</b>').replace('>Suggestion<', '>Approach<') : noteHtml(n)) + (n.refs && n.refs.length ? `<p class="note-refs">Based on ${n.refs.map((r) => paperRef(v, r)).join(' ')}</p>` : '')).join('') : '<p class="ai-status">No further problems found.</p>')
           + (a.blocked ? `<p class="ai-status">${a.blocked} AI ${a.blocked === 1 ? 'note was' : 'notes were'} hidden because ${a.blocked === 1 ? 'it' : 'they'} repeated your wording.</p>` : '') : '';
@@ -287,7 +287,23 @@
       papers: examplePapers().map((p) => ({ title: p.title, year: p.year, abstract: String(p.abstract).slice(0, 500) })) };
   }
 
+  // Papers saved without an abstract (older searches, the example project) get
+  // it fetched once, so the AI has something to read.
+  async function fillAbstracts() {
+    const todo = [...state.discover.results.slice(0, 12), ...state.matrix.map((r) => r.meta).filter(Boolean)]
+      .filter((p) => p && p.doi && !p.abstract && !p.absTried).slice(0, 12);
+    if (!todo.length) return;
+    await Promise.all(todo.map(async (p) => {
+      p.absTried = true;
+      try { const m = await S.discover.lookup(p.doi, { proxy: AI_API }); if (m.abstract) p.abstract = m.abstract; } catch (e) { /* keep going without it */ }
+    }));
+    save();
+  }
+
   async function askAi(v) {
+    ai[v] = { loading: true };
+    refreshNotes();
+    if (v === 'methods' || v === 'discover' || v.startsWith('check-')) await fillAbstracts();
     const input = {
       outline: state.outline,
       check: { question: state.outline.question, method: state.outline.method, results: state.check.results, discussion: state.check.discussion },
@@ -299,12 +315,20 @@
       methods: { type: S.design.TYPES[state.design.type] || '', procedure: state.design.procedure, papers: state.discover.results.slice(0, 10).map((r) => ({ title: r.title, year: r.year, abstract: String(r.abstract || '').slice(0, 600) })) },
       discover: { query: state.discover.query, papers: state.discover.results.slice(0, 12).map((r) => ({ title: r.title, year: r.year, venue: r.venue, cited: r.cited, abstract: r.abstract })) },
     }[v] || sectionInput(v);
-    ai[v] = { loading: true };
-    refreshNotes();
     try {
-      const res = await fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const send = () => fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task: v.startsWith('check-') ? 'section' : { check: 'consistency', discover: 'survey' }[v] || v, input }) });
-      const data = await res.json().catch(() => ({}));
+      let res = await send();
+      let data = await res.json().catch(() => ({}));
+      // The AI provider limits requests per minute; wait and try once more
+      // (a daily-limit reply says remaining: 0 and is not retried).
+      if (res.status === 429 && data.remaining !== 0) {
+        ai[v] = { loading: true, wait: true }; refreshNotes();
+        await new Promise((r) => setTimeout(r, 12000));
+        res = await send();
+        data = await res.json().catch(() => ({}));
+        if (res.status === 429 && data.remaining !== 0) data.error = 'The AI is busy right now (too many requests this minute). Wait about 30 seconds and try again. This did not use up your daily checks.';
+      }
       if (data.limit) quota = { remaining: data.remaining, limit: data.limit };
       if (res.ok) track('ai_used', v);
       ai[v] = res.ok ? { notes: data.notes || [], blocked: data.blocked || 0 } : { error: data.error || `Request failed (${res.status}).` };
