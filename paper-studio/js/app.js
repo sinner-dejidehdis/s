@@ -7,6 +7,7 @@
 
   let state = S.store.load() || S.sample.create();
   if (!state.discover) state.discover = S.sample.blankDiscover();
+  if (state.sample) syncRefs(); // the example's matrix papers are already in its reference list, silently
   if (!state.design) state.design = S.design.blank();
   ['question', 'gap', 'aim', 'method'].forEach((k) => { if (typeof state.check[k] !== 'string') state.check[k] = ''; });
   let searching = false;
@@ -1004,7 +1005,7 @@
     'open-sample': () => {
       track('open_sample');
       if (!tourSeen()) { startTour('sample'); return; }
-      if (!state.sample) state = S.sample.create(); save(); location.hash = 'overview'; },
+      if (!state.sample) { state = S.sample.create(); syncRefs(); } save(); location.hash = 'overview'; },
     'new-blank': () => {
       track('new_blank');
       if (!tourSeen()) { startTour('blank'); return; }
@@ -1034,7 +1035,7 @@
     'ask-clear': () => { pending = 'clear'; render(); },
     cancel: () => { pending = ''; render(); },
     confirm: () => {
-      state = pending === 'reset' ? S.sample.create() : S.sample.blank();
+      state = pending === 'reset' ? S.sample.create() : S.sample.blank(); syncRefs();
       pending = ''; save(); render(); toast(state.sample ? 'Example project restored' : 'Project cleared. Start with your research question.');
     },
     'add-row': () => { state.matrix.push(S.matrix.blankRow()); save(); render(); },
@@ -1155,7 +1156,7 @@
   function tourSeen() { try { return localStorage.getItem('arguo.tour') === 'done'; } catch (e) { return true; } }
   function startTour(intent) {
     tour.on = true; tour.i = 0; tour.done = {}; tour.intent = intent;
-    if (!state.sample) state = S.sample.create();
+    if (!state.sample) { state = S.sample.create(); syncRefs(); }
     save(); track('tour_start', intent);
     if (location.hash === '#' + TOUR[0].view) render(); else location.hash = TOUR[0].view;
   }
