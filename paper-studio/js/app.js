@@ -27,12 +27,23 @@
     document.querySelectorAll('[data-action=toggle-focus]').forEach((b) => b.classList.toggle('on', lay.focus));
   }
   // Text fields grow with their content, so long sections are read in one piece.
-  function autosize(el) {
-    if (!el || el.tagName !== 'TEXTAREA') return;
+  // Measuring collapses the field for a moment, which would pull the page up,
+  // so the scroll position is put back afterwards.
+  function fit(el) {
     el.style.height = 'auto';
     el.style.height = el.scrollHeight + 2 + 'px';
   }
-  function autosizeAll() { document.querySelectorAll('.workspace textarea').forEach(autosize); }
+  function autosize(el) {
+    if (!el || el.tagName !== 'TEXTAREA' || !el.closest('.workspace')) return;
+    const y = window.scrollY;
+    fit(el);
+    if (window.scrollY !== y) window.scrollTo(0, y);
+  }
+  function autosizeAll(y) {
+    if (y == null) y = window.scrollY;
+    document.querySelectorAll('.workspace textarea').forEach(fit);
+    if (window.scrollY !== y) window.scrollTo(0, y);
+  }
   const jf = { busy: false, err: '', list: null, queries: [] }; // journal finder
   ['question', 'gap', 'aim', 'method'].forEach((k) => { if (typeof state.check[k] !== 'string') state.check[k] = ''; });
   let searching = false;
@@ -1489,7 +1500,14 @@
   }
   ['click', 'change', 'input'].forEach((type) => document.addEventListener(type, (e) => tourWatch(type, e), true));
   const renderPage = render;
-  render = function () { renderPage(); paintLayout(); autosizeAll(); paintTour(); focusTarget(); };
+  // Re-rendering the same view keeps the reader where they were.
+  let lastView = null;
+  render = function () {
+    const v = current();
+    const y = v === lastView ? window.scrollY : 0;
+    lastView = v;
+    renderPage(); paintLayout(); autosizeAll(y); paintTour(); focusTarget();
+  };
 
   let rz = null;
   window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (wide()) drawer = false; paintLayout(); autosizeAll(); }, 150); });
