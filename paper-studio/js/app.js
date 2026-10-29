@@ -386,7 +386,7 @@
         <label class="inline-check"><input type="checkbox" id="d-oa" data-bind="discover.oa"${d.oa ? ' checked' : ''}> Free full text only</label>
       </div>
       ${searchErr ? `<p class="acct-msg error">${esc(searchErr)}</p>` : ''}
-      ${d.results.length ? `<p class="fine">${d.queries && d.queries.length ? `Searched by meaning for: ${d.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}; ranked by how well each paper answers your question.` : d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>. ${d.sample ? 'These example results are real papers.' : ''}</p>
+      ${d.results.length ? `<p class="fine">${d.queries && d.queries.length ? `Searched by meaning for: ${d.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}; ranked by how well each paper answers your question. The AI can misread a question or leave out a relevant paper, so check the search terms and try your own keywords too.` : d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>. ${d.sample ? 'These example results are real papers.' : ''}</p>
         <ol class="paper-list">${d.results.map(resultCard).join('')}</ol>`
         : '<p class="empty">Type your topic and choose Search.</p>'}`;
     return { main, notes: notesPanel(discoverNotes(), aiBlock('discover')) };
@@ -454,7 +454,7 @@
       </form>
       ${linkErr ? `<p class="acct-msg error">${esc(linkErr)}</p>` : ''}
       <div class="toolbar import-bar"><label class="btn file-btn">${fileBusy === 'bib' ? 'Importing…' : 'Import from Zotero, EndNote or Mendeley'}<input type="file" accept=".bib,.ris,.txt" data-file="bib" hidden></label>
-        <span class="fine">Export your library or a collection as BibTeX (.bib) or RIS (.ris), then choose the file.</span></div>
+        <span class="fine">Export your library or a collection as BibTeX (.bib) or RIS (.ris), then choose the file. Up to 300 papers at a time; papers already in the matrix are skipped. Notes, PDFs and tags are not imported.</span></div>
       <div class="table-wrap"><table class="matrix">
         <thead><tr>${cols.map((c) => `<th scope="col">${c.label}</th>`).join('')}<th><span class="sr">Actions</span></th></tr></thead>
         <tbody>${state.matrix.map((r, i) => `<tr>${cols.map((c) => c.key === 'relation'
@@ -855,12 +855,13 @@
 
   function importBar() {
     return `<div class="toolbar import-bar"><label class="btn file-btn">${fileBusy === 'ms' ? 'Reading your manuscript…' : 'Import a manuscript (.docx, .pdf)'}<input type="file" accept=".docx,.pdf,.txt,.md" data-file="ms" hidden></label>
-      <span class="fine">Fills all six tabs, the language check and the reference list. The file is read in your browser and is not uploaded.</span></div>`;
+      <span class="fine">Fills all six tabs, the language check and the reference list. The file is read in your browser and is not uploaded. Sections are found by standard headings (Introduction, Methods, Results, Discussion, References); without them, paste each section into its tab. Scanned PDFs (images without text) and old .doc files cannot be read.</span></div>`;
   }
 
   function language() {
     const text = state.language.text;
     const main = `<p class="intro">Paste any part of your manuscript. Arguo flags wording reviewers often object to (overclaiming, causal verbs, vague or informal words, filler, very long sentences) and explains how to revise it. It never rewrites your sentences.</p>
+      <p class="fine">Limits: the rules check English only and can flag words that are fine in context (for example “causes” in a randomised trial), so read each note against your design. The AI feedback reads about the first 4,000 characters, so for a long manuscript ask about one section at a time.</p>
       ${importBar()}
       <label for="f-lang">Your text</label>
       <textarea id="f-lang" rows="10" data-bind="language.text" placeholder="Paste a paragraph or a whole section">${esc(text)}</textarea>
@@ -876,7 +877,7 @@
     r.hits.forEach((h) => { words[h.i] = (words[h.i] || []).concat(h.kind === 'long' || h.kind === 'passive' ? [] : h.words); });
     const mark = (s, i) => {
       let out = esc(s);
-      (words[i] || []).forEach((w) => { out = out.replace(new RegExp(`\\b(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi'), '<mark>$1</mark>'); });
+      (words[i] || []).forEach((w) => { out = out.replace(new RegExp(`\\b(${esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi'), '<mark>$1</mark>'); });
       return out;
     };
     return `<h3 class="sub">Sentences to look at (${flagged.size} of ${r.sentences.length})</h3><ol class="lang-list">${[...flagged].map((i) => `<li><p>${mark(r.sentences[i], i)}</p>
