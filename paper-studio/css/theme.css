@@ -312,3 +312,13 @@ body.touring .fb-btn { display: none; }
   .top-nav a { padding: 6px 8px; white-space: nowrap; font-size: 0.8125rem; }
   .brand-mark { font-size: 1rem; }
 }
+
+/* File import and language check */
+.import-bar { align-items: center; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.import-bar .fine { margin: 0; flex: 1 1 220px; }
+.file-btn { cursor: pointer; }
+.file-btn:focus-within { outline: 2px solid var(--accent, #6d5bf3); outline-offset: 2px; }
+.lang-list { padding-left: 1.4em; display: grid; gap: 10px; }
+.lang-list p { margin: 0 0 2px; line-height: 1.55; }
+.lang-list small { color: var(--muted, #6b7280); }
+.lang-list mark { background: rgba(250, 204, 21, .35); color: inherit; border-radius: 3px; padding: 0 2px; }

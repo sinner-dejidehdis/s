@@ -2,7 +2,7 @@
 // and enforces the red line on the way back. The Groq key lives only in the
 // Worker's secret GROQ_API_KEY; the page never sees it.
 //
-// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey" | "ideas" | "design" | "methods" | "paper" | "section"
+// POST /api/feedback  { task: "outline" | "consistency" | "matrix" | "review" | "survey" | "ideas" | "design" | "methods" | "paper" | "section" | "language"
 // GET  /api/resolve?url=<article page>  (DOI and title from citation meta tags), input: {...} }
 // GET  /api/search?url=<OpenAlex works URL>  (adds OPENALEX_API_KEY when set)
 // POST /api/understand { question } -> { queries: [...] }  (search terms for what the question means)
@@ -93,6 +93,13 @@ Never invent findings or numbers that are not in the record.
 [year] ${str(i.year).slice(0, 4)}  [venue] ${str(i.venue).slice(0, 200)}  [type] ${str(i.type).slice(0, 30)}
 [abstract]
 ${str(i.abstract) || '(no abstract available)'}`,
+  language: (i) => `Review the academic English of this passage as a careful editor would, without rewriting it.
+Look for: overclaiming, causal verbs on correlational evidence, vague quantities, informal register, unclear pronoun reference, inconsistent terms for the same concept, tense that does not fit the section, sentences whose main claim is buried.
+For each problem, quote at most 5 words from the passage in "title" so the writer can find it, explain why it is a problem, and explain how to fix it in general terms.
+"example" must use a different topic. Never give a corrected version of the writer's sentence.
+
+[passage]
+${str(i.text)}`,
   section: (i) => `Review one section of a manuscript against the writer's argument thread, as a careful supervisor would.
 Section: ${str(i.label).slice(0, 40)} (${str(i.section).slice(0, 80)}).
 Check that it is consistent with the argument thread, does its job for this kind of section, and follows the conventions reviewers expect.
@@ -296,7 +303,7 @@ export default {
     const methods = body.task === 'methods';
     const section = body.task === 'section';
     const sent = survey && Array.isArray(body.input.papers) ? Math.min(body.input.papers.length, 12) : 0;
-    const userText = section ? str(body.input.text) : body.task === 'paper' ? str(body.input.question) : survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
+    const userText = body.task === 'language' ? str(body.input.text) : section ? str(body.input.text) : body.task === 'paper' ? str(body.input.question) : survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
     const kept = notes.slice(0, 5).map(clean)
       .map((n) => (section ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= Math.min((body.input.papers || []).length, 6)) }) : n))
       .map((n) => (survey || ideas || methods ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= (survey ? sent : Math.min((body.input.papers || []).length, 10))) }) : n))

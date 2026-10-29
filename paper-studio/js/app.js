@@ -9,6 +9,8 @@
   if (!state.discover) state.discover = S.sample.blankDiscover();
   if (state.sample) syncRefs(); // the example's matrix papers are already in its reference list, silently
   if (!state.design) state.design = S.design.blank();
+  if (!state.language) state.language = { text: state.sample ? state.check.discussion : '' };
+  let fileBusy = '';
   ['question', 'gap', 'aim', 'method'].forEach((k) => { if (typeof state.check[k] !== 'string') state.check[k] = ''; });
   let searching = false;
   let linkBusy = '';
@@ -36,6 +38,7 @@
     { id: 'outline', name: 'Argument thread', pain: 'Sections that don’t line up · can’t get started' },
     { id: 'cite', name: 'Citation check', pain: 'Wrong details · AI-invented references' },
     { id: 'check', name: 'Consistency check', pain: 'Six sections, each checked against your argument thread' },
+    { id: 'language', name: 'Language check', pain: 'Overclaiming, vague or informal wording' },
     { id: 'review', name: 'Reviewer comments', pain: 'A major revision you can’t break down' },
     { id: 'submit', name: 'Submission checklist', pain: 'Missing items at submission' },
   ];
@@ -131,6 +134,7 @@
       cite: { value: `${refs.filter((r) => r.status === 'verified').length}/${refs.length} verified`, issues: refs.filter((r) => r.status === 'mismatch' || r.status === 'notfound').length },
       check: { value: !state.check.results.trim() || !state.check.discussion.trim() ? 'Nothing pasted yet'
         : c.flagged.length ? `${c.flagged.length} sentences to review` : 'No problems found', issues: issues(c.notes) },
+      language: (() => { const n = S.language.notes(state.language.text); return { value: state.language.text.trim() ? `${n.length} kinds of wording to review` : 'Nothing pasted yet', issues: n.filter((x) => x.level === 'issue').length }; })(),
       review: { value: `${rs.done}/${rs.total} addressed`, issues: rs.majorOpen },
       submit: { value: (() => { const it = S.checklist.build(state).flatMap((g) => g.items); return `${it.filter((i) => S.checklist.isDone(i, state)).length}/${it.length} items`; })(), issues: 0 },
     };
@@ -174,6 +178,7 @@
       check: { question: state.outline.question, method: state.outline.method, results: state.check.results, discussion: state.check.discussion },
       matrix: { rows: state.matrix },
       review: { comments: state.review.input },
+      language: { text: state.language.text },
       ideas: S.ideas.ideasInput(state),
       design: Object.assign({}, state.design, { question: state.design.question || state.outline.question }),
       methods: { type: S.design.TYPES[state.design.type] || '', procedure: state.design.procedure, papers: state.discover.results.slice(0, 10).map((r) => ({ title: r.title, year: r.year, abstract: String(r.abstract || '').slice(0, 600) })) },
@@ -206,10 +211,11 @@
     cite: '<path d="M7 7h4v4c0 3-1.5 5-4 6M15 7h4v4c0 3-1.5 5-4 6"/>',
     check: '<path d="m3 12 4 4 8-8M13 16l2 2 6-6"/>',
     review: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/><path d="M9 11h6M9 14h4"/>',
+    language: '<path d="M4 7V5h16v2M9 19h6M12 5v14"/>',
     submit: '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
   };
   const icon = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[k] || ''}</svg>`;
-  const GROUPS_NAV = [['Plan', ['overview', 'discover', 'matrix', 'ideas', 'design']], ['Write', ['outline', 'cite', 'check']], ['Revise & submit', ['review', 'submit']]];
+  const GROUPS_NAV = [['Plan', ['overview', 'discover', 'matrix', 'ideas', 'design']], ['Write', ['outline', 'cite', 'check', 'language']], ['Revise & submit', ['review', 'submit']]];
 
   function home() {
     const tiles = [
@@ -447,6 +453,8 @@
         <button class="btn primary"${linkBusy ? ' disabled' : ''}>${linkBusy ? esc(linkBusy) : 'Add paper'}</button>
       </form>
       ${linkErr ? `<p class="acct-msg error">${esc(linkErr)}</p>` : ''}
+      <div class="toolbar import-bar"><label class="btn file-btn">${fileBusy === 'bib' ? 'Importing…' : 'Import from Zotero, EndNote or Mendeley'}<input type="file" accept=".bib,.ris,.txt" data-file="bib" hidden></label>
+        <span class="fine">Export your library or a collection as BibTeX (.bib) or RIS (.ris), then choose the file.</span></div>
       <div class="table-wrap"><table class="matrix">
         <thead><tr>${cols.map((c) => `<th scope="col">${c.label}</th>`).join('')}<th><span class="sr">Actions</span></th></tr></thead>
         <tbody>${state.matrix.map((r, i) => `<tr>${cols.map((c) => c.key === 'relation'
@@ -670,7 +678,10 @@
         ${j ? '' : `<label for="f-style">Style</label>
         <select id="f-style" data-bind="refs.style" data-rerender="cite-list">${Object.entries(S.cite.STYLES).map(([k, v]) => `<option value="${k}"${state.refs.style === k ? ' selected' : ''}>${v.label}</option>`).join('')}</select>`}
         <button class="btn" data-action="copy-bib">Copy reference list</button>
+        <button class="btn" data-action="export" data-format="bib">Export BibTeX</button>
+        <button class="btn" data-action="export" data-format="ris">Export RIS</button>
       </div>
+      <p class="fine">Exports contain every paper in your literature matrix, for Zotero, EndNote, Mendeley or LaTeX.</p>
       <div id="cite-list">${citeList()}</div>`;
     return { main, notes: notesPanel(citeNotes()) };
   }
@@ -736,7 +747,8 @@
     const conclusion = t.key === 'conclusion';
     const r = conclusion ? checkResult() : null;
     const notes = conclusion ? r.notes : S.consistency.sectionCheck(t.key, text, state.outline);
-    const main = `<p class="intro">Check each section of your manuscript against the matching node of your argument thread. Paste a section, read the notes, and use the guide and published examples to revise it yourself.</p>
+    const main = `<p class="intro">Check each section of your manuscript against the matching node of your argument thread. Paste a section, read the notes, and use the guide and published examples to revise it yourself.
+      ${importBar()}</p>
       <div class="tabs" role="tablist">${tabs.map((x, i) => {
         const n = tabIssues(x);
         const filled = (state.check[x.field] || '').trim();
@@ -841,7 +853,74 @@
     return { main, notes: notesPanel(notes) };
   }
 
-  const VIEWS = { overview, discover, ideas, design, paper: paperView, outline, matrix, cite, check, review, submit };
+  function importBar() {
+    return `<div class="toolbar import-bar"><label class="btn file-btn">${fileBusy === 'ms' ? 'Reading your manuscript…' : 'Import a manuscript (.docx, .pdf)'}<input type="file" accept=".docx,.pdf,.txt,.md" data-file="ms" hidden></label>
+      <span class="fine">Fills all six tabs, the language check and the reference list. The file is read in your browser and is not uploaded.</span></div>`;
+  }
+
+  function language() {
+    const text = state.language.text;
+    const main = `<p class="intro">Paste any part of your manuscript. Arguo flags wording reviewers often object to (overclaiming, causal verbs, vague or informal words, filler, very long sentences) and explains how to revise it. It never rewrites your sentences.</p>
+      ${importBar()}
+      <label for="f-lang">Your text</label>
+      <textarea id="f-lang" rows="10" data-bind="language.text" placeholder="Paste a paragraph or a whole section">${esc(text)}</textarea>
+      <div id="lang-preview">${langPreview()}</div>`;
+    return { main, notes: notesPanel(S.language.notes(text), aiBlock('language')) };
+  }
+
+  function langPreview() {
+    const r = S.language.check(state.language.text);
+    if (!r.hits.length) return '';
+    const flagged = new Set(r.hits.map((h) => h.i));
+    const words = {};
+    r.hits.forEach((h) => { words[h.i] = (words[h.i] || []).concat(h.kind === 'long' || h.kind === 'passive' ? [] : h.words); });
+    const mark = (s, i) => {
+      let out = esc(s);
+      (words[i] || []).forEach((w) => { out = out.replace(new RegExp(`\\b(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi'), '<mark>$1</mark>'); });
+      return out;
+    };
+    return `<h3 class="sub">Sentences to look at (${flagged.size} of ${r.sentences.length})</h3><ol class="lang-list">${[...flagged].map((i) => `<li><p>${mark(r.sentences[i], i)}</p>
+      <small>${[...new Set(r.hits.filter((h) => h.i === i).map((h) => h.label))].join(' · ')}</small></li>`).join('')}</ol>`;
+  }
+
+  function download(name, text, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  async function onFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const kind = input.dataset.file;
+    fileBusy = kind; render();
+    try {
+      if (kind === 'bib') {
+        const papers = S.bib.parse(await file.text());
+        if (!papers.length) throw new Error('No references found. Export as BibTeX (.bib) or RIS (.ris).');
+        const before = state.matrix.length;
+        papers.slice(0, 300).forEach((p) => addToMatrix(p));
+        track('import_bib', String(papers.length));
+        toast(`${state.matrix.length - before} papers added to your matrix and reference list`);
+      } else {
+        const sec = S.manuscript.split(await S.manuscript.readFile(file));
+        const pr = S.manuscript.toProject(sec);
+        if (!pr.found.length) throw new Error('No section headings found (Introduction, Methods, Results, Discussion…). Paste the sections into each tab instead.');
+        Object.keys(pr.check).forEach((k) => { if (pr.check[k]) state.check[k] = pr.check[k]; });
+        state.language.text = pr.body;
+        if (pr.refs.length) state.refs.input = (state.refs.input.trim() + '\n' + pr.refs.join('\n')).trim();
+        state.sample = false;
+        track('import_manuscript', pr.found.join(','));
+        toast(`Read: ${pr.found.join(', ')}. Check each tab.`);
+      }
+      save();
+    } catch (e) { toast(e.message); }
+    fileBusy = ''; input.value = ''; render();
+  }
+  document.addEventListener('change', (e) => { if (e.target.matches('input[type=file][data-file]')) onFile(e.target); });
+
+  const VIEWS = { overview, discover, ideas, design, paper: paperView, outline, matrix, cite, check, language, review, submit };
 
   // ---------- render ----------
   function account() {
@@ -931,6 +1010,7 @@
     const view = VIEWS[v]();
     const notes = document.getElementById('notes');
     if (notes) notes.innerHTML = view.notes;
+    if (v === 'language') document.getElementById('lang-preview').innerHTML = langPreview();
     if (v === 'check') document.getElementById('flagged').innerHTML = checkTab === 'conclusion' ? flaggedList(checkResult().flagged) : '';
     const st = status();
     document.querySelectorAll('.side a').forEach((a) => {
@@ -1070,6 +1150,13 @@
     'journal-clear': () => { state.refs.journal = null; save(); render(); },
     jump: (el) => { const t = document.getElementById(el.dataset.target); if (t) { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); t.classList.add('flash'); setTimeout(() => t.classList.remove('flash'), 1200); } },
     ai: (el) => { if (!(ai[el.dataset.view] || {}).loading) askAi(el.dataset.view); },
+    export: (el) => {
+      const papers = state.matrix.filter((r) => r.meta).map((r) => r.meta);
+      if (!papers.length) { toast('Add papers to your literature matrix first'); return; }
+      const bib = el.dataset.format === 'bib';
+      download(bib ? 'arguo-references.bib' : 'arguo-references.ris', bib ? S.bib.toBibtex(papers) : S.bib.toRis(papers), bib ? 'application/x-bibtex' : 'application/x-research-info-systems');
+      track('export_' + el.dataset.format);
+    },
     'copy-bib': () => { const b = bibliography(); if (b) copy(b); else toast('No verified references yet'); },
     'split-review': () => { state.review.tasks = S.review.split(state.review.input); save(); render(); toast(`${state.review.tasks.length} tasks created`); },
     focus: (el) => { const t = document.getElementById(el.dataset.target); if (t) { t.focus(); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } },

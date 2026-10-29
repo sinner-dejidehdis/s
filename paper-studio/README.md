@@ -14,6 +14,7 @@ Prototype of an academic writing workspace for researchers writing in English. P
 | Literature matrix | Add a paper by pasting a DOI, article link (journal, arXiv, PubMed…) or title: metadata from OpenAlex, AI-drafted reading notes marked "AI draft" until edited, and a detail page per paper (abstract, links, AI analysis). One row per paper; finds recurring limitations, a dominant design and one-sided findings | A review without an argument, no clear gap |
 | Citation check | Includes every matrix paper automatically; checks DOI, year, first author and title against Crossref; pick a target journal (10,000+ CSL journal styles) and DOI references are formatted in its official style by Crossref; built-in APA 7, Vancouver and Chicago otherwise | Wrong details, AI-invented references |
 | Consistency check | Six tabs, one per argument-thread node (question, gap, aim, method, result, conclusion): paste that manuscript section; rules check it against the node and section conventions; each tab has a reviewer checklist, a common structure and an other-topic example; AI section review with examples drawn from published papers in Discover or the matrix (cited). The conclusion tab keeps the results-vs-discussion sentence check | Discussion that outruns the results |
+| Language check | Flags overclaiming, causal verbs on correlational evidence, vague or informal words, filler phrases, stacked hedges, long sentences and heavy passive; highlights the words, explains why and how to revise, with other-topic examples; AI editor review that never gives a corrected sentence | English wording, especially for non-native writers |
 | Reviewer comments | Splits comments into tasks (reviewer headings, major/minor sections, numbered points), flags must-fix and vague comments | A major revision you can't break down |
 | Submission checklist | Adapts to the target journal (name, guide-for-authors link, publisher, DOAJ listing, APC from OpenAlex) and study design (reporting guideline, trial or PROSPERO registration, ethics items dropped where they do not apply); items Arguo can verify (argument thread, limitations, references verified and formatted, legitimate journal) are checked automatically | Missing items at submission |
 
@@ -50,6 +51,12 @@ How the modules connect: papers found in Discover or added by link go into the l
 ## Free tools (no sign-up)
 
 Standalone pages for search and sharing, each with its own title, description, FAQ and schema.org data: `citation-checker/` (is this reference real?), `reference-formatter/` (any journal's style), `gap-finder/` (recent papers and a cited AI briefing). They share `js/tools.js` and the workspace modules. `sitemap.xml` and `robots.txt` list them; update the base URL there if the domain changes.
+
+## Import and export
+
+- **Zotero, EndNote, Mendeley**: the literature matrix imports BibTeX (.bib) and RIS (.ris) exports (`js/bib.js`); the citation check exports the matrix as BibTeX or RIS.
+- **Manuscripts**: the consistency and language checks import .docx (mammoth) or .pdf (pdf.js), loaded from cdnjs only when a file is chosen and read in the browser. `js/manuscript.js` splits the text by its headings and fills the six tabs, the language check and the reference list.
+- **Discover** searches by meaning: the Worker's `/api/understand` turns the question into keyword searches, results are merged by reciprocal rank, and `/api/rank` orders them by relevance. Neither counts against the daily AI checks.
 
 ## Guided tour
 
