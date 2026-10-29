@@ -1,0 +1,107 @@
+/* Workspace layout v2: full-screen app shell.
+   Sidebar | editor | notes, each pane uses the whole height of the screen.
+   The editor grows with the text, so a long manuscript is read in one piece. */
+
+:root { --top: 61px; --side-w: 248px; --notes-w: clamp(360px, 26vw, 480px); }
+
+body.ws { font-size: 1rem; }
+body.ws .top-inner, body.ws .foot .wrap { max-width: none; padding-inline: 24px; }
+body.ws .foot { display: none; }
+
+/* --- shell --- */
+.workspace.v2 {
+  display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); gap: 0;
+  max-width: none; margin: 0; padding: 0; min-height: calc(100vh - var(--top));
+}
+.workspace.v2.side-mini { --side-w: 68px; }
+.workspace.v2.focus { grid-template-columns: minmax(0, 1fr); }
+.workspace.v2.focus .side { display: none; }
+
+/* --- sidebar --- */
+.workspace.v2 .side {
+  position: sticky; top: var(--top); height: calc(100vh - var(--top)); overflow-y: auto;
+  padding: 16px 12px 24px; border-right: 1px solid var(--line); background: var(--margin);
+}
+.workspace.v2 .side a { font-size: 0.9375rem; padding: 9px 12px; }
+.workspace.v2 .side a svg { width: 18px; height: 18px; }
+.workspace.v2 .side-label { font-size: 0.72rem; padding: 18px 12px 6px; }
+.side-toggle { display: flex; align-items: center; gap: 8px; width: 100%; margin-bottom: 4px; padding: 8px 12px; font: 500 0.8125rem var(--body); color: var(--muted); background: none; border: 0; border-radius: 8px; cursor: pointer; }
+.side-toggle:hover { background: var(--surface); color: var(--ink); }
+.side-toggle svg { width: 18px; height: 18px; flex: none; }
+.side-mini .side { padding-inline: 8px; }
+.side-mini .side a { justify-content: center; padding: 10px 0; position: relative; }
+.side-mini .side a span, .side-mini .side-label, .side-mini .side-tour, .side-mini .side-toggle span { display: none; }
+.side-mini .side a b { position: absolute; top: 2px; right: 4px; font-size: 0.625rem; padding: 2px 4px; }
+.side-mini .side-toggle { justify-content: center; padding: 10px 0; }
+
+/* --- main area --- */
+.workspace.v2 .module { padding: 24px clamp(20px, 2.5vw, 40px) 80px; gap: 18px; align-content: start; }
+.workspace.v2 .module-head { position: sticky; top: var(--top); z-index: 3; margin: -24px calc(-1 * clamp(20px, 2.5vw, 40px)) 0; padding: 14px clamp(20px, 2.5vw, 40px);
+  background: var(--header, var(--paper)); backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); flex-wrap: nowrap; }
+.workspace.v2 .module-head h1 { font-size: 1.5rem; white-space: nowrap; }
+.workspace.v2 .module-head p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.view-tools { margin-left: auto; display: flex; gap: 6px; flex: none; }
+.view-btn { display: inline-flex; align-items: center; gap: 6px; font: 500 0.8125rem var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.view-btn:hover, .view-btn.on { border-color: var(--accent); color: var(--accent); }
+.view-btn svg { width: 15px; height: 15px; }
+.view-btn b { font: 600 0.7rem/1 var(--mono); color: var(--pen); background: var(--pen-soft); padding: 2px 6px; border-radius: 999px; }
+
+.workspace.v2 .module-body { grid-template-columns: minmax(0, 1fr) var(--notes-w); gap: clamp(20px, 2vw, 36px); }
+.workspace.v2.notes-off .module-body { grid-template-columns: minmax(0, 1fr); }
+.workspace.v2.notes-off .notes { display: none; }
+.workspace.v2 .notes { top: calc(var(--top) + 76px); max-height: calc(100vh - var(--top) - 96px); padding: 20px; font-size: 0.9375rem; }
+
+/* --- editor: bigger type, fields that grow with the text --- */
+.workspace.v2 .editor { gap: 16px; }
+.workspace.v2 .intro { max-width: 70em; font-size: 1rem; }
+.workspace.v2 .editor > label, .workspace.v2 .node label { font-size: 1rem; font-weight: 550; }
+.workspace.v2 textarea, .workspace.v2 input:not([type=checkbox]), .workspace.v2 select { font-size: 1rem; line-height: 1.7; }
+.workspace.v2 textarea { padding: 14px 16px; min-height: 7.5em; overflow-y: hidden; resize: none; }
+.workspace.v2 textarea.big { min-height: 40vh; font-size: 1.0625rem; line-height: 1.8; }
+.workspace.v2 textarea.mono { font-size: 0.9375rem; }
+.workspace.v2 .matrix textarea { min-height: 0; padding: 8px; font-size: 0.9375rem; min-width: 150px; }
+/* Wide tables: notes go below as a card grid, so the table gets the full width */
+.workspace.v2 .module-body.stack { grid-template-columns: minmax(0, 1fr); }
+.workspace.v2 .module-body.stack .notes { position: static; max-height: none; transform: none; width: auto; box-shadow: var(--shadow); border-radius: var(--r-lg); z-index: auto; }
+.workspace.v2 .module-body.stack .notes-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 28px; }
+.workspace.v2.notes-off .module-body.stack .notes { display: grid; }
+.workspace.v2 .search-bar input { padding-block: 12px; }
+.workspace.v2 .btn { font-size: 0.9375rem; padding: 10px 18px; }
+.workspace.v2 .tab { font-size: 0.9375rem; padding: 9px 14px; }
+.workspace.v2 .guide-grid { gap: 16px; }
+.workspace.v2 .matrix { font-size: 0.9375rem; }
+.workspace.v2 .matrix th, .workspace.v2 .matrix td { padding: 10px; }
+
+/* focus mode: text column centred at a comfortable reading width */
+.workspace.v2.focus .module { padding-inline: clamp(20px, 6vw, 120px); }
+.workspace.v2.focus .module-head { margin-inline: calc(-1 * clamp(20px, 6vw, 120px)); padding-inline: clamp(20px, 6vw, 120px); }
+
+/* --- notes as a drawer on narrower screens --- */
+@media (max-width: 1279px) {
+  .workspace.v2 .module-body { grid-template-columns: minmax(0, 1fr); }
+  .workspace.v2 .notes { position: fixed; top: var(--top); right: 0; bottom: 0; width: min(440px, 92vw); max-height: none; z-index: 40; border-radius: 16px 0 0 16px;
+    transform: translateX(105%); transition: transform 0.25s ease; display: grid; align-content: start; overflow-y: auto; }
+  .workspace.v2.drawer .notes { transform: none; box-shadow: -20px 0 50px rgba(0, 0, 0, 0.18); }
+  .workspace.v2.notes-off .notes { display: grid; }
+}
+@media (max-width: 1023px) {
+  .workspace.v2 { --side-w: 68px; }
+  .workspace.v2 .side { padding-inline: 8px; }
+  .workspace.v2 .side a { justify-content: center; padding: 10px 0; position: relative; }
+  .workspace.v2 .side a span, .workspace.v2 .side-label, .workspace.v2 .side-tour, .workspace.v2 .side-toggle { display: none; }
+  .workspace.v2 .side a svg { display: block; }
+  .workspace.v2 .side a b { position: absolute; top: 2px; right: 4px; font-size: 0.625rem; padding: 2px 4px; }
+}
+@media (max-width: 760px) {
+  body.ws .top-inner { padding-inline: 12px; }
+  .workspace.v2 { grid-template-columns: minmax(0, 1fr); }
+  .workspace.v2 .side { position: sticky; top: var(--top); z-index: 4; height: auto; flex-direction: row; overflow-x: auto; padding: 6px 8px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .workspace.v2 .side a { padding: 8px 10px; flex: none; }
+  .workspace.v2 .module { padding: 16px 16px 72px; }
+  .workspace.v2 .module-head { position: static; margin: -16px -16px 0; padding: 12px 16px; flex-wrap: wrap; }
+  .workspace.v2 .module-head h1 { font-size: 1.25rem; }
+  .workspace.v2 .module-head p { display: none; }
+  .view-btn span.lbl { display: none; }
+  .workspace.v2 textarea.big { min-height: 45vh; font-size: 1rem; }
+  .workspace.v2 .notes { width: 100vw; border-radius: 0; }
+}

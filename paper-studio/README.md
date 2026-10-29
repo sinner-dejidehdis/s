@@ -58,6 +58,10 @@ Standalone pages for search and sharing, each with its own title, description, F
 - **Manuscripts**: the consistency and language checks import .docx (mammoth) or .pdf (pdf.js), loaded from cdnjs only when a file is chosen and read in the browser. `js/manuscript.js` splits the text by its headings and fills the six tabs, the language check and the reference list.
 - **Discover** searches by meaning: the Worker's `/api/understand` turns the question into keyword searches, results are merged by reciprocal rank, and `/api/rank` orders them by relevance. Neither counts against the daily AI checks.
 
+## Layout
+
+The workspace fills the screen: a sidebar (collapsible to icons), the editor, and the notes pane (hideable; a slide-in drawer below 1280px wide). Text fields grow with their content, so a long section is read in one piece; Focus hides the sidebar and notes. Wide tables (the literature matrix) put the notes below. Layout choices are kept per browser as `arguo.layout`. Styles: `css/layout.css`.
+
 ## Guided tour
 
 The first time someone clicks either start button, a 10-step tour opens on the example project (stored as `arguo.tour` in localStorage once finished or skipped). Each step explains one module (Learn), then asks for one small action on the real page with the target highlighted (Try it) and ticks it when done. It can be minimised, skipped, or replayed from the sidebar. Tour events (`tour_start`, `tour_step`, `tour_end`) go to the analytics table.

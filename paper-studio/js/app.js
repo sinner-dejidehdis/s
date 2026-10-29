@@ -11,6 +11,28 @@
   if (!state.design) state.design = S.design.blank();
   if (!state.language) state.language = { text: state.sample ? state.check.discussion : '' };
   let fileBusy = '';
+  // Workspace layout: sidebar full or icons, notes shown or hidden, focus mode. Kept per browser.
+  const lay = (() => { try { return Object.assign({ mini: false, notes: true, focus: false }, JSON.parse(localStorage.getItem('arguo.layout') || '{}')); } catch (e) { return { mini: false, notes: true, focus: false }; } })();
+  let drawer = false; // notes drawer on narrower screens
+  function saveLay() { try { localStorage.setItem('arguo.layout', JSON.stringify({ mini: lay.mini, notes: lay.notes, focus: lay.focus })); } catch (e) { /* private mode */ } }
+  const wide = () => window.matchMedia('(min-width: 1280px)').matches;
+  function paintLayout() {
+    const w = document.querySelector('.workspace');
+    if (!w) return;
+    w.classList.toggle('side-mini', lay.mini);
+    w.classList.toggle('focus', lay.focus);
+    w.classList.toggle('notes-off', !lay.notes || lay.focus);
+    w.classList.toggle('drawer', drawer);
+    document.querySelectorAll('[data-action=toggle-notes]').forEach((b) => b.classList.toggle('on', wide() ? lay.notes && !lay.focus : drawer));
+    document.querySelectorAll('[data-action=toggle-focus]').forEach((b) => b.classList.toggle('on', lay.focus));
+  }
+  // Text fields grow with their content, so long sections are read in one piece.
+  function autosize(el) {
+    if (!el || el.tagName !== 'TEXTAREA') return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 2 + 'px';
+  }
+  function autosizeAll() { document.querySelectorAll('.workspace textarea').forEach(autosize); }
   const jf = { busy: false, err: '', list: null, queries: [] }; // journal finder
   ['question', 'gap', 'aim', 'method'].forEach((k) => { if (typeof state.check[k] !== 'string') state.check[k] = ''; });
   let searching = false;
@@ -897,7 +919,7 @@
       }).join('')}</div>
       <div class="readonly"><span>${t.label} in your argument thread</span><p>${esc(state.outline[t.node]) || 'Not filled in yet.'}</p><a href="#outline">Edit</a></div>
       <label for="f-sec">Your ${esc(t.section)}</label>
-      <textarea id="f-sec" rows="${conclusion ? 9 : 7}" data-bind="check.${t.field}" placeholder="Paste this section of your manuscript">${esc(text)}</textarea>
+      <textarea id="f-sec" class="big" rows="${conclusion ? 9 : 7}" data-bind="check.${t.field}" placeholder="Paste this section of your manuscript">${esc(text)}</textarea>
       ${conclusion ? `<details class="pattern"${state.check.results.trim() ? '' : ' open'}><summary>Results used for this check (from the Result tab)</summary><p>${esc(state.check.results) || 'Paste your results in the Result tab first.'}</p></details>` : ''}
       <div id="flagged">${conclusion ? flaggedList(r.flagged) : ''}</div>
       <div class="guide-grid">
@@ -958,7 +980,7 @@
   function review() {
     const main = `<p class="intro">Paste comments from your supervisor or reviewers. Headings like “Reviewer 1” or “Major comments” and numbered points work best.</p>
       <label for="f-review" class="sr">Reviewer comments</label>
-      <textarea id="f-review" rows="6" data-bind="review.input">${esc(state.review.input)}</textarea>
+      <textarea id="f-review" class="big" rows="6" data-bind="review.input">${esc(state.review.input)}</textarea>
       <div class="toolbar"><button class="btn primary" data-action="split-review">${state.review.tasks.length ? 'Break into tasks again (replaces current tasks)' : 'Break into tasks'}</button></div>
       <div id="tasks">${reviewTasks()}</div>`;
     return { main, notes: notesPanel(reviewNotes(), aiBlock('review') + LETTER) };
@@ -1005,7 +1027,7 @@
       <p class="fine">Limits: the rules check English only and can flag words that are fine in context (for example “causes” in a randomised trial), so read each note against your design. The AI feedback reads about the first 4,000 characters, so for a long manuscript ask about one section at a time.</p>
       ${importBar()}
       <label for="f-lang">Your text</label>
-      <textarea id="f-lang" rows="10" data-bind="language.text" placeholder="Paste a paragraph or a whole section">${esc(text)}</textarea>
+      <textarea id="f-lang" class="big" rows="10" data-bind="language.text" placeholder="Paste a paragraph or a whole section">${esc(text)}</textarea>
       <div id="lang-preview">${langPreview()}</div>`;
     return { main, notes: notesPanel(S.language.notes(text), aiBlock('language')) };
   }
@@ -1128,6 +1150,7 @@
 
   function render() {
     const v = current();
+    document.body.classList.toggle('ws', !['home', 'account', 'privacy', 'terms'].includes(v));
     const navFor = v === 'home' || v === 'account' ? '#' + v : '#overview';
     document.querySelectorAll('.top-nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === navFor));
     paintAccountLink();
@@ -1138,12 +1161,17 @@
     if (v === 'paper' && !state.matrix.some((r) => r.id === openPaper)) { location.hash = 'matrix'; return; }
     const m = MODULES.find((x) => x.id === (v === 'paper' ? 'matrix' : v));
     const view = VIEWS[v]();
-    app.innerHTML = `<div class="workspace wrap">
-      <nav class="side" aria-label="Modules">${GROUPS_NAV.map(([g, ids]) => `<p class="side-label">${g}</p>` + ids.map((id) => MODULES.find((x) => x.id === id)).map((x) => `<a href="#${x.id}" title="${esc(x.pain)}"${x.id === (v === 'paper' ? 'matrix' : v) ? ' aria-current="page"' : ''}>
+    const issues = (view.notes.match(/class="note-tag">Fix</g) || []).length;
+    app.innerHTML = `<div class="workspace v2">
+      <nav class="side" aria-label="Modules"><button class="side-toggle" data-action="toggle-side" title="${lay.mini ? 'Expand sidebar' : 'Collapse sidebar'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg><span>${lay.mini ? 'Expand' : 'Collapse'}</span></button>${GROUPS_NAV.map(([g, ids]) => `<p class="side-label">${g}</p>` + ids.map((id) => MODULES.find((x) => x.id === id)).map((x) => `<a href="#${x.id}" title="${esc(x.pain)}"${x.id === (v === 'paper' ? 'matrix' : v) ? ' aria-current="page"' : ''}>
         ${icon(x.id)}<span>${x.name}</span>${st[x.id] && st[x.id].issues ? `<b>${st[x.id].issues}</b>` : ''}</a>`).join('')).join('')}<button class="side-tour" data-action="tour-start">✦ Take the guided tour</button></nav>
       <section class="module">
-        <header class="module-head"><h1><span class="tile-ico">${icon(m.id)}</span>${m.name}</h1><p>${m.pain}</p></header>
-        <div class="module-body"><div class="editor">${view.main}</div><aside class="notes" id="notes" aria-label="Notes">${view.notes}</aside></div>
+        <header class="module-head"><h1><span class="tile-ico">${icon(m.id)}</span>${m.name}</h1><p>${m.pain}</p>
+          <div class="view-tools">
+            <button class="view-btn" data-action="toggle-notes" title="Show or hide the notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg><span class="lbl">Notes</span>${issues ? `<b>${issues}</b>` : ''}</button>
+            <button class="view-btn" data-action="toggle-focus" title="Focus: hide the sidebar and notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="lbl">${lay.focus ? 'Exit focus' : 'Focus'}</span></button>
+          </div></header>
+        <div class="module-body${v === 'matrix' ? ' stack' : ''}"><div class="editor">${view.main}</div><aside class="notes" id="notes" aria-label="Notes">${view.notes}</aside></div>
       </section></div>`;
   }
 
@@ -1153,6 +1181,8 @@
     const view = VIEWS[v]();
     const notes = document.getElementById('notes');
     if (notes) notes.innerHTML = view.notes;
+    const nb = document.querySelector('[data-action=toggle-notes]');
+    if (nb) { const n = (view.notes.match(/class="note-tag">Fix</g) || []).length; let b = nb.querySelector('b'); if (n && !b) { b = document.createElement('b'); nb.appendChild(b); } if (b) { if (n) b.textContent = n; else b.remove(); } }
     if (v === 'language') document.getElementById('lang-preview').innerHTML = langPreview();
     if (v === 'check') document.getElementById('flagged').innerHTML = checkTab === 'conclusion' ? flaggedList(checkResult().flagged) : '';
     const st = status();
@@ -1183,6 +1213,7 @@
   app.addEventListener('input', (e) => {
     if (e.target.id === 'home-q') { document.getElementById('home-tasks').innerHTML = taskList(findTasks(e.target.value).slice(0, 8), 'task-grid'); return; }
     if (!isChoice(e.target)) onEdit(e);
+    autosize(e.target);
   });
   app.addEventListener('change', (e) => { if (isChoice(e.target)) onEdit(e); });
 
@@ -1293,6 +1324,9 @@
       analysePaper(row.id, true);
     },
     'journal-pick': (el) => pickJournal(journalUi.results[Number(el.dataset.i)]),
+    'toggle-side': () => { lay.mini = !lay.mini; saveLay(); render(); },
+    'toggle-notes': () => { if (wide()) { if (lay.focus) { lay.focus = false; lay.notes = true; } else lay.notes = !lay.notes; saveLay(); } else drawer = !drawer; paintLayout(); autosizeAll(); },
+    'toggle-focus': () => { lay.focus = !lay.focus; drawer = false; saveLay(); render(); },
     'go-task': (el) => goTask(Number(el.dataset.i)),
     finder: () => openFinder(),
     'journal-suggest': () => { if (!jf.busy) suggestJournals(); },
@@ -1443,7 +1477,7 @@
       if (t) {
         t.classList.add('tour-target');
         // Keep the target in the top part of the screen, clear of the guide card.
-        const top = t.getBoundingClientRect().top + window.scrollY - (window.innerWidth <= 760 ? 90 : 140);
+        const top = t.getBoundingClientRect().top + window.scrollY - (window.innerWidth <= 760 ? 110 : 180);
         window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
       }
     }
@@ -1455,9 +1489,11 @@
   }
   ['click', 'change', 'input'].forEach((type) => document.addEventListener(type, (e) => tourWatch(type, e), true));
   const renderPage = render;
-  render = function () { renderPage(); paintTour(); focusTarget(); };
+  render = function () { renderPage(); paintLayout(); autosizeAll(); paintTour(); focusTarget(); };
 
-  window.addEventListener('hashchange', () => { pending = ''; window.scrollTo(0, 0); render(); });
+  let rz = null;
+  window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (wide()) drawer = false; paintLayout(); autosizeAll(); }, 150); });
+  window.addEventListener('hashchange', () => { pending = ''; drawer = false; window.scrollTo(0, 0); render(); });
   C.onChange((event) => {
     if (event === 'PASSWORD_RECOVERY') { acct.recovery = true; history.replaceState(null, '', '#account'); }
     if (event === 'SIGNED_IN' && /access_token|type=/.test(location.hash)) history.replaceState(null, '', '#account');
