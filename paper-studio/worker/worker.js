@@ -216,19 +216,26 @@ async function groqJSON(env, system, user) {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: MODEL, messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-      response_format: { type: 'json_object' }, reasoning_effort: 'low', max_completion_tokens: 1200 }),
+      response_format: { type: 'json_object' }, reasoning_effort: 'low', max_completion_tokens: 2000 }),
   });
   if (!res.ok) return null;
   try { return JSON.parse((await res.json()).choices[0].message.content); } catch { return null; }
 }
 
-const UNDERSTAND = `You turn a researcher's question into searches for a scholarly database that matches words, not meaning.
-Work out what the question is really asking: the phenomenon, population, exposure or intervention, outcome and method, including the technical terms and synonyms authors in that field would use (for example "screen time" -> "digital media use", "adolescents" -> "teenagers", "youth").
-Translate non-English questions into English.
-Reply with JSON only: {"queries":["...","...","..."]}: 3 or 4 keyword queries (3-7 words each, no quotes, no AND/OR). EVERY query must combine the core concepts of the question (for example exposure + outcome + population); never split them into separate queries, because a query with only one concept returns off-topic papers. Vary the wording and synonyms between queries. Most central first.`;
+const UNDERSTAND = `You are an expert research librarian. A researcher asks a question in plain words (any language); you plan searches for a scholarly database that matches words in titles and abstracts, not meaning.
+First think like a specialist in the field:
+- What is the question really about? Name the underlying mechanism, process or phenomenon, and the field it belongs to.
+- How do authors in that field actually phrase it? Use their technical terms, not the researcher's wording (for example "pollen inhibits polymerase in PCR" is studied as "PCR inhibitors", "Taq polymerase inhibition", "polysaccharides and polyphenols", "pollen DNA metabarcoding"; "screen time and sleep in teens" as "digital media use", "sleep quality", "adolescents").
+- Few papers may answer the exact question, so also search the broader mechanism or parent topic that explains it.
+Reply with JSON only: {"field":"<field, 2-5 words>","queries":["...", ...]} with 5 queries in English, 2-6 words each, no quotes and no AND/OR:
+- queries 1-3: the specific question, each combining its core concepts in the field's terms, worded differently;
+- queries 4-5: the broader mechanism or parent topic (for example "PCR inhibitors plant samples", "DNA polymerase inhibition mechanism").
+Never return a query with only one concept or a generic word alone (for example "pollen" or "sleep").`;
 
-const RANK = `You rank search results by how directly each paper helps answer the researcher's question, judging by meaning, not shared words.
-Reply with JSON only: {"order":[n, ...]} listing the numbers of the relevant papers, most relevant first. Leave out papers that are clearly off-topic.`;
+const RANK = `You rank search results for a researcher's question, judging by meaning, not shared words.
+Keep every paper that helps answer it: papers on the exact question first, then papers on the underlying mechanism, method or closely related settings that a specialist would cite when answering it.
+Leave out only papers about a different subject that happen to share words (for example plant pollen development when the question is about PCR inhibition).
+Reply with JSON only: {"order":[n, ...]}, most useful first.`;
 
 async function smart(request, env, headers, kind) {
   if (!env.GROQ_API_KEY) return json({ error: 'The server is missing GROQ_API_KEY.' }, 500, headers);
@@ -238,10 +245,10 @@ async function smart(request, env, headers, kind) {
   if (!question) return json({ error: 'Type your question first.' }, 400, headers);
   if (kind === 'understand') {
     const out = await groqJSON(env, UNDERSTAND, question);
-    const queries = (out && Array.isArray(out.queries) ? out.queries : []).map((q) => str(q).replace(/["()]/g, ' ').trim().slice(0, 120)).filter(Boolean).slice(0, 4);
+    const queries = (out && Array.isArray(out.queries) ? out.queries : []).map((q) => str(q).replace(/["()]/g, ' ').trim().slice(0, 120)).filter(Boolean).slice(0, 5);
     return queries.length ? json({ queries }, 200, headers) : json({ error: 'Could not read the question.' }, 502, headers);
   }
-  const papers = (Array.isArray(body.papers) ? body.papers : []).slice(0, 30);
+  const papers = (Array.isArray(body.papers) ? body.papers : []).slice(0, 40);
   const list = papers.map((p, n) => `[${n}] ${str(p && p.title).slice(0, 200)}\n${str(p && p.abstract).slice(0, 300)}`).join('\n');
   const out = await groqJSON(env, RANK, `[question] ${question}\n\n${list}`);
   const seen = new Set();

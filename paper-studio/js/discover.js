@@ -15,6 +15,9 @@
     if (Number(o.years)) filters.push(`from_publication_date:${now.getFullYear() - Number(o.years)}-${String(now.getMonth() + 1).padStart(2, '0')}-01`);
     if (o.oa) filters.push('is_oa:true');
     const sort = { newest: '&sort=publication_date:desc', cited: '&sort=cited_by_count:desc' }[o.sort] || '';
+    // Precise mode (used by the meaning search) matches titles and abstracts only;
+    // the default full-text search also matches papers that mention a word once.
+    if (o.precise) return `${API}?filter=${filters.concat('title_and_abstract.search:' + encodeURIComponent(o.query.trim().replace(/[,:|]/g, ' '))).join(',')}${sort}&per-page=25&select=${SELECT}`;
     return `${API}?search=${encodeURIComponent(o.query.trim())}&filter=${filters.join(',')}${sort}&per-page=20&select=${SELECT}`;
   }
 
@@ -132,13 +135,13 @@
     };
     const u = opts.proxy ? await post('/api/understand', { question: o.query }) : null;
     if (!u || !u.queries || !u.queries.length) return Object.assign(await search(o, opts), { queries: [] });
-    const runs = await Promise.all(u.queries.map((q) => search(Object.assign({}, o, { query: q, sort: 'relevance' }), opts).catch(() => null)));
+    const runs = await Promise.all(u.queries.map((q) => search(Object.assign({}, o, { query: q, sort: 'relevance', precise: true }), opts).catch(() => null)));
     const ok = runs.filter(Boolean);
     if (!ok.length) return Object.assign(await search(o, opts), { queries: [] });
     const merged = merge(ok.map((r) => r.results));
     // The AI drops off-topic papers and orders the rest by relevance; the
     // chosen sort (newest, most cited) is then applied to the relevant ones.
-    let results = merged.slice(0, 30);
+    let results = merged.slice(0, 40);
     const r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) });
     if (r && Array.isArray(r.order) && r.order.length) results = r.order.map((n) => results[n]).filter(Boolean);
     if (o.sort === 'newest') results.sort((a, b) => String(b.date).localeCompare(String(a.date)));

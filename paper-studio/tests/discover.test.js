@@ -119,7 +119,8 @@ test('smartSearch expands the question, merges and reranks', async () => {
   const fake = async (url, init) => {
     if (url.endsWith('/api/understand')) return { ok: true, json: async () => ({ queries: ['a', 'b'] }) };
     if (url.endsWith('/api/rank')) return { ok: true, json: async () => ({ order: [2, 0] }) };
-    const q = new URL(url).searchParams.get('search');
+    const u = new URL(url);
+    const q = u.searchParams.get('search') || (u.searchParams.get('filter').match(/title_and_abstract\.search:([^,]+)/) || [])[1];
     const results = q === 'a' ? [work('W1', 'one'), work('W2', 'two')] : [work('W2', 'two'), work('W3', 'three')];
     return { ok: true, status: 200, json: async () => ({ meta: { count: 2 }, results }) };
   };
