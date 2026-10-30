@@ -223,21 +223,18 @@ async function groqJSON(env, system, user) {
 }
 
 const UNDERSTAND = `You are an expert research librarian. A researcher asks a question in plain words (any language); you plan searches for a scholarly database that matches words in titles and abstracts, not meaning.
-First think like a specialist in the field:
-- What is the question really about? Name the underlying mechanism, process or phenomenon, and the field it belongs to.
-- How do authors in that field actually phrase it? Use their technical terms, not the researcher's wording (for example "pollen inhibits polymerase in PCR" is studied as "PCR inhibitors", "Taq polymerase inhibition", "polysaccharides and polyphenols", "pollen DNA metabarcoding"; "screen time and sleep in teens" as "digital media use", "sleep quality", "adolescents").
-- Few papers may answer the exact question, so also search the broader mechanism or parent topic that explains it.
-Reply with JSON only: {"field":"<field, 2-5 words>","queries":["...", ...]} with 5 queries in English, 2-6 words each, no quotes and no AND/OR:
-- queries 1-3: the specific question, each combining its core concepts in the field's terms, worded differently;
-- queries 4-5: the broader mechanism or parent topic (for example "PCR inhibitors plant samples", "DNA polymerase inhibition mechanism").
-Never return a query with only one concept or a generic word alone (for example "pollen" or "sleep").`;
+1. Find the SUBJECT: the specific thing the question is about, which every directly useful paper must study (for example "pollen" in "how does pollen inhibit the polymerase in PCR", "lithium-ion batteries" in "why do batteries lose capacity in the cold", "remote workers" in "does remote work affect promotion"). Give 1-3 terms authors use for it (synonyms, related forms such as "bee pollen", "honey" for pollen).
+2. Think like a specialist: how do authors phrase this question, in which settings is it studied (for pollen and PCR: pollen DNA metabarcoding, honey DNA, airborne pollen qPCR, pollen DNA extraction), and which technical terms do they use?
+Reply with JSON only: {"subject":["...", ...],"queries":["...", ...]} with 5 English queries, 2-6 words each, no quotes and no AND/OR:
+- queries 1-4: each MUST contain a subject term, combined with the question's other concepts or the settings where it is studied, worded differently;
+- query 5: the general mechanism behind the question, as background (for example "PCR inhibitors mechanisms").
+Never return a query that is one generic word.`;
 
-const RANK = `You rank search results for a researcher's question, judging by meaning, not shared words. Be strict: a short list of truly useful papers is better than a long list with noise.
-Keep a paper only if it directly helps answer the question:
-- papers on the exact question first;
-- then papers on the underlying mechanism or method, but only when they study the same subject and system (same organism or population, same material, same process). A paper on another organism, another material or another application that only shares a mechanism word does not count (for example, for "how do microplastics enter human blood", drop plant uptake of nanoplastics and nanoparticle drug delivery into tumours).
-Drop records that are not research papers (a person's name, a conference programme, an index entry).
-Reply with JSON only: {"order":[n, ...]}, most useful first.`;
+const RANK = `You sort search results for a researcher's question, judging by meaning, not shared words. Be strict.
+- "direct": papers that study the question's SUBJECT itself (given below) in relation to the question, most useful first. A paper must be about the subject; a paper that only shares a word with it (for example pollen biology or bee pollen nutrition when the question is about pollen inhibiting PCR) is not direct.
+- "background": at most 5 papers on the general mechanism behind the question, in the same kind of system, that a specialist would cite to explain it (for example reviews of PCR inhibitors). Not papers on another organism, material or application.
+Leave out everything else, including records that are not research papers (a person's name, a programme, an index entry).
+Reply with JSON only: {"direct":[n, ...],"background":[n, ...]}.`;
 
 async function smart(request, env, headers, kind) {
   if (!env.GROQ_API_KEY) return json({ error: 'The server is missing GROQ_API_KEY.' }, 500, headers);
@@ -248,14 +245,18 @@ async function smart(request, env, headers, kind) {
   if (kind === 'understand') {
     const out = await groqJSON(env, UNDERSTAND, question);
     const queries = (out && Array.isArray(out.queries) ? out.queries : []).map((q) => str(q).replace(/["()]/g, ' ').trim().slice(0, 120)).filter(Boolean).slice(0, 5);
-    return queries.length ? json({ queries }, 200, headers) : json({ error: 'Could not read the question.' }, 502, headers);
+    const subject = (out && Array.isArray(out.subject) ? out.subject : []).map((q) => str(q).trim().slice(0, 60)).filter(Boolean).slice(0, 4);
+    return queries.length ? json({ queries, subject }, 200, headers) : json({ error: 'Could not read the question.' }, 502, headers);
   }
   const papers = (Array.isArray(body.papers) ? body.papers : []).slice(0, 40);
   const list = papers.map((p, n) => `[${n}] ${str(p && p.title).slice(0, 200)}\n${str(p && p.abstract).slice(0, 300)}`).join('\n');
-  const out = await groqJSON(env, RANK, `[question] ${question}\n\n${list}`);
+  const subject = (Array.isArray(body.subject) ? body.subject : []).map((x) => str(x).slice(0, 60)).join(', ');
+  const out = await groqJSON(env, RANK, `[question] ${question}\n[subject] ${subject || '(work it out from the question)'}\n\n${list}`);
   const seen = new Set();
-  const order = (out && Array.isArray(out.order) ? out.order : []).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n < papers.length && !seen.has(n) && seen.add(n));
-  return order.length ? json({ order }, 200, headers) : json({ error: 'Could not rank the results.' }, 502, headers);
+  const pick = (a) => (Array.isArray(a) ? a : []).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n < papers.length && !seen.has(n) && seen.add(n));
+  const direct = pick(out && (out.direct || out.order));
+  const background = pick(out && out.background).slice(0, 5);
+  return direct.length || background.length ? json({ direct, background, order: direct.concat(background) }, 200, headers) : json({ error: 'Could not rank the results.' }, 502, headers);
 }
 
 // Daily AI checks per visitor, counted by IP address in the LIMITS KV

@@ -152,12 +152,22 @@
     // The AI drops off-topic papers and orders the rest by relevance; the
     // chosen sort (newest, most cited) is then applied to the relevant ones.
     let results = merged.slice(0, 40);
-    let r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) });
-    if (!r) { await wait(6000); r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) }); }
-    if (r && Array.isArray(r.order) && r.order.length) results = r.order.map((n) => results[n]).filter(Boolean);
-    if (o.sort === 'newest') results.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-    else if (o.sort === 'cited') results.sort((a, b) => b.cited - a.cited);
-    return { total: merged.length, results: results.slice(0, 20), queries: u.queries, unranked: !r, source: ok.some((r) => r.source === 'crossref') ? 'crossref' : 'openalex' };
+    const rankBody = { question: o.query, subject: u.subject || [], papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) };
+    let r = await post('/api/rank', rankBody);
+    if (!r) { await wait(6000); r = await post('/api/rank', rankBody); }
+    // Papers on the question's own subject come first; general-mechanism
+    // papers follow as background. The chosen sort applies within each group.
+    const sortIn = (list) => {
+      if (o.sort === 'newest') list.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      else if (o.sort === 'cited') list.sort((a, b) => b.cited - a.cited);
+      return list;
+    };
+    if (r && (Array.isArray(r.direct) || Array.isArray(r.order))) {
+      const direct = (r.direct || r.order).map((n) => results[n]).filter(Boolean).map((p) => Object.assign({}, p, { background: false }));
+      const bg = (r.background || []).map((n) => results[n]).filter(Boolean).map((p) => Object.assign({}, p, { background: true }));
+      results = sortIn(direct).slice(0, 20).concat(sortIn(bg));
+    } else results = sortIn(results).slice(0, 20);
+    return { total: merged.length, results, queries: u.queries, subject: u.subject || [], unranked: !r, source: ok.some((r) => r.source === 'crossref') ? 'crossref' : 'openalex' };
   }
 
   // Reciprocal rank fusion: papers found by several searches, and high up, come first.
