@@ -107,3 +107,16 @@ test('each visitor gets DAILY_LIMIT AI checks per day', async () => {
   assert.strictEqual(third.status, 429);
   assert.match((await third.json()).error, /2 free AI checks/);
 });
+
+test('a busy model falls back to the next one', async () => {
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    const m = JSON.parse(init.body).model;
+    seen.push(m);
+    return seen.length === 1 ? new Response('', { status: 429 }) : groq([{ level: 'tip', title: 'Fine', how: 'Ok.' }]);
+  };
+  const res = await worker.fetch(new Request('https://x.dev/api/feedback', { method: 'POST', body: JSON.stringify({ task: 'outline', input: { question: 'q' } }) }), { GROQ_API_KEY: 'k' });
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(seen.length, 2);
+  assert.notStrictEqual(seen[0], seen[1]);
+});

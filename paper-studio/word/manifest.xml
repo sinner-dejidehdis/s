@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Arguo for Word: a task pane that checks the open document. Sideload it
+     (see word/index.html); the pane itself is served from the Arguo site. -->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>70ea1af5-b672-4732-8ed7-e3fafc071c36</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Arguo</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Arguo: checks your paper" />
+  <Description DefaultValue="Checks references, wording and citations in your manuscript. Never writes your text." />
+  <IconUrl DefaultValue="https://arguolucid.arguolucid.workers.dev/word/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="https://arguolucid.arguolucid.workers.dev/word/icon-80.png" />
+  <SupportUrl DefaultValue="https://arguolucid.arguolucid.workers.dev/word/" />
+  <AppDomains>
+    <AppDomain>https://arguolucid.arguolucid.workers.dev</AppDomain>
+    <AppDomain>https://arguo-api.arguolucid.workers.dev</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Document" />
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://arguolucid.arguolucid.workers.dev/word/taskpane.html" />
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="Arguo.Group">
+                <Label resid="Arguo.GroupLabel" />
+                <Control xsi:type="Button" id="Arguo.Open">
+                  <Label resid="Arguo.ButtonLabel" />
+                  <Supertip>
+                    <Title resid="Arguo.ButtonLabel" />
+                    <Description resid="Arguo.ButtonTip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Arguo.Icon16" />
+                    <bt:Image size="32" resid="Arguo.Icon32" />
+                    <bt:Image size="80" resid="Arguo.Icon80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ArguoPane</TaskpaneId>
+                    <SourceLocation resid="Arguo.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Arguo.Icon16" DefaultValue="https://arguolucid.arguolucid.workers.dev/word/icon-16.png" />
+        <bt:Image id="Arguo.Icon32" DefaultValue="https://arguolucid.arguolucid.workers.dev/word/icon-32.png" />
+        <bt:Image id="Arguo.Icon80" DefaultValue="https://arguolucid.arguolucid.workers.dev/word/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Arguo.Url" DefaultValue="https://arguolucid.arguolucid.workers.dev/word/taskpane.html" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="Arguo.GroupLabel" DefaultValue="Arguo" />
+        <bt:String id="Arguo.ButtonLabel" DefaultValue="Check paper" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="Arguo.ButtonTip" DefaultValue="Open Arguo to check references, wording and citations in this document." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

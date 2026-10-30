@@ -28,7 +28,9 @@
   let state = fixState(S.store.load() || S.sample.create());
   if (state.sample) syncRefs(); // the example's matrix papers are already in its reference list, silently
   let fileBusy = '';
-  let offerTour = false; // after 'Start your paper' on a first visit
+  let offerTour = false;
+  const deep = { busy: '', err: '' }; // citation search and evidence table on Discover
+ // after 'Start your paper' on a first visit
   // Workspace layout: sidebar full or icons, notes shown or hidden, focus mode. Kept per browser.
   const lay = (() => { try { return Object.assign({ mini: false, notes: true, focus: false }, JSON.parse(localStorage.getItem('arguo.layout') || '{}')); } catch (e) { return { mini: false, notes: true, focus: false }; } })();
   let drawer = false; // notes drawer on narrower screens
@@ -113,6 +115,7 @@
     { q: 'What should I do next? New research ideas', view: 'ideas', k: 'next step ideas novelty direction innovation plan' },
     { q: 'Respond to reviewer comments', view: 'review', k: 'reviewer comments revision major minor response rebuttal' },
     { q: 'Get ready to submit', view: 'submit', k: 'submission checklist submit cover letter ethics registration guideline' },
+    { q: 'Use Arguo inside Microsoft Word', href: 'word/', view: 'language', k: 'word microsoft office add-in plugin docx comments sidebar' },
     { q: 'See progress on my paper', view: 'overview', k: 'overview progress dashboard project status' },
   ];
   let goTarget = null; // { target } to focus after the next render
@@ -126,6 +129,7 @@
     const t = FIND[i];
     if (!t) return;
     closeFinder();
+    if (t.href) { location.href = t.href; return; }
     if (t.tab) checkTab = t.tab;
     goTarget = t.target || null;
     track('finder', t.view);
@@ -380,6 +384,7 @@
           <a class="tile" href="citation-checker/"><span class="tile-ico">${icon('cite')}</span><h3>Citation Checker</h3><p>Is that reference real? Spot AI-invented citations, wrong years and misspelled authors.</p><span class="pain">Fake or wrong references</span></a>
           <a class="tile" href="reference-formatter/"><span class="tile-ico">${icon('submit')}</span><h3>Reference Formatter</h3><p>Paste DOIs, pick your journal, copy a verified list in its official style.</p><span class="pain">Reformatting for every journal</span></a>
           <a class="tile" href="gap-finder/"><span class="tile-ico">${icon('discover')}</span><h3>Research Gap Finder</h3><p>Latest papers on your topic and a briefing on open questions, citing only real papers.</p><span class="pain">Where is the gap?</span></a>
+          <a class="tile" href="word/"><span class="tile-ico">${icon('language')}</span><h3>Arguo for Word</h3><p>A side panel in Word: wording, citations and references checked in your document, marked as comments. Never changes your text.</p></a>
         </div>
       </section>`;
   }
@@ -525,13 +530,73 @@
     return { main, notes: notesPanel(S.outline.check(state.outline), citedBlock(Object.values(state.outline).join(' ')) + aiBlock('outline')) };
   }
 
+  function deepTools() {
+    const d = state.discover;
+    const t = d.evidence;
+    const table = t && t.rows && t.rows.length ? `<div class="table-wrap evidence"><table class="matrix"><thead><tr><th>#</th><th>Paper</th><th>Design</th><th>Sample</th><th>Main finding</th><th>For your question</th></tr></thead><tbody>
+      ${t.rows.map((x) => { const p = t.papers[x.n - 1] || {}; return `<tr><td>${x.n}</td><td><a href="${esc(p.url || '#')}" target="_blank" rel="noopener">${esc(p.title || '')}</a><br><small>${esc(S.discover.shortAuthors(p.authors || []))} · ${p.year || 'n.d.'}</small></td><td>${esc(x.design)}</td><td>${esc(x.sample)}</td><td>${esc(x.finding)}</td><td><span class="pill${/^answers/i.test(x.relation) ? ' tone-ok' : ''}">${esc(x.relation)}</span></td></tr>`; }).join('')}</tbody></table></div>
+      <div class="toolbar"><button class="btn small-btn" data-action="evidence-to-matrix">Add these papers to my literature matrix</button><span class="fine">AI-extracted from abstracts; marked "AI draft" in the matrix until you check them against the papers.</span></div>` : '';
+    return `<div class="deep-tools">
+        <div class="toolbar"><button class="btn" data-action="snowball"${deep.busy ? ' disabled' : ''}>${deep.busy === 'snowball' ? 'Following citations…' : 'Find more by following citations'}</button>
+          <button class="btn" data-action="evidence"${deep.busy ? ' disabled' : ''}>${deep.busy === 'evidence' ? 'Reading abstracts…' : 'Compare these papers in a table'}</button></div>
+        <p class="fine">Citations: papers that cite, or are cited by, your most relevant results, filtered for your question. Table: design, sample and main finding of the top 12, read from their abstracts (uses one AI check).</p>
+        ${deep.err ? `<p class="acct-msg error">${esc(deep.err)}</p>` : ''}${table}</div>`;
+  }
+
+  async function runSnowball() {
+    const d = state.discover;
+    deep.busy = 'snowball'; deep.err = ''; render();
+    try {
+      const more = await S.discover.snowball({ query: d.query, subject: d.subject }, d.results, { proxy: AI_API });
+      if (!more.length) deep.err = 'No further relevant papers found through citations.';
+      else {
+        const direct = d.results.filter((p) => !p.background);
+        d.results = direct.concat(more, d.results.filter((p) => p.background));
+        toast(`${more.length} more ${more.length === 1 ? 'paper' : 'papers'} found through citations`);
+        track('snowball', String(more.length));
+      }
+    } catch (e) { deep.err = e.message; }
+    deep.busy = ''; save(); render();
+  }
+
+  async function runEvidence() {
+    const d = state.discover;
+    deep.busy = 'evidence'; deep.err = ''; render();
+    try {
+      await fillAbstracts();
+      const papers = d.results.slice(0, 12);
+      const r = await S.discover.evidence(d.query, papers, { proxy: AI_API });
+      if (r.limit) quota = { remaining: r.remaining, limit: r.limit };
+      d.evidence = { rows: r.rows || [], papers };
+      track('evidence', String((r.rows || []).length));
+    } catch (e) { deep.err = e.message; }
+    deep.busy = ''; save(); render();
+  }
+
+  function evidenceToMatrix() {
+    const t = state.discover.evidence;
+    if (!t) return;
+    let n = 0;
+    t.rows.forEach((x) => {
+      const p = t.papers[x.n - 1];
+      if (!p || /^not relevant/i.test(x.relation)) return;
+      const before = state.matrix.filter((m) => m.meta).length;
+      const row = addToMatrix(p);
+      if (state.matrix.filter((m) => m.meta).length > before) n++;
+      const fill = { method: x.design, sample: x.sample, finding: x.finding };
+      row.aiDraft = row.aiDraft || [];
+      Object.entries(fill).forEach(([k, v]) => { if (v && !/^not reported/i.test(v) && !String(row[k] || '').trim()) { row[k] = v; row.aiDraft.push(k); } });
+    });
+    save(); render(); toast(n ? `${n} papers added to your literature matrix` : 'These papers are already in your matrix');
+  }
+
   function resultCard(r, i) {
     const inMatrix = state.matrix.some((m) => m.sourceId === r.id);
     return `<li class="paper" id="paper-${i + 1}">
       <div class="paper-top"><span class="paper-n">${i + 1}</span>
         <div class="paper-main">
           <a class="paper-title" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>
-          <p class="paper-meta">${esc(S.discover.shortAuthors(r.authors))} · ${r.year || 'n.d.'}${r.venue ? ` · <i>${esc(r.venue)}</i>` : ''}${r.cited ? ` · cited ${r.cited.toLocaleString()}` : ''}${r.type === 'review' ? ' · <span class="pill tone-accent">Review</span>' : ''}${r.type === 'preprint' ? ' · <span class="pill tone-warn">Preprint</span>' : ''}</p>
+          <p class="paper-meta">${esc(S.discover.shortAuthors(r.authors))} · ${r.year || 'n.d.'}${r.venue ? ` · <i>${esc(r.venue)}</i>` : ''}${r.cited ? ` · cited ${r.cited.toLocaleString()}` : ''}${r.via === 'citations' ? ' · <span class="pill">Found via citations</span>' : ''}${r.type === 'review' ? ' · <span class="pill tone-accent">Review</span>' : ''}${r.type === 'preprint' ? ' · <span class="pill tone-warn">Preprint</span>' : ''}</p>
         </div></div>
       ${r.abstract ? `<details class="paper-abs"><summary>Abstract</summary><p>${esc(r.abstract)}</p></details>` : '<p class="paper-noabs">No abstract in the index. Open the paper to read it.</p>'}
       <div class="paper-links">
@@ -559,6 +624,7 @@
       </div>
       ${searchErr ? `<p class="acct-msg error">${esc(searchErr)}</p>` : ''}
       ${d.results.length && (d.plain || d.unranked) ? `<p class="acct-msg">${d.plain ? 'The AI was busy, so this is a plain keyword search. Search again in a minute to search by meaning.' : 'The AI was busy, so these results are not ranked by relevance. Search again in a minute for a ranked list.'}</p>` : ''}${d.results.length ? `<p class="fine">${d.queries && d.queries.length ? `${d.subject && d.subject.length ? `Focused on: <b>${d.subject.map(esc).join(', ')}</b>. ` : ''}Searched by meaning for: ${d.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}; ranked by how well each paper answers your question. The AI can misread a question or leave out a relevant paper, so check the search terms and try your own keywords too.` : d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from ${d.source === 'crossref' ? '<a href="https://www.crossref.org" target="_blank" rel="noopener">Crossref</a> (OpenAlex is busy right now, so the free-full-text filter and some abstracts are unavailable)' : '<a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>'}. ${d.sample ? 'These example results are real papers.' : ''}</p>
+        ${d.results.length && !d.sample ? deepTools() : ''}
         ${d.results.length && d.results[0].background ? '<p class="acct-msg">No papers were found on this exact subject. The papers below explain the general mechanism; try other words for your subject, or a longer time range.</p>' : ''}
         <ol class="paper-list">${d.results.map((r, i) => (r.background && i > 0 && !d.results[i - 1].background ? `</ol><h3 class="sub bg-head">Background: the general mechanism</h3><p class="fine">These papers are not about your subject itself, but explain the mechanism behind your question.</p><ol class="paper-list" start="${i + 1}">` : '') + resultCard(r, i)).join('')}</ol>`
         : '<p class="empty">Type your topic and choose Search.</p>'}`;
@@ -1291,6 +1357,7 @@
     try {
       const d = state.discover;
       const r = await S.discover.smartSearch(d, { proxy: AI_API });
+      d.evidence = null;
       Object.assign(d, { results: r.results, total: r.total, queries: r.queries, subject: r.subject, source: r.source, plain: r.plain, unranked: r.unranked, sample: false });
       track('search');
       ai.discover = null;
@@ -1397,6 +1464,9 @@
     'toggle-side': () => { lay.mini = !lay.mini; saveLay(); render(); },
     'toggle-notes': () => { if (wide()) { if (lay.focus) { lay.focus = false; lay.notes = true; } else lay.notes = !lay.notes; saveLay(); } else drawer = !drawer; paintLayout(); autosizeAll(); },
     'toggle-focus': () => { lay.focus = !lay.focus; drawer = false; saveLay(); render(); },
+    snowball: () => { if (!deep.busy) runSnowball(); },
+    evidence: () => { if (!deep.busy) runEvidence(); },
+    'evidence-to-matrix': () => evidenceToMatrix(),
     'go-task': (el) => goTask(Number(el.dataset.i)),
     finder: () => openFinder(),
     'journal-suggest': () => { if (!jf.busy) suggestJournals(); },

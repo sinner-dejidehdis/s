@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arguo for Word</title>
+<meta name="description" content="Check references, wording and citations without leaving Word. Arguo marks problems as comments and never changes your text.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="../css/theme.css">
+<style>
+  .guide-page { max-width: 820px; padding-block: 48px 72px; display: grid; gap: 24px; }
+  .guide-page ol { display: grid; gap: 8px; padding-left: 1.3em; }
+  .guide-page code { font-family: var(--mono); font-size: .9em; background: var(--margin); padding: 1px 6px; border-radius: 6px; }
+  .guide-page .card { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); display: grid; gap: 10px; }
+</style>
+</head>
+<body>
+<header class="top"><div class="top-inner wrap">
+  <a class="brand" href="../"><span class="brand-mark">Arguo</span></a>
+  <nav class="top-nav" aria-label="Main"><a href="../">Home</a><a href="../#overview">Workspace</a><a href="../#tools" class="active">Free tools</a></nav>
+  <span class="redline-chip">No ghostwriting</span>
+</div></header>
+<main class="wrap guide-page">
+  <section>
+    <span class="kicker">Arguo for Word</span>
+    <h1>Check your paper without leaving Word.</h1>
+    <p class="lede">A side panel in Word reads your manuscript, flags overclaiming, causal and vague wording, matches in-text citations to your reference list and checks every reference against Crossref. It can mark problems as Word comments. It never changes your text.</p>
+    <p><a class="btn grad" href="manifest.xml" download="arguo-word-manifest.xml">Download the add-in file</a> <a class="btn" href="taskpane.html">Try the panel in your browser</a></p>
+  </section>
+
+  <section class="card">
+    <h2>Word on the web (Microsoft 365)</h2>
+    <ol>
+      <li>Download the add-in file above.</li>
+      <li>Open a document in Word on the web, then choose <b>Home → Add-ins → More add-ins</b> (or <b>Insert → Add-ins</b>).</li>
+      <li>Choose <b>My add-ins → Upload my add-in</b>, select the downloaded file, then <b>Upload</b>.</li>
+      <li>Click <b>Check paper</b> on the Home tab.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Word for Mac</h2>
+    <ol>
+      <li>Quit Word. In Finder choose <b>Go → Go to Folder…</b> and open <code>~/Library/Containers/com.microsoft.Word/Data/Documents/wef</code> (create the <code>wef</code> folder if it does not exist).</li>
+      <li>Copy the downloaded add-in file into that folder.</li>
+      <li>Open Word and a document, then choose <b>Home → Add-ins</b> (or <b>Insert → My Add-ins</b>) and pick <b>Arguo</b> under Developer add-ins.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>Word for Windows</h2>
+    <ol>
+      <li>Create a folder, for example <code>C:\ArguoAddin</code>, put the add-in file in it, then right-click the folder → <b>Properties → Sharing → Share</b> and copy its network path (for example <code>\\YOUR-PC\ArguoAddin</code>).</li>
+      <li>In Word: <b>File → Options → Trust Center → Trust Center Settings → Trusted Add-in Catalogs</b>. Paste the network path, tick <b>Show in Menu</b>, then OK and restart Word.</li>
+      <li>Choose <b>Home → Add-ins → My Add-ins → Shared Folder</b> and pick <b>Arguo</b>.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>What it does, and does not do</h2>
+    <ul>
+      <li>Reads your document to check it; nothing is stored. Only “AI feedback on the selection” sends the selected text to our AI provider (Groq), which does not train on it.</li>
+      <li>Comments are added only when you choose <b>Add as Word comments</b>. Your sentences are never changed.</li>
+      <li>Literature search, the argument thread, journal styles and the submission checklist are in the <a href="../#overview">full workspace</a>.</li>
+    </ul>
+  </section>
+</main>
+<footer class="foot"><div class="wrap"><span>Arguo</span><a href="../#privacy">Privacy</a><a href="../#terms">Terms</a></div></footer>
+</body>
+</html>

@@ -58,6 +58,18 @@ Standalone pages for search and sharing, each with its own title, description, F
 - **Manuscripts**: the consistency and language checks import .docx (mammoth) or .pdf (pdf.js), loaded from cdnjs only when a file is chosen and read in the browser. `js/manuscript.js` splits the text by its headings and fills the six tabs, the language check and the reference list.
 - **Discover** searches by meaning: the Worker's `/api/understand` turns the question into keyword searches, results are merged by reciprocal rank, and `/api/rank` orders them by relevance. Neither counts against the daily AI checks.
 
+## AI capacity
+
+The Worker tries several models in turn (`providers()` in `worker/worker.js`): on Groq, each model has its own free limits, so a busy model falls through to the next. A second OpenAI-compatible provider is added when these Worker variables are set: `FALLBACK_URL` (for example `https://api.cerebras.ai/v1/chat/completions`), `FALLBACK_API_KEY` (secret) and `FALLBACK_MODEL` (for example `gpt-oss-120b`). Identical requests are answered from the `LIMITS` KV store (feedback for a day, search planning and evidence tables for a week) and do not use a daily check.
+
+## Deeper literature search
+
+On Discover, “Find more by following citations” collects papers that cite, or are cited by, the top results (OpenAlex `cites:` and `cited_by:`) and lets the AI keep those that answer the question. “Compare these papers in a table” asks the Worker's `/api/extract` for design, sample, main finding and relevance from each abstract; the rows can be added to the literature matrix as AI drafts.
+
+## Arguo for Word
+
+`word/` holds an Office add-in: `manifest.xml` (sideloaded by the user, see `word/index.html`), the task pane `taskpane.html` / `taskpane.js` and icons. The pane reads the document with Office.js, runs the language, citation and reference checks from `js/`, can add problems as Word comments (it never edits text), and sends only the selected text for AI feedback. Opened outside Word it works on pasted text.
+
 ## Layout
 
 The workspace fills the screen: a sidebar (collapsible to icons), the editor, and the notes pane (hideable; a slide-in drawer below 1280px wide). Text fields grow with their content, so a long section is read in one piece; Focus hides the sidebar and notes. Wide tables (the literature matrix) put the notes below. Layout choices are kept per browser as `arguo.layout`. Styles: `css/layout.css`.

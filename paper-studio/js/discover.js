@@ -181,6 +181,46 @@
     return [...by.values()].sort((a, b) => b.score - a.score).map((e) => e.p);
   }
 
+  // Citation chasing: papers that cite, or are cited by, the most relevant
+  // results, filtered by the AI against the same question and subject.
+  async function snowball(o, current, opts) {
+    opts = opts || {};
+    const f = opts.fetch || (typeof fetch !== 'undefined' ? fetch.bind(root) : null);
+    const seeds = current.filter((p) => !p.background && /openalex\.org\/W\d+/.test(p.id)).slice(0, 4).map((p) => p.id.split('/').pop());
+    if (!seeds.length) throw new Error('Citation search needs papers from OpenAlex. Search again, then try this.');
+    const get = async (filter) => {
+      const url = `${API}?filter=${filter},type:article|review|preprint&per-page=25&sort=cited_by_count:desc&select=${SELECT}`;
+      let res;
+      try { res = await f(url); } catch (e) { res = null; }
+      if ((!res || !res.ok) && opts.proxy) { try { res = await f(opts.proxy + '/api/search?url=' + encodeURIComponent(url)); } catch (e) { res = null; } }
+      return res && res.ok ? ((await res.json()).results || []).map(parse) : [];
+    };
+    const [citing, cited] = await Promise.all([get('cites:' + seeds.join('|')), get('cited_by:' + seeds.join('|'))]);
+    const have = new Set(current.map((p) => p.id));
+    const pool = merge([citing, cited]).filter((p) => !have.has(p.id) && String(p.title).split(/\s+/).length >= 4).slice(0, 40);
+    if (!pool.length) return [];
+    let r = null;
+    try {
+      const res = await f(opts.proxy + '/api/rank', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: o.query, subject: o.subject || [], papers: pool.map((p) => ({ title: p.title, abstract: p.abstract })) }) });
+      r = res.ok ? await res.json() : null;
+    } catch (e) { r = null; }
+    if (!r) throw new Error('The AI is busy right now. Try again in a minute.');
+    return (r.direct || r.order || []).map((n) => pool[n]).filter(Boolean).map((p) => Object.assign({}, p, { background: false, via: 'citations' }));
+  }
+
+  // Evidence table (Elicit-style) for the listed papers.
+  async function evidence(question, papers, opts) {
+    opts = opts || {};
+    const f = opts.fetch || (typeof fetch !== 'undefined' ? fetch.bind(root) : null);
+    const res = await f(opts.proxy + '/api/extract', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, papers: papers.slice(0, 12).map((p) => ({ title: p.title, year: p.year, abstract: p.abstract })) }) });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 404) throw new Error('The comparison table is not available on the server yet. Try again later.');
+    if (!res.ok) throw new Error(data.error || 'The table could not be built. Try again.');
+    return data;
+  }
+
   function shortAuthors(a) {
     if (!a.length) return 'Unknown authors';
     if (a.length === 1) return a[0];
@@ -323,5 +363,5 @@
     return (named.length ? named : all).slice(0, 3);
   }
 
-  S.discover = { smartSearch, merge, titleScore, bestTitle, citationsIn, inMatrix, findCited, SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
+  S.discover = { smartSearch, snowball, evidence, merge, titleScore, bestTitle, citationsIn, inMatrix, findCited, SORTS, YEARS, buildUrl, parse, abstract, search, shortAuthors, toMatrixRow, toReference, idFromLink, lookup };
 })(typeof window !== 'undefined' ? window : globalThis);

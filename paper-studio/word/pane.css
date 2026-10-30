@@ -1,0 +1,18 @@
+/* Arguo for Word: a narrow task pane (about 320–450px wide). */
+body.pane { margin: 0; font-size: 14px; background: var(--paper); }
+.pane-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 2; }
+.pane-head .brand-mark { font-size: 1.1rem; }
+#pane { display: grid; gap: 12px; padding: 14px; }
+.pane-actions { display: grid; gap: 8px; }
+.pane-actions .btn { width: 100%; }
+.pane-card { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.pane-card h3 { font-size: 0.95rem; margin: 0; }
+.pane-card h4 { font-size: 0.9rem; margin: 2px 0 4px; }
+.pane-card .note { padding: 8px 0; border-top: 1px solid var(--line); }
+.pane-card .note p { margin: 4px 0; font-size: 0.85rem; }
+.pane-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pane-refs { padding-left: 1.2em; display: grid; gap: 6px; font-size: 0.82rem; }
+.pane-refs small { display: block; color: var(--muted); }
+#paste { width: 100%; min-height: 160px; }
+.pane-demo { margin: 0; }
+.pane-foot { margin-top: 4px; }

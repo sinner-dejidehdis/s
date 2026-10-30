@@ -87,7 +87,7 @@
       issues.unshift('No DOI given; matched by title');
       return { status: issues.length > 1 ? 'mismatch' : 'verified', record: rec, issues };
     } catch (e) {
-      return { status: 'error', note: 'Could not reach Crossref. Preview environments block outside requests; this works once the site is deployed.' };
+      return { status: 'error', note: 'Could not reach Crossref just now. Check again in a minute.' };
     }
   }
 

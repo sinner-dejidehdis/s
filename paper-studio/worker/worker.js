@@ -6,6 +6,7 @@
 // GET  /api/resolve?url=<article page>  (DOI and title from citation meta tags), input: {...} }
 // GET  /api/search?url=<OpenAlex works URL>  (adds OPENALEX_API_KEY when set)
 // POST /api/understand { question } -> { queries: [...] }  (search terms for what the question means)
+// POST /api/extract { question, papers } -> { rows: [{ n, design, sample, finding, relation }] }  (evidence table)
 // POST /api/rank { question, papers: [{title, abstract}] } -> { order: [indices] }  (most relevant first)
 // -> { notes: [{ level, field?, title, why, how, example?, ask? }], blocked: n }
 
@@ -211,15 +212,58 @@ async function resolve(url, headers) {
 
 // Smart search helpers. They only turn a question into search terms and
 // order real search results, so they do not count against the daily AI checks.
+// AI providers, tried in order until one answers. Groq limits each model
+// separately, so spreading work over several models multiplies the free
+// capacity; a second OpenAI-compatible provider (for example Cerebras) is
+// added when FALLBACK_URL and FALLBACK_API_KEY are set.
+function providers(env, tier) {
+  const list = [];
+  const groq = (model) => { if (env.GROQ_API_KEY) list.push({ url: GROQ_URL, key: env.GROQ_API_KEY, model }); };
+  if (tier === 'light') { groq('openai/gpt-oss-20b'); groq(MODEL); groq('llama-3.3-70b-versatile'); }
+  else { groq(MODEL); groq('llama-3.3-70b-versatile'); groq('openai/gpt-oss-20b'); }
+  if (env.FALLBACK_URL && env.FALLBACK_API_KEY) list.push({ url: env.FALLBACK_URL, key: env.FALLBACK_API_KEY, model: env.FALLBACK_MODEL || 'gpt-oss-120b' });
+  return list;
+}
+
+// Returns { ok, status, json } with the parsed JSON reply of the first provider that answers.
+async function ai(env, system, user, opts) {
+  opts = opts || {};
+  let status = 503;
+  for (const p of providers(env, opts.tier)) {
+    const body = { model: p.model, messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+      response_format: { type: 'json_object' }, max_completion_tokens: opts.tokens || 2500 };
+    if (/gpt-oss/.test(p.model)) body.reasoning_effort = opts.effort || 'medium';
+    let res;
+    try { res = await fetch(p.url, { method: 'POST', headers: { Authorization: `Bearer ${p.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch { continue; }
+    status = res.status;
+    if (!res.ok) continue; // busy (429), unavailable (5xx) or a model that rejects a setting: try the next one
+    try { return { ok: true, status, json: JSON.parse((await res.json()).choices[0].message.content), model: p.model }; } catch { status = 502; }
+  }
+  return { ok: false, status };
+}
+
+// Identical requests (the same question, the same section text) are answered
+// from the LIMITS KV store for a while instead of calling the AI again.
+async function cacheKey(parts) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(parts)));
+  return 'c:' + [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+async function cacheGet(env, key) {
+  if (!env.LIMITS) return null;
+  try { const v = await env.LIMITS.get(key); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+async function cachePut(env, key, value, ttl) {
+  if (!env.LIMITS) return;
+  try { await env.LIMITS.put(key, JSON.stringify(value), { expirationTtl: ttl }); } catch { /* cache is optional */ }
+}
+
 async function groqJSON(env, system, user) {
-  const res = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-      response_format: { type: 'json_object' }, reasoning_effort: 'low', max_completion_tokens: 2000 }),
-  });
-  if (!res.ok) return null;
-  try { return JSON.parse((await res.json()).choices[0].message.content); } catch { return null; }
+  const key = await cacheKey([system, user]);
+  const hit = await cacheGet(env, key);
+  if (hit) return hit;
+  const r = await ai(env, system, user, { tier: 'light', effort: 'low', tokens: 2000 });
+  if (r.ok) await cachePut(env, key, r.json, 60 * 60 * 24 * 7);
+  return r.ok ? r.json : null;
 }
 
 const UNDERSTAND = `You are an expert research librarian. A researcher asks a question in plain words (any language); you plan searches for a scholarly database that matches words in titles and abstracts, not meaning.
@@ -236,8 +280,41 @@ const RANK = `You sort search results for a researcher's question, judging by me
 Leave out everything else, including records that are not research papers (a person's name, a programme, an index entry).
 Reply with JSON only: {"direct":[n, ...],"background":[n, ...]}.`;
 
+const EXTRACT = `You build an evidence table from research papers for a researcher's question, like a systematic reviewer.
+For each numbered paper, using ONLY its title and abstract, give:
+- "design": study design in a few words (e.g. randomised trial, cross-sectional survey, lab experiment, review);
+- "sample": who or what was studied and how many, if stated;
+- "finding": the main finding relevant to the question, in one sentence of your own words;
+- "relation": how it bears on the question: "answers it", "partly answers it", "background" or "not relevant".
+Write "not reported" when the abstract does not say. Never guess numbers or findings.
+Reply with JSON only: {"rows":[{"n":1,"design":"","sample":"","finding":"","relation":""}, ...]}`;
+
+// Evidence table for up to 12 papers. Uses one daily AI check; cached.
+async function extract(request, env, headers) {
+  if (!env.GROQ_API_KEY && !env.FALLBACK_API_KEY) return json({ error: 'The server has no AI key.' }, 500, headers);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Send JSON.' }, 400, headers); }
+  const question = str(body && body.question).slice(0, 500);
+  const papers = (Array.isArray(body && body.papers) ? body.papers : []).slice(0, 12);
+  if (!papers.length) return json({ error: 'Search for papers first.' }, 400, headers);
+  const user = `[question] ${question}\n\n${papers.map((p, n) => `[${n + 1}] ${str(p && p.title).slice(0, 250)} (${str(p && p.year).slice(0, 4)})\n${str(p && p.abstract).slice(0, 900) || '(no abstract)'}`).join('\n\n')}`;
+  const key = await cacheKey(['extract', user]);
+  const hit = await cacheGet(env, key);
+  if (hit) return json(Object.assign(hit, { cached: true }), 200, headers);
+  const quota = await takeQuota(request, env);
+  if (!quota.ok) return json({ error: `You have used today’s ${quota.limit} free AI checks. They reset at midnight UTC.`, remaining: 0, limit: quota.limit }, 429, headers);
+  const r = await ai(env, EXTRACT, user, { effort: 'low', tokens: 3500 });
+  if (!r.ok) { if (quota.refund) await quota.refund(); return json({ error: r.status === 429 ? 'The AI is busy right now. Try again in a minute.' : 'The table could not be built. Try again.' }, r.status === 429 ? 429 : 502, headers); }
+  const pick = (v) => str(v).slice(0, 300);
+  const rows = (Array.isArray(r.json.rows) ? r.json.rows : []).map((x) => ({ n: Number(x && x.n), design: pick(x.design), sample: pick(x.sample), finding: pick(x.finding), relation: pick(x.relation) }))
+    .filter((x) => Number.isInteger(x.n) && x.n >= 1 && x.n <= papers.length);
+  const out = { rows };
+  await cachePut(env, key, out, 60 * 60 * 24 * 7);
+  return json(Object.assign({}, out, { remaining: quota.remaining, limit: quota.limit }), 200, headers);
+}
+
 async function smart(request, env, headers, kind) {
-  if (!env.GROQ_API_KEY) return json({ error: 'The server is missing GROQ_API_KEY.' }, 500, headers);
+  if (!env.GROQ_API_KEY && !env.FALLBACK_API_KEY) return json({ error: 'The server has no AI key.' }, 500, headers);
   let body;
   try { body = await request.json(); } catch { return json({ error: 'Send JSON.' }, 400, headers); }
   const question = str(body && body.question).slice(0, 500).trim();
@@ -282,8 +359,9 @@ export default {
     if (url.pathname === '/api/resolve' && request.method === 'GET') return resolve(url, headers);
     if (url.pathname === '/api/understand' && request.method === 'POST') return smart(request, env, headers, 'understand');
     if (url.pathname === '/api/rank' && request.method === 'POST') return smart(request, env, headers, 'rank');
+    if (url.pathname === '/api/extract' && request.method === 'POST') return extract(request, env, headers);
     if (url.pathname !== '/api/feedback' || request.method !== 'POST') return json({ error: 'Not found' }, 404, headers);
-    if (!env.GROQ_API_KEY) return json({ error: 'The server is missing GROQ_API_KEY.' }, 500, headers);
+    if (!env.GROQ_API_KEY && !env.FALLBACK_API_KEY) return json({ error: 'The server has no AI key (GROQ_API_KEY or FALLBACK_API_KEY).' }, 500, headers);
 
     let body;
     try { body = await request.json(); } catch { return json({ error: 'Send JSON.' }, 400, headers); }
@@ -292,36 +370,29 @@ export default {
     const prompt = build(body.input);
     if (prompt.length > MAX_INPUT_CHARS) return json({ error: 'Too much text at once. Check one section at a time.' }, 413, headers);
 
+    // The same request again (for example "Ask again" on unchanged text) is
+    // served from the cache and does not use a daily check.
+    const ckey = await cacheKey([body.task, prompt]);
+    const cachedReply = await cacheGet(env, ckey);
+    if (cachedReply) return json(Object.assign(cachedReply, { cached: true }), 200, headers);
+
     const quota = await takeQuota(request, env);
     if (!quota.ok) return json({ error: `You have used today’s ${quota.limit} free AI checks. They reset at midnight UTC.`, remaining: 0, limit: quota.limit }, 429, headers);
 
-    const res = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: 'system', content: RULES }, { role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
-        reasoning_effort: 'medium',
-        max_completion_tokens: 2500,
-      }),
-    });
+    const reply = await ai(env, RULES, prompt, { effort: 'medium', tokens: 2500 });
     // A failed call does not count against the visitor's daily checks.
-    if (!res.ok && quota.refund) await quota.refund();
-    if (res.status === 429) return json({ error: 'The AI is busy right now. Try again in a minute.', remaining: quota.remaining === null ? null : quota.remaining + 1, limit: quota.limit }, 429, headers);
-    if (!res.ok) return json({ error: `AI service error (${res.status}). Try again in a minute.` }, 502, headers);
+    if (!reply.ok && quota.refund) await quota.refund();
+    if (reply.status === 429) return json({ error: 'The AI is busy right now. Try again in a minute.', remaining: quota.remaining === null ? null : quota.remaining + 1, limit: quota.limit }, 429, headers);
+    if (!reply.ok) return json({ error: `AI service error (${reply.status}). Try again in a minute.` }, 502, headers);
 
     let notes = [];
     let fields = null;
-    try {
-      const data = await res.json();
-      const parsed = JSON.parse(data.choices[0].message.content);
-      notes = parsed.notes || [];
-      if (body.task === 'paper' && parsed.fields && typeof parsed.fields === 'object') {
-        fields = {};
-        ['sample', 'method', 'finding', 'limitation'].forEach((k) => { fields[k] = typeof parsed.fields[k] === 'string' ? parsed.fields[k].slice(0, 300) : ''; });
-      }
-    } catch { if (quota.refund) await quota.refund(); return json({ error: 'The AI reply could not be read. Try again.' }, 502, headers); }
+    const parsed = reply.json || {};
+    notes = Array.isArray(parsed.notes) ? parsed.notes : [];
+    if (body.task === 'paper' && parsed.fields && typeof parsed.fields === 'object') {
+      fields = {};
+      ['sample', 'method', 'finding', 'limitation'].forEach((k) => { fields[k] = typeof parsed.fields[k] === 'string' ? parsed.fields[k].slice(0, 300) : ''; });
+    }
 
     // A survey summarises other people's papers, so only the user's own query counts as their text,
     // and every note must cite results that were actually sent.
@@ -336,7 +407,9 @@ export default {
       .map((n) => (section ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= Math.min((body.input.papers || []).length, 6)) }) : n))
       .map((n) => (survey || ideas || methods ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= (survey ? sent : Math.min((body.input.papers || []).length, 10))) }) : n))
       .filter((n) => !copiesUser(n, userText) && (!(survey || methods) || n.refs.length));
-    return json({ notes: kept, fields, blocked: Math.min(notes.length, 5) - kept.length, remaining: quota.remaining, limit: quota.limit }, 200, headers);
+    const out = { notes: kept, fields, blocked: Math.min(notes.length, 5) - kept.length };
+    if (kept.length) await cachePut(env, ckey, out, 60 * 60 * 24);
+    return json(Object.assign({}, out, { remaining: quota.remaining, limit: quota.limit }), 200, headers);
   },
 };
 
