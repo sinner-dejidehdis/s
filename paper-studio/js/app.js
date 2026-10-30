@@ -558,7 +558,7 @@
         <label class="inline-check"><input type="checkbox" id="d-oa" data-bind="discover.oa"${d.oa ? ' checked' : ''}> Free full text only</label>
       </div>
       ${searchErr ? `<p class="acct-msg error">${esc(searchErr)}</p>` : ''}
-      ${d.results.length ? `<p class="fine">${d.queries && d.queries.length ? `Searched by meaning for: ${d.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}; ranked by how well each paper answers your question. The AI can misread a question or leave out a relevant paper, so check the search terms and try your own keywords too.` : d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from ${d.source === 'crossref' ? '<a href="https://www.crossref.org" target="_blank" rel="noopener">Crossref</a> (OpenAlex is busy right now, so the free-full-text filter and some abstracts are unavailable)' : '<a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>'}. ${d.sample ? 'These example results are real papers.' : ''}</p>
+      ${d.results.length && (d.plain || d.unranked) ? `<p class="acct-msg">${d.plain ? 'The AI was busy, so this is a plain keyword search. Search again in a minute to search by meaning.' : 'The AI was busy, so these results are not ranked by relevance. Search again in a minute for a ranked list.'}</p>` : ''}${d.results.length ? `<p class="fine">${d.queries && d.queries.length ? `Searched by meaning for: ${d.queries.map((q) => `<i>${esc(q)}</i>`).join(', ')}; ranked by how well each paper answers your question. The AI can misread a question or leave out a relevant paper, so check the search terms and try your own keywords too.` : d.total ? `${d.total.toLocaleString()} matches; showing ${d.results.length}.` : ''} Results from ${d.source === 'crossref' ? '<a href="https://www.crossref.org" target="_blank" rel="noopener">Crossref</a> (OpenAlex is busy right now, so the free-full-text filter and some abstracts are unavailable)' : '<a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>'}. ${d.sample ? 'These example results are real papers.' : ''}</p>
         <ol class="paper-list">${d.results.map(resultCard).join('')}</ol>`
         : '<p class="empty">Type your topic and choose Search.</p>'}`;
     return { main, notes: notesPanel(discoverNotes(), aiBlock('discover')) };
@@ -1290,7 +1290,7 @@
     try {
       const d = state.discover;
       const r = await S.discover.smartSearch(d, { proxy: AI_API });
-      Object.assign(d, { results: r.results, total: r.total, queries: r.queries, source: r.source, sample: false });
+      Object.assign(d, { results: r.results, total: r.total, queries: r.queries, source: r.source, plain: r.plain, unranked: r.unranked, sample: false });
       track('search');
       ai.discover = null;
       if (!r.results.length) searchErr = 'No papers found. Try fewer or broader terms, or a longer time range.';

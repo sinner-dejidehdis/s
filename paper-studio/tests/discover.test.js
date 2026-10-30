@@ -121,7 +121,7 @@ test('smartSearch expands the question, merges and reranks', async () => {
     if (url.endsWith('/api/rank')) return { ok: true, json: async () => ({ order: [2, 0] }) };
     const u = new URL(url);
     const q = u.searchParams.get('search') || (u.searchParams.get('filter').match(/title_and_abstract\.search:([^,]+)/) || [])[1];
-    const results = q === 'a' ? [work('W1', 'one'), work('W2', 'two')] : [work('W2', 'two'), work('W3', 'three')];
+    const results = q === 'a' ? [work('W1', 'paper number one here'), work('W2', 'paper number two here')] : [work('W2', 'paper number two here'), work('W3', 'paper number three here')];
     return { ok: true, status: 200, json: async () => ({ meta: { count: 2 }, results }) };
   };
   const r = await D.smartSearch({ query: 'question', years: 0, sort: 'relevance' }, { fetch: fake, proxy: 'https://x' });
@@ -132,6 +132,6 @@ test('smartSearch expands the question, merges and reranks', async () => {
 
 test('smartSearch falls back to a keyword search without the AI', async () => {
   const fake = async (url) => (url.includes('/api/') ? { ok: false } : { ok: true, status: 200, json: async () => ({ meta: { count: 1 }, results: [{ id: 'W9', title: 't', authorships: [] }] }) });
-  const r = await D.smartSearch({ query: 'q', years: 0 }, { fetch: fake, proxy: 'https://x' });
+  const r = await D.smartSearch({ query: 'q', years: 0 }, { fetch: fake, proxy: 'https://x', retryMs: 0 });
   assert.deepStrictEqual(r.results.map((p) => p.id), ['W9']);
 });

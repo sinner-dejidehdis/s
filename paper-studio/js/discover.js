@@ -133,20 +133,31 @@
         return res.ok ? await res.json() : null;
       } catch (e) { return null; }
     };
-    const u = opts.proxy ? await post('/api/understand', { question: o.query }) : null;
-    if (!u || !u.queries || !u.queries.length) return Object.assign(await search(o, opts), { queries: [] });
+    // The AI provider allows a few requests a minute; wait and try once more.
+    const wait = (ms) => new Promise((r) => setTimeout(r, opts.retryMs == null ? ms : opts.retryMs));
+    let u = opts.proxy ? await post('/api/understand', { question: o.query }) : null;
+    if (opts.proxy && (!u || !u.queries)) { await wait(6000); u = await post('/api/understand', { question: o.query }); }
+    if (!u || !u.queries || !u.queries.length) return Object.assign(await search(o, opts), { queries: [], plain: Boolean(opts.proxy) });
     const runs = await Promise.all(u.queries.map((q) => search(Object.assign({}, o, { query: q, sort: 'relevance', precise: true }), opts).catch(() => null)));
     const ok = runs.filter(Boolean);
     if (!ok.length) return Object.assign(await search(o, opts), { queries: [] });
-    const merged = merge(ok.map((r) => r.results));
+    let lists = ok.map((r) => r.results);
+    // Few candidates: add a wider full-text search for the main queries, and let the AI sort them out.
+    if (merge(lists).length < 15) {
+      const wide = await Promise.all(u.queries.slice(0, 3).map((q) => search(Object.assign({}, o, { query: q, sort: 'relevance' }), opts).catch(() => null)));
+      lists = lists.concat(wide.filter(Boolean).map((r) => r.results));
+    }
+    // Records whose "title" is a name or a fragment are not papers.
+    const merged = merge(lists).filter((p) => String(p.title).trim().split(/\s+/).length >= 4);
     // The AI drops off-topic papers and orders the rest by relevance; the
     // chosen sort (newest, most cited) is then applied to the relevant ones.
     let results = merged.slice(0, 40);
-    const r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) });
+    let r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) });
+    if (!r) { await wait(6000); r = await post('/api/rank', { question: o.query, papers: results.map((p) => ({ title: p.title, abstract: p.abstract })) }); }
     if (r && Array.isArray(r.order) && r.order.length) results = r.order.map((n) => results[n]).filter(Boolean);
     if (o.sort === 'newest') results.sort((a, b) => String(b.date).localeCompare(String(a.date)));
     else if (o.sort === 'cited') results.sort((a, b) => b.cited - a.cited);
-    return { total: merged.length, results: results.slice(0, 20), queries: u.queries, source: ok.some((r) => r.source === 'crossref') ? 'crossref' : 'openalex' };
+    return { total: merged.length, results: results.slice(0, 20), queries: u.queries, unranked: !r, source: ok.some((r) => r.source === 'crossref') ? 'crossref' : 'openalex' };
   }
 
   // Reciprocal rank fusion: papers found by several searches, and high up, come first.

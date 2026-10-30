@@ -232,9 +232,11 @@ Reply with JSON only: {"field":"<field, 2-5 words>","queries":["...", ...]} with
 - queries 4-5: the broader mechanism or parent topic (for example "PCR inhibitors plant samples", "DNA polymerase inhibition mechanism").
 Never return a query with only one concept or a generic word alone (for example "pollen" or "sleep").`;
 
-const RANK = `You rank search results for a researcher's question, judging by meaning, not shared words.
-Keep every paper that helps answer it: papers on the exact question first, then papers on the underlying mechanism, method or closely related settings that a specialist would cite when answering it.
-Leave out only papers about a different subject that happen to share words (for example plant pollen development when the question is about PCR inhibition).
+const RANK = `You rank search results for a researcher's question, judging by meaning, not shared words. Be strict: a short list of truly useful papers is better than a long list with noise.
+Keep a paper only if it directly helps answer the question:
+- papers on the exact question first;
+- then papers on the underlying mechanism or method, but only when they study the same subject and system (same organism or population, same material, same process). A paper on another organism, another material or another application that only shares a mechanism word does not count (for example, for "how do microplastics enter human blood", drop plant uptake of nanoplastics and nanoparticle drug delivery into tumours).
+Drop records that are not research papers (a person's name, a conference programme, an index entry).
 Reply with JSON only: {"order":[n, ...]}, most useful first.`;
 
 async function smart(request, env, headers, kind) {
