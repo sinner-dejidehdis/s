@@ -105,3 +105,6 @@ body.ws .foot { display: none; }
   .workspace.v2 textarea.big { min-height: 45vh; font-size: 1rem; }
   .workspace.v2 .notes { width: 100vw; border-radius: 0; }
 }
+.tour-offer { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 12px 16px; border-radius: 12px; background: var(--accent-soft); border: 1px solid var(--line); }
+.tour-offer span { flex: 1 1 260px; }
+.tools-page { padding-top: 24px; }

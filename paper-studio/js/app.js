@@ -5,12 +5,30 @@
   const esc = S.text.escapeHtml;
   const app = document.getElementById('app');
 
-  let state = S.store.load() || S.sample.create();
-  if (!state.discover) state.discover = S.sample.blankDiscover();
+  // Every project, however it was made (new, example, saved by an older
+  // version, opened from the cloud), gets any missing fields filled in, so no
+  // view can fail on a field that did not exist when it was saved.
+  function fixState(st) {
+    const fill = (target, def) => {
+      Object.keys(def).forEach((k) => {
+        if (target[k] === undefined || target[k] === null) target[k] = def[k];
+        else if (def[k] && typeof def[k] === 'object' && !Array.isArray(def[k]) && typeof target[k] === 'object' && !Array.isArray(target[k])) fill(target[k], def[k]);
+      });
+      return target;
+    };
+    st = fill(st && typeof st === 'object' ? st : {}, S.sample.blank());
+    if (!st.discover || typeof st.discover !== 'object') st.discover = S.sample.blankDiscover();
+    fill(st.discover, S.sample.blankDiscover());
+    if (!st.design || typeof st.design !== 'object') st.design = S.design.blank();
+    fill(st.design, S.design.blank());
+    if (!st.language || typeof st.language.text !== 'string') st.language = { text: st.sample && st.check ? st.check.discussion || '' : '' };
+    ['question', 'gap', 'aim', 'method', 'results', 'discussion'].forEach((k) => { if (typeof st.check[k] !== 'string') st.check[k] = ''; });
+    return st;
+  }
+  let state = fixState(S.store.load() || S.sample.create());
   if (state.sample) syncRefs(); // the example's matrix papers are already in its reference list, silently
-  if (!state.design) state.design = S.design.blank();
-  if (!state.language) state.language = { text: state.sample ? state.check.discussion : '' };
   let fileBusy = '';
+  let offerTour = false; // after 'Start your paper' on a first visit
   // Workspace layout: sidebar full or icons, notes shown or hidden, focus mode. Kept per browser.
   const lay = (() => { try { return Object.assign({ mini: false, notes: true, focus: false }, JSON.parse(localStorage.getItem('arguo.layout') || '{}')); } catch (e) { return { mini: false, notes: true, focus: false }; } })();
   let drawer = false; // notes drawer on narrower screens
@@ -45,7 +63,6 @@
     if (window.scrollY !== y) window.scrollTo(0, y);
   }
   const jf = { busy: false, err: '', list: null, queries: [] }; // journal finder
-  ['question', 'gap', 'aim', 'method'].forEach((k) => { if (typeof state.check[k] !== 'string') state.check[k] = ''; });
   let searching = false;
   let linkBusy = '';
   let linkErr = '';
@@ -356,6 +373,24 @@
   const icon = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[k] || ''}</svg>`;
   const GROUPS_NAV = [['Plan', ['overview', 'discover', 'matrix', 'ideas', 'design']], ['Write', ['outline', 'cite', 'check', 'language']], ['Revise & submit', ['review', 'submit']]];
 
+  function freeToolsSection() {
+    return `<section class="section wrap" id="free-tools">
+        <div class="section-head"><span class="kicker">Free tools · no sign-up</span><h2>Try one job before the whole workspace.</h2></div>
+        <div class="bento">
+          <a class="tile" href="citation-checker/"><span class="tile-ico">${icon('cite')}</span><h3>Citation Checker</h3><p>Is that reference real? Spot AI-invented citations, wrong years and misspelled authors.</p><span class="pain">Fake or wrong references</span></a>
+          <a class="tile" href="reference-formatter/"><span class="tile-ico">${icon('submit')}</span><h3>Reference Formatter</h3><p>Paste DOIs, pick your journal, copy a verified list in its official style.</p><span class="pain">Reformatting for every journal</span></a>
+          <a class="tile" href="gap-finder/"><span class="tile-ico">${icon('discover')}</span><h3>Research Gap Finder</h3><p>Latest papers on your topic and a briefing on open questions, citing only real papers.</p><span class="pain">Where is the gap?</span></a>
+        </div>
+      </section>`;
+  }
+
+  // Free tools page: the three no-sign-up tools, plus every task in the workspace.
+  function toolsPage() {
+    return `<div class="home tools-page">${freeToolsSection()}
+      <section class="section wrap"><div class="section-head"><span class="kicker">In the workspace</span><h2>Or go straight to a task.</h2></div>
+        <div class="home-find" style="margin-top:0">${taskList(FIND, 'task-grid')}</div></section></div>`;
+  }
+
   function home() {
     const tiles = [
       ['discover', 'Discover research', 'Search 250M+ scholarly works for the newest and most-cited research on your topic. An AI briefing summarises them and cites only those papers.', 'What’s the state of the art?', true],
@@ -410,14 +445,7 @@
         <div class="bento">${tiles.map(([k, n, d, p, wide]) => `<a class="tile${wide === 'full' ? ' full' : wide ? ' wide' : ''}" href="#${k}"><span class="tile-ico">${icon(k)}</span><h3>${n}</h3><p>${d}</p><span class="pain">${p}</span></a>`).join('')}</div>
       </section>
 
-      <section class="section wrap" id="free-tools">
-        <div class="section-head"><span class="kicker">Free tools · no sign-up</span><h2>Try one job before the whole workspace.</h2></div>
-        <div class="bento">
-          <a class="tile" href="citation-checker/"><span class="tile-ico">${icon('cite')}</span><h3>Citation Checker</h3><p>Is that reference real? Spot AI-invented citations, wrong years and misspelled authors.</p><span class="pain">Fake or wrong references</span></a>
-          <a class="tile" href="reference-formatter/"><span class="tile-ico">${icon('submit')}</span><h3>Reference Formatter</h3><p>Paste DOIs, pick your journal, copy a verified list in its official style.</p><span class="pain">Reformatting for every journal</span></a>
-          <a class="tile" href="gap-finder/"><span class="tile-ico">${icon('discover')}</span><h3>Research Gap Finder</h3><p>Latest papers on your topic and a briefing on open questions, citing only real papers.</p><span class="pain">Where is the gap?</span></a>
-        </div>
-      </section>
+      ${freeToolsSection()}
 
       <section class="section wrap">
         <div class="section-head"><span class="kicker">How it works</span><h2>From topic to submission in three moves.</h2></div>
@@ -1184,15 +1212,16 @@
     acct.busy = false; render();
   }
 
-  function current() { const v = location.hash.slice(1); return ['home', 'account', 'privacy', 'terms'].includes(v) || VIEWS[v] ? v : 'home'; }
+  function current() { const v = location.hash.slice(1); return ['home', 'tools', 'account', 'privacy', 'terms'].includes(v) || VIEWS[v] ? v : 'home'; }
 
   function render() {
     const v = current();
-    document.body.classList.toggle('ws', !['home', 'account', 'privacy', 'terms'].includes(v));
-    const navFor = v === 'home' || v === 'account' ? '#' + v : '#overview';
+    document.body.classList.toggle('ws', !['home', 'tools', 'account', 'privacy', 'terms'].includes(v));
+    const navFor = ['home', 'tools', 'account'].includes(v) ? '#' + v : '#overview';
     document.querySelectorAll('.top-nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === navFor));
     paintAccountLink();
-    if (v === 'home') { app.innerHTML = home(); if (location.hash === '#tools') setTimeout(() => { const t = document.getElementById('free-tools'); if (t) t.scrollIntoView({ behavior: 'smooth' }); }, 50); return; }
+    if (v === 'home') { app.innerHTML = home(); return; }
+    if (v === 'tools') { app.innerHTML = toolsPage(); return; }
     if (v === 'account') { app.innerHTML = account(); return; }
     if (v === 'privacy' || v === 'terms') { app.innerHTML = S.legal[v](); return; }
     const st = status();
@@ -1209,7 +1238,7 @@
             <button class="view-btn" data-action="toggle-notes" title="Show or hide the notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg><span class="lbl">Notes</span>${issues ? `<b>${issues}</b>` : ''}</button>
             <button class="view-btn" data-action="toggle-focus" title="Focus: hide the sidebar and notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="lbl">${lay.focus ? 'Exit focus' : 'Focus'}</span></button>
           </div></header>
-        <div class="module-body${v === 'matrix' ? ' stack' : ''}"><div class="editor">${view.main}</div><aside class="notes" id="notes" aria-label="Notes">${view.notes}</aside></div>
+        <div class="module-body${v === 'matrix' ? ' stack' : ''}"><div class="editor">${offerTour ? `<div class="tour-offer"><span>New to Arguo? A 2-minute guided tour shows each module on an example paper.</span><button class="btn small-btn grad" data-action="tour-start">Take the tour</button><button class="link-btn" data-action="tour-dismiss">No thanks</button></div>` : ''}${view.main}</div><aside class="notes" id="notes" aria-label="Notes">${view.notes}</aside></div>
       </section></div>`;
   }
 
@@ -1300,12 +1329,14 @@
     'open-sample': () => {
       track('open_sample');
       if (!tourSeen()) { startTour('sample'); return; }
-      if (!state.sample) { state = S.sample.create(); syncRefs(); } save(); location.hash = 'overview'; },
+      if (!state.sample) { state = fixState(S.sample.create()); syncRefs(); } save(); location.hash = 'overview'; },
     'new-blank': () => {
       track('new_blank');
-      if (!tourSeen()) { startTour('blank'); return; }
-      state = S.sample.blank(); save(); location.hash = 'outline'; },
-    'tour-start': () => startTour('replay'),
+      state = fixState(S.sample.blank()); save();
+      if (!tourSeen()) offerTour = true;
+      location.hash = 'outline'; },
+    'tour-start': () => { offerTour = false; startTour('replay'); },
+    'tour-dismiss': () => { offerTour = false; try { localStorage.setItem('arguo.tour', 'done'); } catch (e) { /* storage blocked */ } render(); },
     'tour-next': () => tourGo(tour.i + 1),
     'tour-back': () => tourGo(tour.i - 1),
     'tour-skip': () => endTour(false),
@@ -1318,7 +1349,7 @@
     'cloud-open': async (el) => {
       const local = !state.sample && !state.cloudId;
       if (local && !el.dataset.force) { acct.confirmOpen = el.dataset.id; render(); return; }
-      try { state = await C.load(el.dataset.id); S.store.save(state); acct.confirmOpen = ''; location.hash = 'overview'; }
+      try { state = fixState(await C.load(el.dataset.id)); S.store.save(state); acct.confirmOpen = ''; location.hash = 'overview'; }
       catch (e) { acct.err = e.message; render(); }
     },
     'cloud-delete': async (el) => {
@@ -1330,7 +1361,7 @@
     'ask-clear': () => { pending = 'clear'; render(); },
     cancel: () => { pending = ''; render(); },
     confirm: () => {
-      state = pending === 'reset' ? S.sample.create() : S.sample.blank(); syncRefs();
+      state = fixState(pending === 'reset' ? S.sample.create() : S.sample.blank()); syncRefs();
       pending = ''; save(); render(); toast(state.sample ? 'Example project restored' : 'Project cleared. Start with your research question.');
     },
     'add-row': () => { state.matrix.push(S.matrix.blankRow()); save(); render(); },
@@ -1465,7 +1496,7 @@
   function tourSeen() { try { return localStorage.getItem('arguo.tour') === 'done'; } catch (e) { return true; } }
   function startTour(intent) {
     tour.on = true; tour.i = 0; tour.done = {}; tour.intent = intent;
-    if (!state.sample) { state = S.sample.create(); syncRefs(); }
+    if (!state.sample) { state = fixState(S.sample.create()); syncRefs(); }
     save(); track('tour_start', intent);
     if (location.hash === '#' + TOUR[0].view) render(); else location.hash = TOUR[0].view;
   }
@@ -1480,7 +1511,7 @@
     try { localStorage.setItem('arguo.tour', 'done'); } catch (e) { /* storage blocked */ }
     track('tour_end', tour.i >= TOUR.length ? 'finished' : 'skipped_' + tour.i);
     document.querySelectorAll('.tour-target').forEach((el) => el.classList.remove('tour-target'));
-    if (blank) { state = S.sample.blank(); save(); location.hash = 'outline'; } else render();
+    if (blank) { state = fixState(S.sample.blank()); save(); location.hash = 'outline'; } else render();
     paintTour();
   }
   function paintTour() {
@@ -1529,11 +1560,22 @@
   const renderPage = render;
   // Re-rendering the same view keeps the reader where they were.
   let lastView = null;
+  // If a view fails, repair the project data and try once more; if it still
+  // fails, say so on the page instead of leaving the previous page in place.
+  function safeRender() {
+    try { renderPage(); return; } catch (e) { state = fixState(state); }
+    try { renderPage(); } catch (e) {
+      app.innerHTML = `<div class="wrap" style="padding:64px 16px;max-width:640px"><h1>Something went wrong on this page</h1>
+        <p style="margin:12px 0 20px">Your project is still saved in this browser. Try another module, or reload the page. If it keeps happening, use Feedback to tell us what you clicked.</p>
+        <p><a class="btn" href="#overview">Go to Overview</a> <button class="btn" onclick="location.reload()">Reload</button></p></div>`;
+      track('render_error', current() + ': ' + String(e && e.message).slice(0, 120));
+    }
+  }
   render = function () {
     const v = current();
     const y = v === lastView ? window.scrollY : 0;
     lastView = v;
-    renderPage(); paintLayout(); autosizeAll(y); paintTour(); focusTarget();
+    safeRender(); paintLayout(); autosizeAll(y); paintTour(); focusTarget();
   };
 
   let rz = null;
