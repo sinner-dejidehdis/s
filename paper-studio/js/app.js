@@ -126,7 +126,7 @@
     { q: 'What should I do next? New research ideas', view: 'ideas', k: 'next step ideas novelty direction innovation plan' },
     { q: 'Respond to reviewer comments', view: 'review', k: 'reviewer comments revision major minor response rebuttal' },
     { q: 'Get ready to submit', view: 'submit', k: 'submission checklist submit cover letter ethics registration guideline' },
-    { q: 'Use Arguo inside Microsoft Word', href: 'word/', view: 'language', k: 'word microsoft office add-in plugin docx comments sidebar' },
+    { q: 'Use Arguo inside Microsoft Word', href: 'office/', view: 'language', k: 'word microsoft office add-in plugin docx comments sidebar' },
     { q: 'See progress on my paper', view: 'overview', k: 'overview progress dashboard project status' },
   ];
   let goTarget = null; // { target } to focus after the next render
@@ -397,7 +397,7 @@
           <a class="tile" href="citation-checker/"><span class="tile-ico">${icon('cite')}</span><h3>Citation Checker</h3><p>Is that reference real? Spot AI-invented citations, wrong years and misspelled authors.</p><span class="pain">Fake or wrong references</span></a>
           <a class="tile" href="reference-formatter/"><span class="tile-ico">${icon('submit')}</span><h3>Reference Formatter</h3><p>Paste DOIs, pick your journal, copy a verified list in its official style.</p><span class="pain">Reformatting for every journal</span></a>
           <a class="tile" href="gap-finder/"><span class="tile-ico">${icon('discover')}</span><h3>Research Gap Finder</h3><p>Latest papers on your topic and a briefing on open questions, citing only real papers.</p><span class="pain">Where is the gap?</span></a>
-          <a class="tile" href="word/"><span class="tile-ico">${icon('language')}</span><h3>Arguo for Word</h3><p>A side panel in Word: wording, citations and references checked in your document, marked as comments. Never changes your text.</p></a>
+          <a class="tile" href="office/"><span class="tile-ico">${icon('language')}</span><h3>Arguo for Word</h3><p>A side panel in Word: wording, citations and references checked in your document, marked as comments. Never changes your text.</p></a>
         </div>
       </section>`;
   }

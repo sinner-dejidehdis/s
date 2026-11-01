@@ -70,7 +70,7 @@ On Discover, “Find more by following citations” collects papers that cite, o
 
 ## Arguo for Word
 
-`word/` holds an Office add-in: `manifest.xml` (sideloaded by the user, see `word/index.html`), the task pane `taskpane.html` / `taskpane.js` and icons. The pane reads the document with Office.js, runs the language, citation and reference checks from `js/`, can add problems as Word comments (it never edits text), and sends only the selected text for AI feedback. Opened outside Word it works on pasted text.
+`office/` holds an Office add-in: `manifest.xml` (sideloaded by the user, see `office/index.html`), the task pane `taskpane.html` / `taskpane.js` and icons. The pane reads the document with Office.js, runs the language, citation and reference checks from `js/`, can add problems as Word comments (it never edits text), and sends only the selected text for AI feedback. Opened outside Word it works on pasted text.
 
 ## Published examples
 
