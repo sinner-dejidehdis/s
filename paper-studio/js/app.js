@@ -36,7 +36,9 @@
   if (state.sample) syncRefs(); // the example's matrix papers are already in its reference list, silently
   let fileBusy = '';
   let offerTour = false;
-  const deep = { busy: '', err: '' }; // citation search and evidence table on Discover
+  const deep = { busy: '', err: '' };
+  const exUi = { busy: '', err: '' }; // published examples
+ // citation search and evidence table on Discover
  // after 'Start your paper' on a first visit
   // Workspace layout: sidebar full or icons, notes shown or hidden, focus mode. Kept per browser.
   const lay = (() => { try { return Object.assign({ mini: false, notes: true, focus: false }, JSON.parse(localStorage.getItem('arguo.layout') || '{}')); } catch (e) { return { mini: false, notes: true, focus: false }; } })();
@@ -1069,9 +1071,126 @@
         <section class="guide"><h4>A common structure</h4><p class="pattern-line">${esc(t.pattern)}</p><p class="guide-example"><b>Example from another topic</b> ${esc(t.example)}</p></section>
       </div>
       <div class="tab-nav">${i > 0 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[i - 1].key}">← ${tabs[i - 1].label.split(' /')[0]}</button>` : '<span></span>'}
-        ${i < tabs.length - 1 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[i + 1].key}">${tabs[i + 1].label.split(' /')[0]} →</button>` : ''}</div>`;
+        ${i < tabs.length - 1 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[i + 1].key}">${tabs[i + 1].label.split(' /')[0]} →</button>` : ''}</div>
+      <div id="ex-block">${compareBlock(t.key)}</div>`;
     const papersNote = examplePapers().length ? '' : '<p class="ai-rule">Tip: search in <a href="#discover">Discover research</a> or add papers with abstracts to your matrix, and the AI will show how those published papers handle this section.</p>';
     return { main, notes: notesPanel(notes, citedBlock(text) + aiBlock('check-' + t.key).replace('</section>', papersNote + '</section>')) };
+  }
+
+  // ---------- published examples ----------
+  function exQuery() {
+    const ps = state.paper.sections;
+    return (state.outline.question || ps.abstract.slice(0, 300) || ps.introduction.slice(0, 300) || state.title || '').trim();
+  }
+
+  async function findExamples() {
+    const q = exQuery();
+    if (!q) { exUi.err = 'Write your research question in Research outline, or paste your abstract, first.'; render(); return; }
+    exUi.busy = 'find'; exUi.err = ''; render();
+    try {
+      let terms = q;
+      try {
+        const res = await fetch(AI_API + '/api/understand', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: q }) });
+        const u = res.ok ? await res.json() : null;
+        if (u && u.queries && u.queries[0]) terms = u.queries[0];
+      } catch (e) { /* plain words */ }
+      if (terms === q) terms = q.split(/\s+/).filter((w) => w.length > 3).slice(0, 8).join(' ');
+      let papers = await S.exemplars.find(terms, { proxy: AI_API, max: 5 });
+      let kind = 'full';
+      if (!papers.length) {
+        const r = await S.discover.smartSearch({ query: q, years: 0, sort: 'relevance' }, { proxy: AI_API });
+        papers = S.exemplars.fromAbstracts(r.results);
+        kind = 'abstracts';
+      }
+      if (!papers.length) throw new Error('No similar published papers were found. Try rewording your research question.');
+      state.exemplars = { query: terms, kind, papers, pick: 0, ai: {} };
+      track('examples_found', String(papers.length));
+    } catch (e) { exUi.err = e.message || 'Could not find published examples. Try again.'; }
+    exUi.busy = ''; save(); render();
+  }
+
+  async function explainSection(key) {
+    const ex = state.exemplars;
+    const own = state.paper.sections[key] || '';
+    const withSec = ex.papers.filter((p) => p.sections[key]);
+    exUi.busy = 'ai'; exUi.err = ''; render();
+    try {
+      const sec = S.paper.SECTIONS.find((x) => x.key === key);
+      const res = await fetch(AI_API + '/api/compare', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section: sec.label, text: own, examples: withSec.slice(0, 3).map((p) => ({ title: S.exemplars.cite(p), text: p.sections[key] })) }) });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 404) throw new Error('This comparison is not available on the server yet. Try again later.');
+      if (!res.ok) throw new Error(data.error || 'The comparison could not be made. Try again.');
+      if (data.limit) quota = { remaining: data.remaining, limit: data.limit };
+      ex.ai[key] = { moves: data.moves || [], notes: data.notes || [], papers: withSec.slice(0, 3).map((p) => p.id) };
+      track('examples_ai', key);
+    } catch (e) { exUi.err = e.message; }
+    exUi.busy = ''; save(); render();
+  }
+
+  function sourceLine(p) {
+    return `<p class="ex-source"><a href="${esc(p.url)}" target="_blank" rel="noopener"><b>${esc(p.title)}</b></a><br>
+      ${esc((p.authors || []).slice(0, 4).join(', '))}${(p.authors || []).length > 4 ? ' et al.' : ''} · <i>${esc(p.journal || 'Journal not stated')}</i>${p.publisher ? ` (${esc(p.publisher)})` : ''} · ${esc(String(p.year || 'n.d.'))}
+      ${p.doi ? ` · DOI <a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noopener">${esc(p.doi)}</a>` : ''}<br>
+      <small>Source: ${esc(p.source)}${p.license ? ` · Licence: ${/^https?:/.test(p.license) ? `<a href="${esc(p.license)}" target="_blank" rel="noopener">${esc(p.license.replace(/^https?:\/\//, ''))}</a>` : esc(p.license)}` : ''}</small></p>`;
+  }
+
+  // Section review: your section next to the same section of a published paper.
+  function compareBlock(key) {
+    const ex = state.exemplars;
+    const sec = S.paper.SECTIONS.find((x) => x.key === key);
+    const head = `<div class="ai-head"><h4>Compare with published papers</h4>${ex ? `<button class="btn small-btn" data-action="ex-find"${exUi.busy ? ' disabled' : ''}>${exUi.busy === 'find' ? 'Searching…' : 'Find again'}</button>` : ''}</div>`;
+    if (!ex) return `<section class="ai-box ex-box">${head}
+      <p class="ai-rule">See how published authors on a similar topic wrote their ${esc(sec.label.toLowerCase())}: side by side with yours, with measures and the steps each one takes. Every excerpt shows its source (title, authors, journal, year, DOI). Open-access full texts come from Europe PMC; otherwise published abstracts from OpenAlex.</p>
+      <button class="btn grad" data-action="ex-find"${exUi.busy ? ' disabled' : ''}>${exUi.busy === 'find' ? 'Finding similar papers…' : 'Find similar published papers'}</button>
+      ${exUi.err ? `<p class="acct-msg error">${esc(exUi.err)}</p>` : ''}</section>`;
+    const withSec = ex.papers.filter((p) => p.sections[key]);
+    if (!withSec.length) return `<section class="ai-box ex-box">${head}<p class="ai-rule">None of the ${ex.papers.length} papers found has a separate ${esc(sec.label.toLowerCase())} section${ex.kind === 'abstracts' ? ' (only abstracts were available for this topic)' : ''}. Try another section, or find again.</p>${exUi.err ? `<p class="acct-msg error">${esc(exUi.err)}</p>` : ''}</section>`;
+    const pick = withSec[Math.min(ex.pick || 0, withSec.length - 1)];
+    const own = state.paper.sections[key] || '';
+    const mine = S.exemplars.measures(own);
+    const theirs = S.exemplars.measures(pick.sections[key]);
+    const avg = {};
+    Object.keys(mine).forEach((k) => { avg[k] = Math.round(withSec.reduce((a, p) => a + S.exemplars.measures(p.sections[key])[k], 0) / withSec.length); });
+    const ROWS = [['words', 'Words'], ['paragraphs', 'Paragraphs'], ['sentenceLength', 'Words per sentence'], ['citations', 'Citations'], ['numbers', 'Numbers and statistics'], ['hedges', 'Hedging words (may, suggest…)']];
+    const ai = ex.ai && ex.ai[key];
+    const paperById = (id) => ex.papers.find((p) => p.id === id);
+    const aiHtml = ai ? `<div class="table-wrap"><table class="matrix ex-moves"><thead><tr><th>Step</th><th>Your ${esc(sec.label.split(' /')[0].toLowerCase())}</th><th>How a published paper does it</th></tr></thead><tbody>
+        ${ai.moves.map((m) => { const p = m.example && paperById(ai.papers[m.example.n - 1]); return `<tr><td><b>${esc(m.move)}</b><br><small>${esc(m.purpose)}</small></td>
+          <td><span class="pill ${m.you === 'present' ? 'tone-ok' : m.you === 'missing' ? 'tone-pen' : 'tone-warn'}">${esc(m.you)}</span><br><small>${esc(m.comment)}</small></td>
+          <td>${m.example && p ? `<q>${esc(m.example.quote)}</q><br><small>— ${esc(S.exemplars.cite(p))}${p.doi ? `, <a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noopener">doi:${esc(p.doi)}</a>` : ''}</small>` : '<small>Not in these papers</small>'}</td></tr>`; }).join('')}</tbody></table></div>
+        ${ai.notes.length ? `<ul class="ex-notes">${ai.notes.map((n) => `<li><b>${esc(n.title)}</b> ${esc(n.how)}</li>`).join('')}</ul>` : ''}` : '';
+    return `<section class="ai-box ex-box">${head}
+      <p class="ai-rule">${withSec.length} of ${ex.papers.length} similar papers have this section. Read them for structure, not wording: do not copy their sentences, and cite a paper if you use its ideas.</p>
+      <div class="ex-picks">${withSec.map((p, i) => `<button class="sec-chip${p === pick ? ' on' : ''}" data-action="ex-pick" data-i="${i}" title="${esc(p.title)}">${esc(p.lead || (p.authors[0] || '').split(' ').pop() || 'Paper')} ${esc(String(p.year || ''))} · <i>${esc(clipText(p.journal, 28))}</i></button>`).join('')}</div>
+      <div class="ex-side">
+        <div><h5>Your ${esc(sec.label.split(' /')[0].toLowerCase())}</h5><div class="ex-text">${own.trim() ? esc(own) : '<em>Paste your section above.</em>'}</div></div>
+        <div><h5>Published example</h5>${sourceLine(pick)}<div class="ex-text">${esc(pick.sections[key])}</div></div>
+      </div>
+      <div class="table-wrap"><table class="matrix ex-measures"><thead><tr><th></th><th>Yours</th><th>This paper</th><th>Average of ${withSec.length}</th></tr></thead><tbody>
+        ${ROWS.map(([k, l]) => `<tr><td>${l}</td><td><b>${mine[k]}</b></td><td>${theirs[k]}</td><td>${avg[k]}</td></tr>`).join('')}</tbody></table></div>
+      <div class="toolbar"><button class="btn" data-action="ex-ai" data-key="${key}"${exUi.busy || !own.trim() ? ' disabled' : ''}>${exUi.busy === 'ai' ? 'Comparing…' : ai ? 'Compare the steps again' : 'Show the steps each one takes (AI)'}</button><span class="fine">Lists the steps this section usually takes, whether yours has each one, and the sentence where a published paper makes it, quoted with its source. Uses one AI check.</span></div>
+      ${exUi.err ? `<p class="acct-msg error">${esc(exUi.err)}</p>` : ''}${aiHtml}</section>`;
+  }
+  const clipText = (t, n) => (String(t || '').length > n ? String(t).slice(0, n - 1) + '…' : String(t || ''));
+
+  // Full paper review: the size of each section against the published papers.
+  function compareWhole() {
+    const ex = state.exemplars;
+    if (!ex) return `<section class="ai-box ex-box"><div class="ai-head"><h4>Compare with published papers</h4></div><p class="ai-rule">Find open-access papers on a similar topic and compare your paper with theirs, section by section, with every source cited.</p><button class="btn grad" data-action="ex-find"${exUi.busy ? ' disabled' : ''}>${exUi.busy === 'find' ? 'Finding similar papers…' : 'Find similar published papers'}</button>${exUi.err ? `<p class="acct-msg error">${esc(exUi.err)}</p>` : ''}</section>`;
+    const ps = state.paper.sections;
+    const rows = S.paper.SECTIONS.map((x) => {
+      const has = ex.papers.filter((p) => p.sections[x.key]);
+      const avg = has.length ? Math.round(has.reduce((a, p) => a + S.exemplars.measures(p.sections[x.key]).words, 0) / has.length) : 0;
+      const mine = S.exemplars.measures(ps[x.key]).words;
+      const flag = has.length >= Math.ceil(ex.papers.length / 2) && !mine ? '<span class="pill tone-pen">missing in yours</span>' : avg && mine && (mine < avg * 0.4) ? '<span class="pill tone-warn">much shorter</span>' : avg && mine > avg * 2.5 ? '<span class="pill tone-warn">much longer</span>' : '';
+      return `<tr><td>${esc(x.label.split(' /')[0])}</td><td><b>${mine || '—'}</b></td><td>${avg || '—'}</td><td>${has.length} of ${ex.papers.length}</td><td>${flag}</td><td>${has.length ? `<button class="link-btn" data-action="check-open" data-tab="${x.key}">Compare side by side</button>` : ''}</td></tr>`;
+    }).join('');
+    return `<section class="ai-box ex-box"><div class="ai-head"><h4>Compare with published papers</h4><button class="btn small-btn" data-action="ex-find"${exUi.busy ? ' disabled' : ''}>${exUi.busy === 'find' ? 'Searching…' : 'Find again'}</button></div>
+      <p class="ai-rule">Words per section, yours against ${ex.papers.length} similar published papers. “Compare side by side” opens that section next to a published example with its source.</p>
+      <div class="table-wrap"><table class="matrix ex-measures"><thead><tr><th>Section</th><th>Yours (words)</th><th>Published average</th><th>Papers with it</th><th></th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+      <details><summary>The ${ex.papers.length} papers compared</summary><ol class="ex-list">${ex.papers.map((p) => `<li>${sourceLine(p)}</li>`).join('')}</ol></details>
+      ${exUi.err ? `<p class="acct-msg error">${esc(exUi.err)}</p>` : ''}</section>`;
   }
 
   // Full paper review: the whole manuscript, section by section, with checks
@@ -1095,6 +1214,7 @@
     }).join('');
     const main = `<p class="intro">Your whole manuscript, section by section. Arguo checks each section for its job and the paper as a whole: structure, abstract against the body, sample sizes, aim against conclusion, citations against references and wording. Revise in place; the notes update as you type. Nothing is rewritten for you.</p>
       ${importBar()}
+      <div id="ex-whole">${compareWhole()}</div>
       <div class="sec-nav" id="full-sections">${nav}</div>
       ${r.present.length ? `<p class="fine">${r.words.toLocaleString()} words in ${r.present.length} sections.</p>` : ''}
       ${S.paper.SECTIONS.concat([{ key: 'references', label: 'References', role: 'Every source cited in the text, in the journal’s style.' }]).map((x) => `<section class="full-sec" id="sec-${x.key}">
@@ -1360,6 +1480,7 @@
     const nb = document.querySelector('[data-action=toggle-notes]');
     if (nb) { const n = (view.notes.match(/class="note-tag">Fix</g) || []).length; let b = nb.querySelector('b'); if (n && !b) { b = document.createElement('b'); nb.appendChild(b); } if (b) { if (n) b.textContent = n; else b.remove(); } }
     if (v === 'language') document.getElementById('lang-preview').innerHTML = langPreview();
+    if (v === 'check' && document.getElementById('ex-block') && !document.activeElement.closest('#ex-block')) { const t = (S.paper.SECTIONS.find((x) => x.key === checkTab) || S.paper.SECTIONS[0]).key; document.getElementById('ex-block').innerHTML = compareBlock(t); }
     if (v === 'check') document.getElementById('flagged').innerHTML = checkTab === 'discussion' ? flaggedList(checkResult().flagged) : '';
     if (v === 'full') S.paper.KEYS.forEach((k) => { const el = document.getElementById('fn-' + k); if (el) el.innerHTML = fullSectionNotes(k); });
     const st = status();
@@ -1511,6 +1632,9 @@
     snowball: () => { if (!deep.busy) runSnowball(); },
     evidence: () => { if (!deep.busy) runEvidence(); },
     'evidence-to-matrix': () => evidenceToMatrix(),
+    'ex-find': () => { if (!exUi.busy) findExamples(); },
+    'ex-pick': (el) => { state.exemplars.pick = Number(el.dataset.i); save(); render(); },
+    'ex-ai': (el) => { if (!exUi.busy) explainSection(el.dataset.key); },
     'go-task': (el) => goTask(Number(el.dataset.i)),
     finder: () => openFinder(),
     'journal-suggest': () => { if (!jf.busy) suggestJournals(); },

@@ -47,3 +47,15 @@ test('each section is checked for its own job', () => {
   assert.match(n('introduction', 'Phones are popular.'), /No research question|gap/);
   assert.match(n('analysis', 'We looked at the data.'), /No test or model/);
 });
+
+test('published-example helpers map headings and measure text', () => {
+  require(path.join(__dirname, '..', 'js', 'exemplars.js'));
+  const E = globalThis.Sigao.exemplars;
+  assert.deepStrictEqual(['1. Introduction', '2. Materials and Methods', '2.7 Statistical analysis', '3. Results', '4. Discussion', '5. Conclusions', 'Literature review'].map(E.keyOf),
+    ['introduction', 'methods', 'analysis', 'results', 'discussion', 'conclusion', 'background']);
+  const m = E.measures('Parks cool cities (Smith, 2020). They may reduce heat by 1.2 degrees.\n\nA second paragraph.');
+  assert.strictEqual(m.paragraphs, 2);
+  assert.strictEqual(m.citations, 1);
+  assert.ok(m.hedges >= 1 && m.numbers >= 1);
+  assert.match(E.cite({ authors: ['A B', 'C D', 'E F', 'G H'], year: 2024, title: 'T', journal: 'J' }), /A B, C D, E F et al\. \(2024\)\. T\. J/);
+});

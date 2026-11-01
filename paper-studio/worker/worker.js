@@ -6,6 +6,7 @@
 // GET  /api/resolve?url=<article page>  (DOI and title from citation meta tags), input: {...} }
 // GET  /api/search?url=<OpenAlex works URL>  (adds OPENALEX_API_KEY when set)
 // POST /api/understand { question } -> { queries: [...] }  (search terms for what the question means)
+// POST /api/compare { section, text, examples: [{ title, text }] } -> { moves, notes }  (section vs published examples)
 // POST /api/extract { question, papers } -> { rows: [{ n, design, sample, finding, relation }] }  (evidence table)
 // POST /api/rank { question, papers: [{title, abstract}] } -> { order: [indices] }  (most relevant first)
 // -> { notes: [{ level, field?, title, why, how, example?, ask? }], blocked: n }
@@ -183,7 +184,11 @@ function json(body, status, headers) {
 // Relays an OpenAlex works search for visitors whose own budget ran out.
 async function search(url, env, headers) {
   const target = url.searchParams.get('url') || '';
-  if (!/^https:\/\/api\.openalex\.org\/(works|sources)[?/]/.test(target)) return json({ error: 'Only OpenAlex work requests are allowed.' }, 400, headers);
+  if (/^https:\/\/www\.ebi\.ac\.uk\/europepmc\/webservices\/rest\/(search\?|PMC\d+\/fullTextXML$)/.test(target)) {
+    const r = await fetch(target, { headers: { 'User-Agent': 'Arguo (academic writing feedback)' }, cf: { cacheTtl: 86400 } });
+    return new Response(r.body, { status: r.status, headers: { 'Content-Type': r.headers.get('Content-Type') || 'application/json', ...headers } });
+  }
+  if (!/^https:\/\/api\.openalex\.org\/(works|sources)[?/]/.test(target)) return json({ error: 'Only OpenAlex and Europe PMC requests are allowed.' }, 400, headers);
   const u = new URL(target);
   if (env.OPENALEX_API_KEY) u.searchParams.set('api_key', env.OPENALEX_API_KEY);
   const res = await fetch(u.toString(), { headers: { 'User-Agent': 'Arguo (academic writing feedback)' } });
@@ -294,6 +299,44 @@ For each numbered paper, using ONLY its title and abstract, give:
 Write "not reported" when the abstract does not say. Never guess numbers or findings.
 Reply with JSON only: {"rows":[{"n":1,"design":"","sample":"","finding":"","relation":""}, ...]}`;
 
+const COMPARE = `You are a writing tutor in academic publishing. You compare ONE section of a researcher's manuscript with the same section of published papers, to show how the section is built, not to rewrite it.
+1. List the rhetorical moves this kind of section usually makes, in order (for an introduction, e.g. context, what is known, the gap, why it matters, the aim; for methods: design, participants, measures, procedure, analysis, ethics; and so on).
+2. For each move: "you" = present, weak or missing in the researcher's text; "comment" = one sentence on what is there or lacking, in general terms, never replacement wording; "example" = the number of a published paper and an exact quote (at most 30 words, copied word for word) where that paper makes this move, or null if none does.
+3. Up to 3 "notes": the most useful things to change, each with "title" and "how" in general terms.
+Reply with JSON only: {"moves":[{"move":"","purpose":"","you":"present|weak|missing","comment":"","example":{"n":1,"quote":""}}],"notes":[{"title":"","how":""}]}`;
+
+// Moves of one section, compared with published examples. One daily AI check; cached.
+async function compare(request, env, headers) {
+  if (!env.GROQ_API_KEY && !env.FALLBACK_API_KEY) return json({ error: 'The server has no AI key.' }, 500, headers);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'Send JSON.' }, 400, headers); }
+  const section = str(body && body.section).slice(0, 40);
+  const text = str(body && body.text).slice(0, 3000);
+  const examples = (Array.isArray(body && body.examples) ? body.examples : []).slice(0, 3).map((e) => ({ title: str(e && e.title).slice(0, 200), text: str(e && e.text).slice(0, 2500) })).filter((e) => e.text);
+  if (!text.trim() || !examples.length) return json({ error: 'Paste your section and find published examples first.' }, 400, headers);
+  const user = `[section] ${section}\n\n[researcher's ${section}]\n${text}\n\n${examples.map((e, n) => `[published ${n + 1}] ${e.title}\n${e.text}`).join('\n\n')}`;
+  const key = await cacheKey(['compare', user]);
+  const hit = await cacheGet(env, key);
+  if (hit) return json(Object.assign(hit, { cached: true }), 200, headers);
+  const quota = await takeQuota(request, env);
+  if (!quota.ok) return json({ error: `You have used today’s ${quota.limit} free AI checks. They reset at midnight UTC.`, remaining: 0, limit: quota.limit }, 429, headers);
+  const r = await ai(env, COMPARE, user, { effort: 'medium', tokens: 3500 });
+  if (!r.ok) { if (quota.refund) await quota.refund(); return json({ error: r.status === 429 ? 'The AI is busy right now. Try again in a minute.' : 'The comparison could not be made. Try again.' }, r.status === 429 ? 429 : 502, headers); }
+  // A quote is kept only if it really appears in that published text.
+  const flat = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const pick = (v, n) => str(v).slice(0, n);
+  const moves = (Array.isArray(r.json.moves) ? r.json.moves : []).slice(0, 8).map((m) => {
+    const ex = m && m.example && Number(m.example.n) >= 1 && Number(m.example.n) <= examples.length && flat(m.example.quote).length > 10 && flat(examples[Number(m.example.n) - 1].text).includes(flat(m.example.quote))
+      ? { n: Number(m.example.n), quote: pick(m.example.quote, 300) } : null;
+    const note = scrub({ how: pick(m && m.comment, 300) }, text);
+    return { move: pick(m && m.move, 60), purpose: pick(m && m.purpose, 200), you: /missing|weak|present/.test(m && m.you) ? m.you.match(/missing|weak|present/)[0] : 'weak', comment: note.how, example: ex };
+  }).filter((m) => m.move);
+  const notes = (Array.isArray(r.json.notes) ? r.json.notes : []).slice(0, 3).map((n) => scrub({ title: pick(n && n.title, 120), how: pick(n && n.how, 400) }, text)).filter((n) => n.title && !copiesUser(n, text));
+  const out = { moves, notes };
+  await cachePut(env, key, out, 60 * 60 * 24 * 7);
+  return json(Object.assign({}, out, { remaining: quota.remaining, limit: quota.limit }), 200, headers);
+}
+
 // Evidence table for up to 12 papers. Uses one daily AI check; cached.
 async function extract(request, env, headers) {
   if (!env.GROQ_API_KEY && !env.FALLBACK_API_KEY) return json({ error: 'The server has no AI key.' }, 500, headers);
@@ -365,6 +408,7 @@ export default {
     if (url.pathname === '/api/understand' && request.method === 'POST') return smart(request, env, headers, 'understand');
     if (url.pathname === '/api/rank' && request.method === 'POST') return smart(request, env, headers, 'rank');
     if (url.pathname === '/api/extract' && request.method === 'POST') return extract(request, env, headers);
+    if (url.pathname === '/api/compare' && request.method === 'POST') return compare(request, env, headers);
     if (url.pathname !== '/api/feedback' || request.method !== 'POST') return json({ error: 'Not found' }, 404, headers);
     if (!env.GROQ_API_KEY && !env.FALLBACK_API_KEY) return json({ error: 'The server has no AI key (GROQ_API_KEY or FALLBACK_API_KEY).' }, 500, headers);
 

@@ -72,6 +72,10 @@ On Discover, “Find more by following citations” collects papers that cite, o
 
 `word/` holds an Office add-in: `manifest.xml` (sideloaded by the user, see `word/index.html`), the task pane `taskpane.html` / `taskpane.js` and icons. The pane reads the document with Office.js, runs the language, citation and reference checks from `js/`, can add problems as Word comments (it never edits text), and sends only the selected text for AI feedback. Opened outside Word it works on pasted text.
 
+## Published examples
+
+Section review and Full paper review can compare the writer's paper with similar published papers (`js/exemplars.js`). Open-access full texts come from Europe PMC (searched with the AI's search terms for the research question) and are split into the same sections; when none are found, published abstracts from OpenAlex are used. Every excerpt shows its source: title (linked), authors, journal, publisher, year, DOI and licence. Section review shows the writer's section next to a published one, with simple measures (words, paragraphs, sentence length, citations, numbers, hedging) and, on request, the Worker's `/api/compare`: the steps the section usually takes, whether the writer's has each one, and an exact quote where a published paper makes it (quotes are kept only if they appear in that paper's text). Full paper review compares the length of every section with the published average.
+
 ## Layout
 
 The workspace fills the screen: a sidebar (collapsible to icons), the editor, and the notes pane (hideable; a slide-in drawer below 1280px wide). Text fields grow with their content, so a long section is read in one piece; Focus hides the sidebar and notes. Wide tables (the literature matrix) put the notes below. Layout choices are kept per browser as `arguo.layout`. Styles: `css/layout.css`.
