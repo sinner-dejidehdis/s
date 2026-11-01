@@ -62,9 +62,25 @@
   // nobody can read them with the public key.
   let session = '';
   try { session = root.sessionStorage.getItem('arguo.s') || ''; if (!session) { session = Math.random().toString(36).slice(2, 12); root.sessionStorage.setItem('arguo.s', session); } } catch (e) { session = 'nostore'; }
+  // Automated browsers (tests) and local copies are not counted.
+  const counted = typeof navigator !== 'undefined' && !navigator.webdriver && typeof location !== 'undefined' && !/^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname) && location.protocol === 'https:';
+  // Where the visitor came from: ?utm_source=… on the link, else the referring site, else "direct".
+  function source() {
+    try {
+      const kept = sessionStorage.getItem('arguo.src');
+      if (kept) return kept;
+      const utm = new URLSearchParams(location.search).get('utm_source');
+      let ref = '';
+      try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; } catch (e) { ref = ''; }
+      const src = (utm || (ref && ref !== location.hostname ? ref : '') || 'direct').slice(0, 40);
+      sessionStorage.setItem('arguo.src', src);
+      return src;
+    } catch (e) { return 'unknown'; }
+  }
   function logEvent(name, detail) {
-    if (!client) return;
-    client.from('events').insert({ name: String(name).slice(0, 40), detail: detail ? String(detail).slice(0, 80) : null, session, signed_in: Boolean(user) }).then(() => {}, () => {});
+    if (!client || !counted) return;
+    const d = name === 'visit' ? `${detail || ''}|${source()}` : detail;
+    client.from('events').insert({ name: String(name).slice(0, 40), detail: d ? String(d).slice(0, 80) : null, session, signed_in: Boolean(user) }).then(() => {}, () => {});
   }
   async function sendFeedback(f) {
     if (!client) throw new Error('Feedback is not set up on this site yet.');
