@@ -6,17 +6,17 @@
   const T = S.text;
 
   const FIELDS = [
-    { key: 'question', label: 'Research question', hint: 'The question you set out to answer, written as a question your method can actually answer.',
+    { key: 'question', section: 'Introduction', label: 'Research question', hint: 'The question you set out to answer, written as a question your method can actually answer.',
       example: 'Is the size of an urban park associated with summer land-surface temperature within 500 m of it, and does this differ by vegetation type?' },
-    { key: 'gap', label: 'Research gap', hint: 'What earlier work has done, what is still missing, and why that matters.',
+    { key: 'gap', section: 'Introduction · Background', label: 'Research gap', hint: 'What earlier work has done, what is still missing, and why that matters.',
       example: 'Earlier work has mostly measured park cooling in single cities; few studies compare vegetation structures, and dense subtropical cities remain under-studied.' },
-    { key: 'aim', label: 'Aim', hint: 'What you will do, with a verb (estimate, compare, test, explain). Each aim should map to a research question.',
+    { key: 'aim', section: 'Introduction', label: 'Aim', hint: 'What you will do, with a verb (estimate, compare, test, explain). Each aim should map to a research question.',
       example: 'To estimate the association between park size and nearby surface temperature, and to compare tree-dominated with lawn-dominated parks.' },
-    { key: 'method', label: 'Method', hint: 'Where the data come from, sample size, how each key concept is measured, and how you analyse it.',
+    { key: 'method', section: 'Methods · Analysis', label: 'Method', hint: 'Where the data come from, sample size, how each key concept is measured, and how you analyse it.',
       example: 'We sampled 120 parks in three cities, derived surface temperature from summer satellite images, and used multiple regression adjusting for building density and distance to water.' },
-    { key: 'result', label: 'Main result', hint: 'Only what the data show, without interpretation. If you have no data yet, write the expected result.',
+    { key: 'result', section: 'Results · Abstract', label: 'Main result', hint: 'Only what the data show, without interpretation. If you have no data yet, write the expected result.',
       example: 'Larger parks were associated with lower nearby surface temperatures; tree-dominated parks showed more cooling than lawn-dominated parks.' },
-    { key: 'conclusion', label: 'Conclusion', hint: 'Answer the research question and state where it applies. Do not go beyond what the results support.',
+    { key: 'conclusion', section: 'Discussion · Conclusion', label: 'Conclusion', hint: 'Answer the research question and state where it applies. Do not go beyond what the results support.',
       example: 'In the subtropical cities studied, larger tree-dominated parks were associated with cooler surroundings; this needs testing in other climates.' },
   ];
 

@@ -23,6 +23,13 @@
     fill(st.design, S.design.blank());
     if (!st.language || typeof st.language.text !== 'string') st.language = { text: st.sample && st.check ? st.check.discussion || '' : '' };
     ['question', 'gap', 'aim', 'method', 'results', 'discussion'].forEach((k) => { if (typeof st.check[k] !== 'string') st.check[k] = ''; });
+    // Paper sections (abstract to conclusion). Projects saved before they existed
+    // move their pasted sections over once.
+    if (!st.paper || typeof st.paper !== 'object' || !st.paper.sections || typeof st.paper.sections !== 'object') {
+      const c = st.check;
+      st.paper = { sections: Object.assign(S.paper.blank(), { introduction: [c.question, c.gap, c.aim].filter(Boolean).join('\n\n'), methods: c.method, results: c.results, discussion: c.discussion, references: st.refs && st.refs.input || '' }) };
+    }
+    fill(st.paper.sections, S.paper.blank());
     return st;
   }
   let state = fixState(S.store.load() || S.sample.create());
@@ -88,9 +95,10 @@
     { id: 'matrix', name: 'Literature matrix', pain: 'A review without an argument · no clear gap' },
     { id: 'ideas', name: 'Next steps & ideas', pain: 'What should I do next? What would be new?' },
     { id: 'design', name: 'Study design', pain: 'How did similar studies do it? Is my design sound?' },
-    { id: 'outline', name: 'Argument thread', pain: 'Sections that don’t line up · can’t get started' },
+    { id: 'full', name: 'Full paper review', pain: 'The whole manuscript, checked across sections' },
+    { id: 'outline', name: 'Research outline', pain: 'Plan what each section of the paper must say' },
     { id: 'cite', name: 'Citation check', pain: 'Wrong details · AI-invented references' },
-    { id: 'check', name: 'Consistency check', pain: 'Six sections, each checked against your argument thread' },
+    { id: 'check', name: 'Section review', pain: 'Abstract to conclusion, each checked for its job' },
     { id: 'language', name: 'Language check', pain: 'Overclaiming, vague or informal wording' },
     { id: 'review', name: 'Reviewer comments', pain: 'A major revision you can’t break down' },
     { id: 'submit', name: 'Submission checklist', pain: 'Missing items at submission' },
@@ -103,14 +111,15 @@
     { q: 'Find papers on my research question', view: 'discover', target: 'd-q', k: 'search find papers literature articles topic question openalex' },
     { q: 'Import my Zotero / EndNote / Mendeley library', view: 'matrix', target: 'imp-bib', k: 'zotero endnote mendeley bibtex bib ris import library' },
     { q: 'Export references to Zotero or LaTeX', view: 'cite', target: 'exp-bib', k: 'export bibtex ris zotero latex endnote download' },
-    { q: 'Upload my manuscript (Word or PDF)', view: 'check', target: 'imp-ms', k: 'upload import word docx pdf manuscript file paper draft' },
+    { q: 'Check my whole paper at once', view: 'full', target: 'full-sections', k: 'whole full paper manuscript entire complete review all sections abstract introduction' },
+    { q: 'Upload my manuscript (Word or PDF)', view: 'full', target: 'imp-ms', k: 'upload import word docx pdf manuscript file paper draft' },
     { q: 'Improve my academic English', view: 'language', target: 'f-lang', k: 'english language grammar wording style vague informal overclaim tone polish non-native' },
     { q: 'Choose a journal to submit to', view: 'submit', target: 'jf', k: 'journal choose where submit recommend find target apc open access impact' },
-    { q: 'Check my discussion against my results', view: 'check', tab: 'conclusion', target: 'f-sec', k: 'discussion results conclusion overclaim causal consistency' },
-    { q: 'Check each section of my paper', view: 'check', tab: 'question', target: 'f-sec', k: 'introduction methods results section consistency manuscript' },
+    { q: 'Check my discussion against my results', view: 'check', tab: 'discussion', target: 'f-sec', k: 'discussion results conclusion overclaim causal consistency' },
+    { q: 'Check one section (abstract, introduction, methods…)', view: 'check', tab: 'abstract', target: 'f-sec', k: 'abstract introduction background methods results analysis discussion conclusion section' },
     { q: 'Match in-text citations to my reference list', view: 'cite', target: 'xcheck', k: 'in-text citation missing uncited match cross check list' },
     { q: 'Find a research gap', view: 'matrix', target: 'm-link', k: 'gap literature review matrix synthesis limitation' },
-    { q: 'Build a clear argument (question → conclusion)', view: 'outline', k: 'argument outline structure research question aim gap logic start' },
+    { q: 'Plan what each section must say', view: 'outline', k: 'argument outline structure research question aim gap logic start' },
     { q: 'Plan my study design', view: 'design', k: 'design method sample size control randomisation ethics experiment survey' },
     { q: 'What should I do next? New research ideas', view: 'ideas', k: 'next step ideas novelty direction innovation plan' },
     { q: 'Respond to reviewer comments', view: 'review', k: 'reviewer comments revision major minor response rebuttal' },
@@ -218,7 +227,7 @@
     a.textContent = C.user() ? 'Account' : 'Sign in';
   }
 
-  function fieldLabel(key) { const f = S.outline.FIELDS.find((x) => x.key === key); return f ? f.label : ''; }
+  function fieldLabel(key) { const f = S.outline.FIELDS.find((x) => x.key === key) || S.paper.SECTIONS.find((x) => x.key === key); return f ? f.label.split(' /')[0] : ''; }
 
   function toast(msg) {
     let t = document.getElementById('toast');
@@ -232,7 +241,7 @@
   function noteHtml(n) {
     const [tag, tone] = LEVEL[n.level] || LEVEL.tip;
     return `<article class="note tone-${tone}">
-      <header><span class="note-tag">${tag}</span>${n.field ? `<button class="note-field" data-action="focus" data-target="f-${n.field}">${esc(fieldLabel(n.field))}</button>` : ''}</header>
+      <header><span class="note-tag">${tag}</span>${n.field ? `<button class="note-field" data-action="focus" data-target="${S.paper.KEYS.includes(n.field) ? (current() === 'full' ? 'fs-' : 'f-sec') + (current() === 'full' ? n.field : '') : 'f-' + n.field}">${esc(fieldLabel(n.field))}</button>` : ''}</header>
       <h4>${esc(n.title)}</h4>
       ${n.why ? `<p class="note-why">${esc(n.why)}</p>` : ''}
       ${n.how ? `<p class="note-how"><b>How to fix</b>${esc(n.how)}</p>` : ''}
@@ -258,7 +267,6 @@
     const oNotes = S.outline.check(o);
     const mNotes = S.matrix.analyze(state.matrix);
     const refs = state.refs.results || [];
-    const c = S.consistency.check({ question: o.question, method: o.method, ...state.check });
     const rs = S.review.summary(state.review.tasks);
     const issues = (ns) => ns.filter((n) => n.level === 'issue').length;
     return {
@@ -268,8 +276,9 @@
       outline: { value: `${S.outline.filled(o)}/6 nodes`, issues: issues(oNotes), done: S.outline.filled(o) === 6 && !issues(oNotes) },
       matrix: { value: `${state.matrix.filter((r) => r.source.trim()).length} sources`, issues: 0, gaps: mNotes.filter((n) => n.level === 'gap').length },
       cite: { value: `${refs.filter((r) => r.status === 'verified').length}/${refs.length} verified`, issues: refs.filter((r) => r.status === 'mismatch' || r.status === 'notfound').length },
-      check: { value: !state.check.results.trim() || !state.check.discussion.trim() ? 'Nothing pasted yet'
-        : c.flagged.length ? `${c.flagged.length} sentences to review` : 'No problems found', issues: issues(c.notes) },
+      check: (() => { const ps = state.paper.sections; const filled = S.paper.KEYS.filter((k) => ps[k].trim()); const n = filled.reduce((a, k) => a + issues(S.paper.sectionNotes(k, ps[k], ps, o)), 0);
+        return { value: filled.length ? `${filled.length}/8 sections pasted` : 'Nothing pasted yet', issues: n }; })(),
+      full: (() => { const r = S.paper.review(state.paper.sections, o); return { value: r.present.length ? `${r.words.toLocaleString()} words · ${r.present.length} sections` : 'No manuscript yet', issues: issues(r.notes) }; })(),
       language: (() => { const n = S.language.notes(state.language.text); return { value: state.language.text.trim() ? `${n.length} kinds of wording to review` : 'Nothing pasted yet', issues: n.filter((x) => x.level === 'issue').length }; })(),
       review: { value: `${rs.done}/${rs.total} addressed`, issues: rs.majorOpen },
       submit: { value: (() => { const it = S.checklist.build(state).flatMap((g) => g.items); return `${it.filter((i) => S.checklist.isDone(i, state)).length}/${it.length} items`; })(), issues: 0 },
@@ -283,10 +292,10 @@
       : a.error ? `<p class="ai-status error">${esc(a.error)}</p>`
         : a.notes ? (a.notes.length ? a.notes.map((n) => (v.startsWith('check-') ? noteHtml(n).replace('See an example from another topic', 'See how published papers do it') : v === 'discover' ? noteHtml(n).replace('<b>How to fix</b>', '<b>Read first</b>') : v === 'ideas' ? noteHtml(n).replace('<b>How to fix</b>', '<b>How to test it</b>').replace('>Possible gap<', '>Direction<') : v === 'methods' ? noteHtml(n).replace('<b>How to fix</b>', '<b>For your study</b>').replace('>Suggestion<', '>Approach<') : noteHtml(n)) + (n.refs && n.refs.length ? `<p class="note-refs">Based on ${n.refs.map((r) => paperRef(v, r)).join(' ')}</p>` : '')).join('') : '<p class="ai-status">No further problems found.</p>')
           + (a.blocked ? `<p class="ai-status">${a.blocked} AI ${a.blocked === 1 ? 'note was' : 'notes were'} hidden because ${a.blocked === 1 ? 'it' : 'they'} repeated your wording.</p>` : '') : '';
-    const label = v.startsWith('check-') ? 'AI section review' : { discover: 'AI research briefing', ideas: 'Possible new directions', design: 'AI design review', methods: 'Methods in similar studies' }[v] || 'AI feedback';
+    const label = v.startsWith('check-') ? 'AI section review' : v === 'full' ? 'AI reviewer: whole paper' : { discover: 'AI research briefing', ideas: 'Possible new directions', design: 'AI design review', methods: 'Methods in similar studies' }[v] || 'AI feedback';
     if (v === 'discover' && !state.discover.results.length) return '';
     return `<section class="ai-box">
-        <div class="ai-head"><h4>${label}</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : { discover: 'Summarise these results', ideas: 'Suggest directions', design: 'Review my design', methods: 'Compare with similar studies' }[v] || 'Get AI feedback'}</button></div>
+        <div class="ai-head"><h4>${label}</h4><button class="btn small-btn" data-action="ai" data-view="${v}"${a.loading ? ' disabled' : ''}>${a.notes || a.error ? 'Ask again' : { full: 'Review the whole paper', discover: 'Summarise these results', ideas: 'Suggest directions', design: 'Review my design', methods: 'Compare with similar studies' }[v] || 'Get AI feedback'}</button></div>
         ${v === 'discover' ? '<p class="ai-rule">The AI summarises only the papers listed here and links each point to them. Always read the papers themselves.</p>' : ''}
         <p class="ai-rule">This module’s text is sent to our AI provider, Groq, which does not train on it (<a href="#privacy">privacy</a>). The AI follows the same rule: diagnose, never write.</p>
         ${quota && quota.remaining != null ? `<p class="ai-quota">${quota.remaining} of ${quota.limit} free AI checks left today</p>` : ''}
@@ -302,9 +311,9 @@
   }
 
   function sectionInput(v) {
-    const t = S.consistency.TABS.find((x) => 'check-' + x.key === v);
+    const t = S.paper.SECTIONS.find((x) => 'check-' + x.key === v);
     if (!t) return null;
-    return { label: t.label, section: t.section, outline: state.outline, text: state.check[t.field] || '',
+    return { label: t.label, section: t.label + ': ' + t.role, outline: state.outline, text: state.paper.sections[t.key] || '',
       papers: examplePapers().map((p) => ({ title: p.title, year: p.year, abstract: String(p.abstract).slice(0, 500) })) };
   }
 
@@ -327,7 +336,8 @@
     if (v === 'methods' || v === 'discover' || v.startsWith('check-')) await fillAbstracts();
     const input = {
       outline: state.outline,
-      check: { question: state.outline.question, method: state.outline.method, results: state.check.results, discussion: state.check.discussion },
+      check: { question: state.outline.question, method: state.paper.sections.methods, results: state.paper.sections.results, discussion: state.paper.sections.discussion },
+      full: { outline: state.outline, sections: Object.fromEntries(S.paper.KEYS.map((k) => [k, String(state.paper.sections[k] || '').slice(0, k === 'abstract' ? 2200 : 1800)])) },
       matrix: { rows: state.matrix },
       review: { comments: state.review.input },
       language: { text: state.language.text },
@@ -338,7 +348,7 @@
     }[v] || sectionInput(v);
     try {
       const send = () => fetch(AI_API + '/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: v.startsWith('check-') ? 'section' : { check: 'consistency', discover: 'survey' }[v] || v, input }) });
+        body: JSON.stringify({ task: v.startsWith('check-') ? 'section' : { check: 'consistency', discover: 'survey', full: 'manuscript' }[v] || v, input }) });
       let res = await send();
       let data = await res.json().catch(() => ({}));
       // The AI provider limits requests per minute; wait and try once more
@@ -371,11 +381,12 @@
     cite: '<path d="M7 7h4v4c0 3-1.5 5-4 6M15 7h4v4c0 3-1.5 5-4 6"/>',
     check: '<path d="m3 12 4 4 8-8M13 16l2 2 6-6"/>',
     review: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/><path d="M9 11h6M9 14h4"/>',
+    full: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6M9 9h2"/>',
     language: '<path d="M4 7V5h16v2M9 19h6M12 5v14"/>',
     submit: '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
   };
   const icon = (k) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[k] || ''}</svg>`;
-  const GROUPS_NAV = [['Plan', ['overview', 'discover', 'matrix', 'ideas', 'design']], ['Write', ['outline', 'cite', 'check', 'language']], ['Revise & submit', ['review', 'submit']]];
+  const GROUPS_NAV = [['Plan', ['overview', 'discover', 'matrix', 'ideas', 'design']], ['Write', ['full', 'outline', 'check', 'language', 'cite']], ['Revise & submit', ['review', 'submit']]];
 
   function freeToolsSection() {
     return `<section class="section wrap" id="free-tools">
@@ -403,7 +414,8 @@
       ['ideas', 'Next steps & ideas', 'A plan from where your project is, plus research directions grounded in real papers.', 'What should I do next?'],
       ['design', 'Study design', 'Controls, randomisation, sample size, confounders, ethics: checked before you collect data.', 'Is my design sound?'],
       ['outline', 'Argument thread', 'Question, gap, aim, method, result, conclusion: one line, with every break flagged.', 'Sections that don’t line up'],
-      ['check', 'Consistency check', 'Each manuscript section against its node, with examples from published papers.', 'Discussion outruns results'],
+      ['full', 'Full paper review', 'Your whole manuscript checked across sections: abstract against body, sample sizes, aim against conclusion, citations against references.', 'Checking a paper section by section misses the whole'],
+      ['check', 'Section review', 'Abstract to conclusion, each section checked for its job, with examples from published papers.', 'Discussion outruns results'],
       ['cite', 'Citation check', 'Every reference verified against Crossref and formatted for your target journal.', 'Wrong details, invented refs'],
       ['review', 'Reviewer comments', 'Turn a major revision into tasks; vague comments flagged.', 'Can’t break down revisions'],
       ['submit', 'Submission checklist', 'Adapts to your target journal and study design: reporting guideline, registration, fees and statements. Anything Arguo can verify from your project is ticked automatically.', 'What did I miss?', 'full'],
@@ -520,9 +532,9 @@
   }
 
   function outline() {
-    const main = `<p class="intro">Fill in all six nodes with a sentence or two. It does not need to be perfect. Once the thread is clear, every section knows its job.</p>
+    const main = `<p class="intro">Plan the paper before (or while) you write it: a sentence or two for each point. Each one tells you what a section of the paper must say, so the sections line up.</p>
       <div class="thread">${S.outline.FIELDS.map((f) => `<div class="node">
-        <label for="f-${f.key}">${f.label}</label>
+        <label for="f-${f.key}">${f.label} <span class="node-sec">In the paper: ${esc(f.section || '')}</span></label>
         <p class="hint">${f.hint}</p>
         <textarea id="f-${f.key}" rows="3" data-bind="outline.${f.key}">${esc(state.outline[f.key])}</textarea>
         <details class="pattern"><summary>See how this looks for another topic</summary><p>${esc(f.example)}</p></details>
@@ -899,7 +911,8 @@
 
   // All the writing in the project, for matching in-text citations.
   function allText() {
-    return [...Object.values(state.outline), ...Object.values(state.check), state.language.text].filter((x) => typeof x === 'string').join('\n');
+    const ps = state.paper.sections;
+    return [...Object.values(state.outline), ...S.paper.KEYS.map((k) => ps[k]), state.language.text].filter((x) => typeof x === 'string').join('\n');
   }
   function crossBlock() {
     const x = S.cite.crossCheck(allText(), state.refs.input);
@@ -1020,7 +1033,8 @@
   }
 
   function checkResult() {
-    return S.consistency.check({ question: state.outline.question, method: state.outline.method, ...state.check });
+    const ps = state.paper.sections;
+    return S.consistency.check({ question: state.outline.question, method: ps.methods, results: [ps.results, ps.analysis].filter(Boolean).join('\n'), discussion: ps.discussion });
   }
 
   function flaggedList(flagged) {
@@ -1028,41 +1042,66 @@
     return `<div class="flagged"><h3>Sentences to review in the discussion</h3><ol>${flagged.map((f) => `<li><q>${esc(f.sentence)}</q><span>${f.reasons.map(esc).join('; ')}</span></li>`).join('')}</ol></div>`;
   }
 
-  let checkTab = 'question';
+  let checkTab = 'abstract';
+  const secIssues = (k) => (state.paper.sections[k] || '').trim() ? S.paper.sectionNotes(k, state.paper.sections[k], state.paper.sections, state.outline).filter((n) => n.level === 'issue').length : 0;
 
-  function tabIssues(t) {
-    if (t.key === 'conclusion') return state.check.discussion.trim() ? checkResult().notes.filter((n) => n.level === 'issue').length : 0;
-    return (state.check[t.field] || '').trim() ? S.consistency.sectionCheck(t.key, state.check[t.field], state.outline).filter((n) => n.level === 'issue').length : 0;
-  }
-
+  // Section review: one tab per section of a paper.
   function check() {
-    const tabs = S.consistency.TABS;
+    const tabs = S.paper.SECTIONS;
     const t = tabs.find((x) => x.key === checkTab) || tabs[0];
-    const text = state.check[t.field] || '';
-    const conclusion = t.key === 'conclusion';
-    const r = conclusion ? checkResult() : null;
-    const notes = conclusion ? r.notes : S.consistency.sectionCheck(t.key, text, state.outline);
-    const main = `<p class="intro">Check each section of your manuscript against the matching node of your argument thread. Paste a section, read the notes, and use the guide and published examples to revise it yourself.
-      ${importBar()}</p>
-      <div class="tabs" role="tablist">${tabs.map((x, i) => {
-        const n = tabIssues(x);
-        const filled = (state.check[x.field] || '').trim();
+    const text = state.paper.sections[t.key] || '';
+    const disc = t.key === 'discussion';
+    const notes = S.paper.sectionNotes(t.key, text, state.paper.sections, state.outline);
+    const i = tabs.indexOf(t);
+    const main = `<p class="intro">Check one section of your paper at a time. Each tab knows the job that section does in a paper; paste it, read the notes, and revise it yourself. To check the whole paper at once, use <a href="#full">Full paper review</a>; both share the same text.</p>
+      <div class="tabs" role="tablist">${tabs.map((x, n) => {
+        const k = secIssues(x.key);
+        const filled = (state.paper.sections[x.key] || '').trim();
         return `<button role="tab" class="tab${x.key === t.key ? ' on' : ''}" aria-selected="${x.key === t.key}" data-action="check-tab" data-tab="${x.key}">
-          <span class="tab-n">${i + 1}</span>${x.label}${n ? `<b>${n}</b>` : filled ? '<i class="tab-ok" aria-label="checked">✓</i>' : ''}</button>`;
+          <span class="tab-n">${n + 1}</span>${x.label.split(' /')[0]}${k ? `<b>${k}</b>` : filled ? '<i class="tab-ok" aria-label="checked">✓</i>' : ''}</button>`;
       }).join('')}</div>
-      <div class="readonly"><span>${t.label} in your argument thread</span><p>${esc(state.outline[t.node]) || 'Not filled in yet.'}</p><a href="#outline">Edit</a></div>
-      <label for="f-sec">Your ${esc(t.section)}</label>
-      <textarea id="f-sec" class="big" rows="${conclusion ? 9 : 7}" data-bind="check.${t.field}" placeholder="Paste this section of your manuscript">${esc(text)}</textarea>
-      ${conclusion ? `<details class="pattern"${state.check.results.trim() ? '' : ' open'}><summary>Results used for this check (from the Result tab)</summary><p>${esc(state.check.results) || 'Paste your results in the Result tab first.'}</p></details>` : ''}
-      <div id="flagged">${conclusion ? flaggedList(r.flagged) : ''}</div>
+      <div class="readonly"><span>The job of the ${esc(t.label.toLowerCase())}</span><p>${esc(t.role)}</p></div>
+      <label for="f-sec">Your ${esc(t.label.toLowerCase())}</label>
+      <textarea id="f-sec" class="big" rows="8" data-bind="paper.sections.${t.key}" placeholder="Paste your ${esc(t.label.toLowerCase())}">${esc(text)}</textarea>
+      <div id="flagged">${disc ? flaggedList(checkResult().flagged) : ''}</div>
       <div class="guide-grid">
         <section class="guide"><h4>What reviewers look for</h4><ul>${t.look.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section>
         <section class="guide"><h4>A common structure</h4><p class="pattern-line">${esc(t.pattern)}</p><p class="guide-example"><b>Example from another topic</b> ${esc(t.example)}</p></section>
       </div>
-      <div class="tab-nav">${tabs.indexOf(t) > 0 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[tabs.indexOf(t) - 1].key}">← ${tabs[tabs.indexOf(t) - 1].label}</button>` : '<span></span>'}
-        ${tabs.indexOf(t) < tabs.length - 1 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[tabs.indexOf(t) + 1].key}">${tabs[tabs.indexOf(t) + 1].label} →</button>` : ''}</div>`;
+      <div class="tab-nav">${i > 0 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[i - 1].key}">← ${tabs[i - 1].label.split(' /')[0]}</button>` : '<span></span>'}
+        ${i < tabs.length - 1 ? `<button class="btn" data-action="check-tab" data-tab="${tabs[i + 1].key}">${tabs[i + 1].label.split(' /')[0]} →</button>` : ''}</div>`;
     const papersNote = examplePapers().length ? '' : '<p class="ai-rule">Tip: search in <a href="#discover">Discover research</a> or add papers with abstracts to your matrix, and the AI will show how those published papers handle this section.</p>';
     return { main, notes: notesPanel(notes, citedBlock(text) + aiBlock('check-' + t.key).replace('</section>', papersNote + '</section>')) };
+  }
+
+  // Full paper review: the whole manuscript, section by section, with checks
+  // across sections. The writer edits here; nothing is rewritten.
+  function fullSectionNotes(k) {
+    const ps = state.paper.sections;
+    if (!ps[k].trim()) return '';
+    const ns = S.paper.sectionNotes(k, ps[k], ps, state.outline).filter((n) => n.level !== 'ok');
+    const cross = S.paper.review(ps, state.outline).notes.filter((n) => n.where === k);
+    const all = cross.concat(ns);
+    return all.length ? `<details class="full-notes"${all.some((n) => n.level === 'issue') ? ' open' : ''}><summary>${all.length} ${all.length === 1 ? 'note' : 'notes'} on this section</summary>${all.map(noteHtml).join('')}</details>`
+      : '<p class="full-ok">No problems found by the rules.</p>';
+  }
+
+  function full() {
+    const ps = state.paper.sections;
+    const r = S.paper.review(ps, state.outline);
+    const nav = S.paper.SECTIONS.concat([{ key: 'references', label: 'References' }]).map((x) => {
+      const n = x.key === 'references' ? r.notes.filter((y) => y.where === 'references' && y.level === 'issue').length : secIssues(x.key) + r.notes.filter((y) => y.where === x.key && y.level === 'issue').length;
+      return `<button class="sec-chip${ps[x.key].trim() ? '' : ' empty'}" data-action="jump" data-target="sec-${x.key}">${esc(x.label.split(' /')[0])}${n ? `<b>${n}</b>` : ps[x.key].trim() ? ' ✓' : ''}</button>`;
+    }).join('');
+    const main = `<p class="intro">Your whole manuscript, section by section. Arguo checks each section for its job and the paper as a whole: structure, abstract against the body, sample sizes, aim against conclusion, citations against references and wording. Revise in place; the notes update as you type. Nothing is rewritten for you.</p>
+      ${importBar()}
+      <div class="sec-nav" id="full-sections">${nav}</div>
+      ${r.present.length ? `<p class="fine">${r.words.toLocaleString()} words in ${r.present.length} sections.</p>` : ''}
+      ${S.paper.SECTIONS.concat([{ key: 'references', label: 'References', role: 'Every source cited in the text, in the journal’s style.' }]).map((x) => `<section class="full-sec" id="sec-${x.key}">
+        <div class="full-sec-head"><label for="fs-${x.key}">${esc(x.label)}</label><span class="fine">${esc(x.role)}</span>${x.key !== 'references' ? `<button class="link-btn" data-action="check-open" data-tab="${x.key}">Guide and examples</button>` : '<a class="link-btn" href="#cite">Verify and format</a>'}</div>
+        <textarea id="fs-${x.key}" class="${x.key === 'references' ? 'mono' : ''}" rows="${ps[x.key].trim() ? 4 : 2}" data-bind="paper.sections.${x.key}" placeholder="${x.key === 'background' || x.key === 'analysis' ? 'Optional: leave empty if your paper has no separate section' : 'Paste your ' + esc(x.label.toLowerCase())}">${esc(ps[x.key])}</textarea>
+        <div id="fn-${x.key}">${x.key !== 'references' ? fullSectionNotes(x.key) : ''}</div></section>`).join('')}`;
+    return { main, notes: notesPanel(r.notes, aiBlock('full')) };
   }
 
   const LETTER = `<details class="guide" open><summary>How a response letter is structured</summary>
@@ -1151,7 +1190,7 @@
 
   function importBar() {
     return `<div class="toolbar import-bar"><label class="btn file-btn" id="imp-ms">${fileBusy === 'ms' ? 'Reading your manuscript…' : 'Import a manuscript (.docx, .pdf)'}<input type="file" accept=".docx,.pdf,.txt,.md" data-file="ms" hidden></label>
-      <span class="fine">Fills all six tabs, the language check and the reference list. The file is read in your browser and is not uploaded. Sections are found by standard headings (Introduction, Methods, Results, Discussion, References); without them, paste each section into its tab. Scanned PDFs (images without text) and old .doc files cannot be read.</span></div>`;
+      <span class="fine">Splits it into Abstract, Introduction, Background, Methods, Results, Analysis, Discussion, Conclusion and References, and fills the language check and reference list. The file is read in your browser and is not uploaded. Sections are found by their headings; without them, paste each section in Full paper review. Scanned PDFs (images without text) and old .doc files cannot be read.</span></div>`;
   }
 
   function language() {
@@ -1202,15 +1241,18 @@
         track('import_bib', String(papers.length));
         toast(`${state.matrix.length - before} papers added to your matrix and reference list`);
       } else {
-        const sec = S.manuscript.split(await S.manuscript.readFile(file));
+        const raw = await S.manuscript.readFile(file);
+        const sec = S.manuscript.split(raw);
         const pr = S.manuscript.toProject(sec);
         if (!pr.found.length) throw new Error('No section headings found (Introduction, Methods, Results, Discussion…). Paste the sections into each tab instead.');
-        Object.keys(pr.check).forEach((k) => { if (pr.check[k]) state.check[k] = pr.check[k]; });
+        const secs = S.paper.fromText(raw);
+        S.paper.KEYS.concat('references').forEach((k) => { state.paper.sections[k] = secs[k] || ''; });
         state.language.text = pr.body;
         if (pr.refs.length) state.refs.input = (state.refs.input.trim() + '\n' + pr.refs.join('\n')).trim();
         state.sample = false;
         track('import_manuscript', pr.found.join(','));
-        toast(`Read: ${pr.found.join(', ')}. Check each tab.`);
+        toast(`Read: ${pr.found.join(', ')}. Review it section by section.`);
+        if (current() !== 'full') location.hash = 'full';
       }
       save();
     } catch (e) { toast(e.message); }
@@ -1218,7 +1260,7 @@
   }
   document.addEventListener('change', (e) => { if (e.target.matches('input[type=file][data-file]')) onFile(e.target); });
 
-  const VIEWS = { overview, discover, ideas, design, paper: paperView, outline, matrix, cite, check, language, review, submit };
+  const VIEWS = { overview, discover, ideas, design, paper: paperView, full, outline, matrix, cite, check, language, review, submit };
 
   // ---------- render ----------
   function account() {
@@ -1318,7 +1360,8 @@
     const nb = document.querySelector('[data-action=toggle-notes]');
     if (nb) { const n = (view.notes.match(/class="note-tag">Fix</g) || []).length; let b = nb.querySelector('b'); if (n && !b) { b = document.createElement('b'); nb.appendChild(b); } if (b) { if (n) b.textContent = n; else b.remove(); } }
     if (v === 'language') document.getElementById('lang-preview').innerHTML = langPreview();
-    if (v === 'check') document.getElementById('flagged').innerHTML = checkTab === 'conclusion' ? flaggedList(checkResult().flagged) : '';
+    if (v === 'check') document.getElementById('flagged').innerHTML = checkTab === 'discussion' ? flaggedList(checkResult().flagged) : '';
+    if (v === 'full') S.paper.KEYS.forEach((k) => { const el = document.getElementById('fn-' + k); if (el) el.innerHTML = fullSectionNotes(k); });
     const st = status();
     document.querySelectorAll('.side a').forEach((a) => {
       const id = a.getAttribute('href').slice(1);
@@ -1452,6 +1495,7 @@
     },
     'find-cited': (el) => findCited(el.dataset.key, el.dataset.text),
     'check-tab': (el) => { checkTab = el.dataset.tab; render(); },
+    'check-open': (el) => { checkTab = el.dataset.tab; location.hash = 'check'; },
     'add-cited': (el) => {
       const f = citeFind[el.dataset.key];
       const meta = f && f.results && f.results[Number(el.dataset.i)];
@@ -1552,12 +1596,14 @@
       try: 'Read the “Do this next” card. Click Next when you are ready.', target: '.next-card' },
     { view: 'design', title: 'Study design', learn: ['Describe your planned study before collecting data.', 'Arguo checks what reviewers always ask: controls, randomisation, sample size, confounders, ethics, preregistration and the right reporting guideline.', 'The AI can review the design and compare it with methods of similar studies.'],
       try: 'Change the study design type and watch the notes change.', target: '#g-type', done: { change: '#g-type' } },
-    { view: 'outline', title: 'Argument thread', learn: ['Six nodes: question, gap, aim, method, result, conclusion. If they line up, every section knows its job.', 'The notes flag breaks, such as a causal conclusion from survey data.', 'Each node has an example from another topic, so you see the pattern without copying.'],
+    { view: 'outline', title: 'Research outline', learn: ['Six points that plan the paper: question, gap and aim (Introduction), method (Methods), result (Results) and conclusion (Discussion). If they line up, every section knows its job.', 'The notes flag breaks, such as a causal conclusion from survey data.', 'Each node has an example from another topic, so you see the pattern without copying.'],
       try: 'The example conclusion says social media “causes” insomnia. Edit it and watch the note update.', target: '#f-conclusion', done: { input: '#f-conclusion' } },
     { view: 'cite', title: 'Citation check', learn: ['Every paper in your matrix appears here; paste any others.', '“Check references” verifies each one against Crossref and flags references that do not exist.', 'Choose your target journal and the list is formatted in its official style.'],
       try: 'Switch the reference style and see the entries reformat.', target: '#f-style', done: { change: '#f-style' } },
-    { view: 'check', title: 'Consistency check', learn: ['Six tabs, one for each node of your argument thread. Paste the matching section of your manuscript.', 'Each tab shows what reviewers look for, a common structure and an example, and the AI can show how published papers do it.'],
-      try: 'Open the Conclusion tab to see sentences flagged in the example discussion.', target: '.tabs', done: { click: '.tab[data-tab="conclusion"]' } },
+    { view: 'full', title: 'Full paper review', learn: ['Your whole manuscript, from abstract to references. Import a Word or PDF file, or paste it.', 'Arguo checks each section for its job and the paper as a whole: the abstract against the body, sample sizes, aim against conclusion, citations against references.', 'You revise in place and the notes update. Nothing is rewritten for you.'],
+      try: 'The example abstract says 612 students but the methods say 640. Find the note on the Abstract.', target: '#sec-abstract', done: { click: '#sec-abstract summary' } },
+    { view: 'check', title: 'Section review', learn: ['One tab per section: Abstract, Introduction, Background, Methods, Results, Analysis, Discussion, Conclusion.', 'Each tab shows what reviewers look for, a common structure and an example, and the AI can show how published papers do it.'],
+      try: 'Open the Discussion tab to see sentences flagged in the example.', target: '.tabs', done: { click: '.tab[data-tab="discussion"]' } },
     { view: 'review', title: 'Reviewer comments', learn: ['Paste comments from reviewers or your supervisor; they become a task list.', 'Must-fix and vague comments are flagged, and you write a plan for each one.'],
       try: 'Tick one task as addressed.', target: '.task-top', done: { change: '.task-top input[type=checkbox]' } },
     { view: 'submit', title: 'Submission checklist', learn: ['It adapts to your target journal and study design.', 'Items Arguo can verify are ticked automatically; a link takes you to fix any that fail.'],

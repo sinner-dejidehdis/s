@@ -10,6 +10,7 @@
     ['literature', /^(literature review|related work|previous research|theoretical (background|framework))$/],
     ['methods', /^(methods?|materials and methods|methodology|study design|research design|data and methods|participants and methods|experimental (section|procedures))$/],
     ['results', /^(results?|findings|results and analysis)$/],
+    ['analysis', /^(analysis|analyses|data analysis|statistical analysis|statistical analyses|statistical methods)$/],
     ['discussion', /^(discussion|general discussion|results and discussion)$/],
     ['conclusion', /^(conclusions?|concluding remarks|implications)$/],
     ['references', /^(references|bibliography|works cited|literature cited)$/],

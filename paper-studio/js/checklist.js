@@ -56,7 +56,8 @@
     const refs = (p.refs && p.refs.results) || [];
     const auto = {};
     if (S.outline) auto.thread = S.outline.filled(o) === 6 && !S.outline.check(o).some((n) => n.level === 'issue');
-    if (S.consistency && p.check && String(p.check.discussion || '').trim()) auto.limits = !S.consistency.check({ question: o.question, method: o.method, ...p.check }).notes.some((n) => n.title === 'The discussion has no limitations');
+    const ps = (p.paper && p.paper.sections) || {};
+    if (S.consistency && String(ps.discussion || '').trim()) auto.limits = !S.consistency.check({ question: o.question, method: ps.methods, results: ps.results, discussion: ps.discussion }).notes.some((n) => n.title === 'The discussion has no limitations');
     if (refs.length) auto.refs = refs.every((r) => r.status === 'verified');
     if (j && refs.length) auto.format = refs.every((r) => !r.doi || r.formattedStyle === j.style);
     if (S.design && type && p.design) {

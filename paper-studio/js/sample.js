@@ -70,6 +70,17 @@
         results: 'After adjusting for gender, year of study and academic stress, each additional hour of bedtime social media use was associated with a 1.2-point increase in PSQI score (p < 0.01). The coefficient was larger in the passive-scrolling group than in the active-interaction group. Gender and year of study did not moderate the association.',
         discussion: 'We found that longer bedtime social media use was associated with poorer sleep quality, consistent with Levenson et al. (2016). The stronger association for passive scrolling may reflect longer, less intentional sessions. Our results also show that social media use damages students’ academic performance and friendships. This study proves that limiting phone use will completely solve students’ sleep problems.',
       },
+      paper: { sections: {
+        abstract: 'Bedtime social media use is common among university students, but its link with sleep quality is unclear. We surveyed 612 undergraduates at three universities and measured sleep quality with the Pittsburgh Sleep Quality Index (PSQI). Each additional hour of bedtime use was associated with a 1.2-point higher PSQI score, and the association was stronger for passive scrolling. Social media clearly causes poor sleep in students.',
+        introduction: 'Social media is now part of students’ bedtime routines. Many studies have linked screen time to poorer sleep in adolescents (Hale & Guan, 2015; Woods & Scott, 2016). Most measured total screen time. This study examines social media and sleep in university students.',
+        background: '',
+        methods: 'An online questionnaire was sent to 640 undergraduates at three universities. It measured sleep quality with the Pittsburgh Sleep Quality Index and the minutes of social media use in the hour before bed. Data were analysed with multiple regression adjusting for gender, year of study and academic stress.',
+        results: 'After adjusting for gender, year of study and academic stress, each additional hour of bedtime social media use was associated with a 1.2-point increase in PSQI score (p < 0.01). The coefficient was larger in the passive-scrolling group than in the active-interaction group. Gender and year of study did not moderate the association.',
+        analysis: '',
+        discussion: 'We found that longer bedtime social media use was associated with poorer sleep quality, consistent with Levenson et al. (2016). The stronger association for passive scrolling may reflect longer, less intentional sessions. Our results also show that social media use damages students’ academic performance and friendships. This study proves that limiting phone use will completely solve students’ sleep problems.',
+        conclusion: '',
+        references: REFS.join('\n'),
+      } },
       review: {
         input: 'Reviewer 1\n1. The sample is limited to three universities; the authors must discuss the generalizability of the findings.\n2. The methods section does not report the reliability or validity of the social media use measure.\n3. The discussion needs to be strengthened.\n4. Some typos in Table 2.\n\nReviewer 2\n1. The claim that social media "causes" insomnia is not supported by cross-sectional data.\n2. Please consider citing more recent literature from the last three years.',
         tasks: [],

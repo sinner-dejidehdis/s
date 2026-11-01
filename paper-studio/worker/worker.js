@@ -95,6 +95,11 @@ Never invent findings or numbers that are not in the record.
 [year] ${str(i.year).slice(0, 4)}  [venue] ${str(i.venue).slice(0, 200)}  [type] ${str(i.type).slice(0, 30)}
 [abstract]
 ${str(i.abstract) || '(no abstract available)'}`,
+  manuscript: (i) => `Review this whole manuscript as an experienced journal reviewer would, looking ACROSS sections (each section is labelled; long sections are cut).
+Look for: claims or numbers in the abstract that the body does not support; the aim or question in the introduction not answered in the discussion or conclusion; methods that could not produce the results reported; results interpreted beyond what the design allows (for example causal claims from observational data); missing limitations; the same thing named differently in different sections; a section doing another section's job (results in the discussion, interpretation in the results, new findings in the conclusion).
+Give up to 8 notes, the most serious first. Set "field" to the key of the section the note is about: abstract, introduction, background, methods, results, analysis, discussion or conclusion. Point to where the problem is in the writer's text in a few words, but never give replacement text.
+
+${['abstract', 'introduction', 'background', 'methods', 'results', 'analysis', 'discussion', 'conclusion'].map((k) => `[${k}]\n${str(i.sections && i.sections[k]).slice(0, 2200) || '(empty)'}`).join('\n\n')}`,
   language: (i) => `Review the academic English of this passage as a careful editor would, without rewriting it.
 Look for: overclaiming, causal verbs on correlational evidence, vague quantities, informal register, unclear pronoun reference, inconsistent terms for the same concept, tense that does not fit the section, sentences whose main claim is buried.
 For each problem, quote at most 5 words from the passage in "title" so the writer can find it, explain why it is a problem, and explain how to fix it in general terms.
@@ -401,13 +406,13 @@ export default {
     const methods = body.task === 'methods';
     const section = body.task === 'section';
     const sent = survey && Array.isArray(body.input.papers) ? Math.min(body.input.papers.length, 12) : 0;
-    const userText = body.task === 'language' ? str(body.input.text) : section ? str(body.input.text) : body.task === 'paper' ? str(body.input.question) : survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
+    const userText = body.task === 'manuscript' ? Object.values(body.input.sections || {}).map(str).join(' ') : body.task === 'language' ? str(body.input.text) : section ? str(body.input.text) : body.task === 'paper' ? str(body.input.question) : survey ? str(body.input.query) : methods ? str(body.input.procedure) : ideas ? [body.input.question, body.input.gap].map(str).join(' ') : JSON.stringify(body.input).replace(/\\n|[{}\[\]":,]/g, ' ');
     const own = [userText, section || body.task === 'outline' ? Object.values(body.input.outline || body.input || {}).filter((x) => typeof x === 'string').join(' ') : ''].join(' ');
-    const kept = notes.slice(0, 5).map(clean).map((n) => scrub(n, own))
+    const kept = notes.slice(0, body.task === 'manuscript' ? 8 : 5).map(clean).map((n) => scrub(n, own))
       .map((n) => (section ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= Math.min((body.input.papers || []).length, 6)) }) : n))
       .map((n) => (survey || ideas || methods ? Object.assign(n, { refs: (n.refs || []).filter((r) => r <= (survey ? sent : Math.min((body.input.papers || []).length, 10))) }) : n))
       .filter((n) => !copiesUser(n, userText) && (!(survey || methods) || n.refs.length));
-    const out = { notes: kept, fields, blocked: Math.min(notes.length, 5) - kept.length };
+    const out = { notes: kept, fields, blocked: Math.min(notes.length, body.task === 'manuscript' ? 8 : 5) - kept.length };
     if (kept.length) await cachePut(env, ckey, out, 60 * 60 * 24);
     return json(Object.assign({}, out, { remaining: quota.remaining, limit: quota.limit }), 200, headers);
   },
