@@ -188,7 +188,11 @@ async function search(url, env, headers) {
     const r = await fetch(target, { headers: { 'User-Agent': 'Arguo (academic writing feedback)' }, cf: { cacheTtl: 86400 } });
     return new Response(r.body, { status: r.status, headers: { 'Content-Type': r.headers.get('Content-Type') || 'application/json', ...headers } });
   }
-  if (!/^https:\/\/api\.openalex\.org\/(works|sources)[?/]/.test(target)) return json({ error: 'Only OpenAlex and Europe PMC requests are allowed.' }, 400, headers);
+  if (/^https:\/\/api\.crossref\.org\/works[?/]/.test(target)) {
+    const r = await fetch(target, { headers: { 'User-Agent': 'Arguo (mailto:hello@arguo.app)', Accept: 'application/json' } });
+    return new Response(r.body, { status: r.status, headers: { 'Content-Type': 'application/json', ...headers } });
+  }
+  if (!/^https:\/\/api\.openalex\.org\/(works|sources)[?/]/.test(target)) return json({ error: 'Only OpenAlex, Crossref and Europe PMC requests are allowed.' }, 400, headers);
   const u = new URL(target);
   if (env.OPENALEX_API_KEY) u.searchParams.set('api_key', env.OPENALEX_API_KEY);
   const res = await fetch(u.toString(), { headers: { 'User-Agent': 'Arguo (academic writing feedback)' } });

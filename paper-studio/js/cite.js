@@ -58,11 +58,34 @@
     return issues;
   }
 
+  // Crossref allows anonymous browsers one request at a time and a few per
+  // second; a refused request arrives without CORS headers and looks like a
+  // network error. So: identify ourselves (polite pool), wait and retry, and
+  // finally ask through the Arguo server, which is not subject to CORS.
+  const MAILTO = 'mailto=hello@arguo.app';
+  const PROXY = () => (typeof window !== 'undefined' && (window.ARGUO_API || (window.ARGUO_CONFIG || {}).apiUrl)) || '';
+  const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+  let last = 0;
   async function getJson(url, fetchImpl) {
-    const res = await fetchImpl(url, { headers: { Accept: 'application/json' } });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
+    url += (url.includes('?') ? '&' : '?') + MAILTO;
+    const gap = Date.now() - last;
+    if (gap < 350) await pause(350 - gap);
+    for (const wait of [0, 1200, 3000]) {
+      if (wait) await pause(wait);
+      last = Date.now();
+      let res = null;
+      try { res = await fetchImpl(url, { headers: { Accept: 'application/json' } }); } catch (e) { res = null; }
+      if (res && res.status === 404) return null;
+      if (res && res.ok) return res.json();
+    }
+    const proxy = PROXY();
+    if (proxy) {
+      let res = null;
+      try { res = await fetchImpl(proxy + '/api/search?url=' + encodeURIComponent(url)); } catch (e) { res = null; }
+      if (res && res.status === 404) return null;
+      if (res && res.ok) return res.json();
+    }
+    throw new Error('Crossref unavailable');
   }
 
   async function verify(entry, fetchImpl) {
