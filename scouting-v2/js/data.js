@@ -157,6 +157,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   function render(root) {
     h = V2.ui.h;
     var ev = V2.CONFIG.event;
+    var full = function () { root.textContent = ''; render(root); window.scrollTo(0, 0); };
+    if (V2.rank.isOpen()) { document.body.setAttribute('data-view', 'team'); return V2.rank.render(root, full); }
+    document.body.removeAttribute('data-view');
     // The import box is built once per visit and never replaced, so a scanner typing many rows
     // in a burst keeps its focus; only the parts around it are refreshed after each row.
     var top = h('div'), bottom = h('div');
@@ -165,7 +168,10 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       top.textContent = '';
       top.appendChild(sendCard(redraw, ev));
       bottom.textContent = '';
-      bottom.appendChild(analysis(redraw, ev));
+      bottom.appendChild(V2.rank.listCard(full));
+      bottom.appendChild(analysis(full, ev));
+      bottom.appendChild(V2.setup.scheduleCard(redraw));
+      bottom.appendChild(V2.setup.offlineCard());
       count.textContent = records().length + ' records on this device';
     }
 
@@ -210,7 +216,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     root.appendChild(h('div', { class: 'datapage' },
       h('h2', null, 'Data · ' + ev),
       top,
-      h('section', { class: 'card' }, h('h3', null, 'Import'), camBtn, video, camStatus, paste,
+      h('section', { class: 'card c-import' }, h('h3', null, 'Import'), camBtn, video, camStatus, paste,
         h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () { importText(paste.value); paste.value = ''; redraw(); } }, 'Import'), count)),
       bottom));
     redraw();
@@ -238,7 +244,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }))),
       h('tbody', null, stats.map(function (s) {
         return h('tr', { class: heatTeam === s.t ? 'sel' : '' }, COLS.map(function (c) {
-          if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { V2.rank.openTeam(s.t); location.hash = '#rank'; } }, s.t));
+          if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { V2.rank.openTeam(s.t); redraw(); } }, s.t));
           var v = s[c[0]];
           if (c[0] === 'offense') {
             // Bar length = offense index out of 100, so strong teams stand out at a glance
@@ -251,8 +257,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
     var out = h('textarea', { class: 'raw', rows: 4, readonly: true, 'aria-label': 'Export' });
     return h('div', null,
-      h('section', { class: 'card' }, h('h3', null, 'Teams'), h('p', { class: 'muted' }, 'Tap a team number for its full page: a plain-language summary, shooting map, every match, pit info and comments.'), table),
-      h('section', { class: 'card' }, h('h3', null, 'Export'),
+      h('section', { class: 'card c-teams' }, h('h3', null, 'All teams'), h('p', { class: 'muted' }, 'Tap a team number for its full page: a plain-language summary, shooting map, every match, pit info and comments.'), table),
+      h('section', { class: 'card c-export' }, h('h3', null, 'Export'),
         h('p', { class: 'muted' }, 'Tab-separated with a header row. Paste into Google Sheets or Excel.'),
         h('div', { class: 'row wrap' },
           h('button', { type: 'button', class: 'btn', onclick: function () { out.value = tsv('match', ev); out.select(); V2.ui.copy(out.value); } }, 'Copy match data'),

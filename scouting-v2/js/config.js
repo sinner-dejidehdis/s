@@ -55,7 +55,7 @@ V2.CONFIG = {
     },
     {
       page: 'teleop', intro: 'Drivers take over for 2 minutes 20 seconds. Rate its Fuel for the whole period; start a timer when your robot breaks down or plays defense.', title: 'Teleop', fields: [
-        { code: 'tf', hint: 'How much Fuel it got into the Hub in Teleop, 1 = a few, 10 = a lot. See the scale on the Guide tab.', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
+        { code: 'tf', hint: 'How much Fuel it got into the Hub in Teleop, 1 = a few, 10 = a lot..', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'tm', hint: 'How much it missed in Teleop, 1 = a few misses, 10 = a lot.', name: 'Fuel missed (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'tp', hint: 'Fuel it pushed or shot from the middle back into its own zone for teammates. Not scoring.', name: 'Fuel ferried to our zone', type: 'counter', steps: [1, 5, 10] },
         { code: 'ts', hint: 'Tap the places it usually shoots from.', name: 'Shooting spots', type: 'field', mode: 'multi' },
@@ -77,7 +77,7 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'postmatch', intro: 'Right after the match, while it is fresh. Use the 1–5 scale on the Guide tab so everyone rates the same way.', title: 'Post-match', short: 'Post', fields: [
+      page: 'postmatch', intro: 'Right after the match, while it is fresh. 1 = poor, 3 = normal, 5 = excellent.', title: 'Post-match', short: 'Post', fields: [
         { code: 'ds', hint: '1 = crashes and hesitates, 3 = normal, 5 = fast, smooth, avoids traffic.', name: 'Driver skill', type: 'rating', max: 5 },
         { code: 'dr', hint: 'Only if it blocked opponents. 1 = barely slowed them, 3 = cost them a few shots, 5 = shut a robot down.', name: 'Defense they played', type: 'rating', max: 5, none: 'Did not play defense' },
         { code: 'dd', hint: 'Only if an opponent blocked it. 1 = stopped scoring, 3 = slowed down, 5 = kept scoring anyway.', name: 'Handled being defended', type: 'rating', max: 5, none: 'Was not defended' },
