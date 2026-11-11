@@ -107,6 +107,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   route();
 
   if (!V2.OFFLINE_BUILD && 'serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
-    navigator.serviceWorker.register('sw.js').catch(function () { /* not allowed here: online only */ });
+    // Reload once when a new version takes over, so nobody keeps using an old copy
+    var hadSW = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (hadSW) location.reload(); });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (r) { r.update(); }).catch(function () { /* not allowed here: online only */ });
   }
 })();
