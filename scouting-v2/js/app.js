@@ -12,10 +12,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var s = V2.ui.get('settings', {});
     var csv = h('textarea', { id: 'sched', rows: 4, placeholder: 'date,match,R1,R2,R3,B1,B2,B3\n2026-10-24,1,254,1678,971,118,148,2056\n(the date column is optional)' });
     var ev = V2.CONFIG.event;
-    var sch = (V2.ui.get('schedule', {})[ev] || []).length;
+    var mine = V2.ui.get('schedule', {})[ev];
+    var sch = (mine || V2.builtinSchedule()).length;
     return h('section', { class: 'card c-sched' },
       h('h3', null, 'Match schedule'),
-      h('p', { class: 'muted' }, sch ? sch + ' matches loaded. Date + match number pick the teams on the Match tab.' : 'Paste the schedule so the Match tab shows each match\'s team numbers.'),
+      h('p', { class: 'muted' }, sch ? sch + ' matches loaded' + (mine ? '' : ' (built in from The Blue Alliance)') + '. Date + match number pick the teams on the Match tab.' : 'Paste the schedule so the Match tab shows each match\'s team numbers.'),
       csv,
       h('button', { type: 'button', class: 'btn', onclick: function () {
         var rows = [];
