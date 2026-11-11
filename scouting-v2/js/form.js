@@ -39,6 +39,22 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
   var STATIONS = { r1: 'Red 1', r2: 'Red 2', r3: 'Red 3', b1: 'Blue 1', b2: 'Blue 2', b3: 'Blue 3' };
 
+  // Station button label: the team playing there this match (from the schedule), else Red 1 etc.
+  function stationLabel(k, m) {
+    var sch = V2.ui.get('schedule', {})[V2.CONFIG.event] || [];
+    var row = sch.filter(function (x) { return x.m === Number(m); })[0];
+    var t = row && row[k.toUpperCase()];
+    return t ? [h('b', null, t), h('small', null, STATIONS[k])] : STATIONS[k];
+  }
+  function relabelStations(kind, m) {
+    var g = document.getElementById(kind + '-r');
+    if (!g) return;
+    g.querySelectorAll('button[data-k]').forEach(function (b) {
+      b.textContent = '';
+      [].concat(stationLabel(b.getAttribute('data-k'), m)).forEach(function (n) { b.append(n); });
+    });
+  }
+
   function control(kind, f, v, rerender) {
     var val = v[f.code];
     var id = kind + '-' + f.code;
@@ -51,7 +67,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       case 'team':
         return h('input', { id: id, type: 'number', inputmode: 'numeric', value: val, oninput: function (e) {
           setv(e.target.value === '' ? '' : Number(e.target.value));
-          if (f.type === 'match') { fillTeam(v); var t = document.getElementById(kind + '-t'); if (t) t.value = v.t || ''; }
+          if (f.type === 'match') { fillTeam(v); relabelStations(kind, v.m); var t = document.getElementById(kind + '-t'); if (t) t.value = v.t || ''; }
         } });
       case 'textarea':
         return h('textarea', { id: id, rows: 3, maxlength: f.max || 200, value: val, oninput: function (e) { setv(e.target.value); } });
@@ -61,11 +77,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       case 'radio':
         var choices = f.type === 'station' ? STATIONS : f.choices;
         return h('div', { class: 'seg' + (f.type === 'station' ? ' stations' : ''), role: 'radiogroup', id: id }, Object.keys(choices).map(function (k) {
-          return h('button', { type: 'button', role: 'radio', 'aria-checked': val === k ? 'true' : 'false', class: 'opt' + (val === k ? ' on' : '') + (f.type === 'station' ? ' ' + k[0] : ''), onclick: function () {
+          return h('button', { type: 'button', 'data-k': f.type === 'station' ? k : null, role: 'radio', 'aria-checked': val === k ? 'true' : 'false', class: 'opt' + (val === k ? ' on' : '') + (f.type === 'station' ? ' ' + k[0] : ''), onclick: function () {
             setv(val === k && !f.required ? '' : k);
             if (f.type === 'station') fillTeam(v);
             rerender();
-          } }, choices[k]);
+          } }, f.type === 'station' ? stationLabel(k, v.m) : choices[k]);
         }));
       case 'multi':
         return h('div', { class: 'seg', id: id }, Object.keys(f.choices).map(function (k) {

@@ -251,6 +251,8 @@ textarea { resize: vertical; }
 .stations .opt.b { border-color: var(--blue); color: var(--blue); }
 .stations .opt.r.on { background: var(--red); color: #fff; }
 .stations .opt.b.on { background: var(--blue); color: #fff; }
+.stations .opt b { display: block; font-size: 1.15em; }
+.stations .opt small { display: block; font-size: .7em; opacity: .8; }
 .toggle {
   font: 700 .95rem var(--font); width: 96px; padding: 10px; border-radius: 999px;
   border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); cursor: pointer;
