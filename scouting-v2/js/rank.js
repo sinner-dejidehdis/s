@@ -86,7 +86,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var pit = D.pits.filter(function (v) { return Number(v.t) === s.t; })[0];
     var pitFields = V2.codec.fields('pit').filter(function (f) { return ['s', 'e', 't'].indexOf(f.code) < 0; });
 
-    root.appendChild(h('div', { class: 'rankpage' },
+    root.appendChild(h('div', { class: 'rankpage detail' },
       h('button', { type: 'button', class: 'btn small back', onclick: function () { open = null; redraw(); } }, '← Rankings'),
       h('div', { class: 'teamhead' },
         h('h2', null, 'Team ' + s.t),
@@ -123,7 +123,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
               h('td', { class: 'num' }, r10(v.tf)), h('td', { class: 'num' }, r10(v.gf)),
               h('td', { class: 'num' }, r10(v.tm)), h('td', null, v.el || 'None'),
               h('td', { class: 'num' }, v.td || 0), h('td', { class: 'num' }, typeof v.dr === 'number' ? v.dr : '–'),
-              h('td', { class: 'num' }, v.ds || '–'), h('td', null, v.s + (v.scouts > 1 ? ' (avg)' : '')));
+              h('td', { class: 'num' }, v.ds || '–'), h('td', null, (v.s || v.d || '') + (v.scouts > 1 ? ' (avg)' : '')));
           }))))),
       pit ? h('section', { class: 'card' }, h('h3', null, 'Pit'), h('dl', { class: 'pit' }, pitFields.map(function (f) {
         var v = pit[f.code];

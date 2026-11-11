@@ -6,7 +6,7 @@ for (const f of ['config', 'codec', 'stats']) require(path.join(__dirname, '..',
 const V2 = globalThis.V2;
 
 function match(over) {
-  return Object.assign({ s: 'AB', e: '2026rampriot', l: 'qm', m: 3, r: 'r2', t: 1678, sp: [[10, 40]], pl: true, ns: false,
+  return Object.assign({ d: '2026-10-24', e: '2026rampriot', l: 'qm', m: 3, r: 'r2', t: 1678, sp: [[10, 40]], pl: true, ns: false,
     af: 8, am: 2, an: true, ai: ['d'], as: [[30, 20], [35, 50]], ac: 'y',
     tf: 7, tm: 3, tp: 12, gf: 6, gm: 1, ts: [[20, 30]], tx: ['b', 't'], tq: 'f', tc: ['g'], ti: 0, td: 4.25,
     el: 'L3', ep: 'C', ef: false, et: 6.5, ds: 4, dr: 'n', dd: 3, sa: 'h', to: false, dk: false, bf: false, cd: 'n', co: 'fast\tcycler\nnice' }, over);
@@ -14,7 +14,7 @@ function match(over) {
 
 test('encode/decode round trip, tabs and newlines in text are flattened', () => {
   const row = V2.codec.encode('match', match());
-  assert.ok(row.startsWith('RB26M3\t'));
+  assert.ok(row.startsWith('RB26M4\t'));
   assert.strictEqual(row.split('\n').length, 1);
   const d = V2.codec.decode(row);
   assert.strictEqual(d.kind, 'match');
@@ -37,7 +37,7 @@ test('header has one column per value', () => {
 
 test('decode rejects foreign or truncated rows', () => {
   assert.strictEqual(V2.codec.decode('hello\tworld'), null);
-  assert.strictEqual(V2.codec.decode('RB26M3\t1\t2'), null);
+  assert.strictEqual(V2.codec.decode('RB26M4\t1\t2'), null);
   // a row from the previous build (old tag) is rejected
   assert.strictEqual(V2.codec.decode('RB26M' + V2.codec.encode('match', match()).slice(6)), null);
 });

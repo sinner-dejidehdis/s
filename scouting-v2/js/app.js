@@ -10,7 +10,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   function settingsPage(root) {
     var s = V2.ui.get('settings', {});
     function save() { V2.ui.set('settings', s); }
-    var csv = h('textarea', { id: 'sched', rows: 4, placeholder: 'match,R1,R2,R3,B1,B2,B3\n1,254,1678,971,118,148,2056' });
+    var csv = h('textarea', { id: 'sched', rows: 4, placeholder: 'date,match,R1,R2,R3,B1,B2,B3\n2026-10-24,1,254,1678,971,118,148,2056\n(the date column is optional)' });
     var ev = V2.CONFIG.event;
     var sch = (V2.ui.get('schedule', {})[ev] || []).length;
     root.appendChild(h('div', { class: 'settings' },
@@ -30,10 +30,15 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           var rows = [];
           csv.value.split(/\r?\n/).forEach(function (l) {
             var c = l.split(/[,\t;]/).map(function (x) { return x.trim(); });
+            var d = '';
+            if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(c[0])) { // optional date column first: 2026-10-24
+              var p = c.shift().split('-');
+              d = p[0] + '-' + ('0' + p[1]).slice(-2) + '-' + ('0' + p[2]).slice(-2);
+            }
             if (c.length < 7 || !/^\d+$/.test(c[0])) return;
-            rows.push({ m: Number(c[0]), R1: +c[1], R2: +c[2], R3: +c[3], B1: +c[4], B2: +c[5], B3: +c[6] });
+            rows.push({ d: d, m: Number(c[0]), R1: +c[1], R2: +c[2], R3: +c[3], B1: +c[4], B2: +c[5], B3: +c[6] });
           });
-          if (!rows.length) return V2.ui.toast('No matches found. Format: match,R1,R2,R3,B1,B2,B3', 'err');
+          if (!rows.length) return V2.ui.toast('No matches found. Format: date,match,R1,R2,R3,B1,B2,B3 (date optional)', 'err');
           var all = V2.ui.get('schedule', {});
           all[ev] = rows;
           V2.ui.set('schedule', all);
@@ -85,6 +90,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var tab = location.hash.replace('#', '');
     if (!TABS[tab]) tab = 'scout';
     document.querySelectorAll('.tabs a').forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + tab); });
+    document.body.setAttribute('data-tab', tab); // desktop layout differs per tab
     var root = document.getElementById('app');
     root.textContent = '';
     if (tab === 'scout') {

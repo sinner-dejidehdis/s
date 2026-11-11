@@ -37,7 +37,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         h('p', null, 'You watch one robot for a whole match and record what it does. The app works with no internet; your records stay on this device until you hand them in.'),
         steps([
           'Open the Match tab.',
-          'Type your initials, the match number, and tap the station the lead gave you (for example Red 2). The team number fills in by itself; check it against the robot\'s bumpers.',
+          'Check the date (it fills in by itself), type the match number, and tap the team number you were told to watch. Red buttons are the red alliance, blue the blue alliance. Check the number against the robot\'s bumpers.',
           'Tap Next to move through Auto, Teleop, Endgame and Post-match while the match plays.',
           'At the end you get a QR code. Show it to the data lead, then tap Next match.',
         ]),
@@ -46,7 +46,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
       section('match', 'Scouting a match, page by page', [
         table(['Page', 'When', 'What you do'], [
-          ['Pre-match', 'Before the start', 'Initials, match number, station, starting spot on the map, preload. Mark No show if the robot never comes out.'],
+          ['Pre-match', 'Before the start', 'Date, match number, the team you watch, starting spot on the map, preload. Mark No show if the robot never comes out.'],
           ['Auto', 'First 20 s', 'Rate how much Fuel it scored and missed on the 1–10 scale below. Tap the map where it shoots. Climbed if it hangs on Tower Level 1.'],
           ['Teleop', 'Next 2 min 20 s', 'Rate Fuel scored and missed for the whole Teleop period. Start the Incap timer when it breaks down, and the Defense timer when it blocks opponents; stop them when that ends.'],
           ['Endgame', 'Last 30 s', 'Rate Fuel scored and missed in the last 30 s, then record the highest Tower level it was hanging on at the buzzer.'],
