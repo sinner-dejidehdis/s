@@ -4,7 +4,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
   // Bump the tag whenever columns change, so rows from an older build are rejected
-  var TAGS = { match: 'RB26M3', pit: 'RB26P3' };
+  var TAGS = { match: 'RB26M4', pit: 'RB26P3' };
 
   function fields(kind) {
     var out = [];
@@ -82,7 +82,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     },
     // Key that identifies a record, so re-scanning the same QR does not duplicate it
     key: function (kind, v) {
-      return kind === 'pit' ? ['p', v.e, v.t].join('|') : ['m', v.e, v.l, v.m, v.t, v.s].join('|');
+      return kind === 'pit' ? ['p', v.e, v.t].join('|') : ['m', v.e, v.l, v.m, v.t, v.s || v.d].join('|');
     },
   };
 })();

@@ -31,12 +31,12 @@ V2.CONFIG = {
 
   match: [
     {
-      page: 'prematch', intro: 'Fill this in before the match starts. Pick your station first: the team number and the field map follow it.', title: 'Pre-match', short: 'Pre', fields: [
-        { code: 's', hint: 'Your initials, e.g. SL. Remembered for next time.', name: 'Scout initials', type: 'text', max: 5, required: true, keep: true },
+      page: 'prematch', intro: 'Fill this in before the match starts. Check the date and match number, then tap the team you are watching.', title: 'Pre-match', short: 'Pre', fields: [
+        { code: 'd', hint: "Today's date. Together with the match number it picks the teams from the schedule.", name: 'Date', type: 'date', required: true },
         { code: 'e', name: 'Event', type: 'event' },
         { code: 'l', hint: 'Quals for qualification matches, the usual ones. Semis/Finals only in playoffs.', name: 'Match level', type: 'radio', choices: { qm: 'Quals', sf: 'Semis', f: 'Finals' }, def: 'qm', required: true, keep: true },
         { code: 'm', hint: 'The match number on the field screen, e.g. 12 for Qualification 12.', name: 'Match #', type: 'match', required: true },
-        { code: 'r', hint: 'Which robot you watch: Red 1–3 or Blue 1–3, as the scouting lead assigned you.', name: 'Station', type: 'station', required: true, keep: true },
+        { code: 'r', hint: 'Tap the team you watch. Red buttons are the red alliance, blue the blue alliance.', name: 'Team to watch', type: 'station', required: true, keep: true },
         { code: 't', hint: "Fills in from the schedule. Check it against the robot's bumper number.", name: 'Team #', type: 'team', required: true },
         { code: 'sp', hint: 'Tap where the robot sits when the match starts. The map turns to match Red or Blue.', name: 'Starting position', type: 'field', mode: 'single' },
         { code: 'pl', hint: 'Yes if the robot starts holding Fuel.', name: 'Preloaded Fuel', type: 'bool' },

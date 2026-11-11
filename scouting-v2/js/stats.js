@@ -97,7 +97,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         problems: all.filter(function (v) { return v.to || v.dk || v.bf; }).length,
         defenseShare: rs.length ? r1(rs.filter(function (v) { return (typeof v.dr === 'number' && v.dr > 0) || (v.td || 0) > 0; }).length / rs.length * 100) / 100 : 0,
         rows: all,
-        comments: all.filter(function (v) { return v.co; }).map(function (v) { return { m: v.m, s: v.s, text: v.co }; }),
+        comments: all.filter(function (v) { return v.co; }).map(function (v) { return { m: v.m, s: v.s || v.d || '', text: v.co }; }),
       };
     });
   }

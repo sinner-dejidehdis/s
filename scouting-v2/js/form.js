@@ -24,35 +24,47 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     if (kind === 'match') {
       var saved = V2.ui.get('scout', {});
       ['s', 'r'].forEach(function (k) { if (!v[k] && saved[k]) v[k] = saved[k]; });
+      v.d = today();
       if (prev.m) v.m = Number(prev.m) + 1;
       fillTeam(v);
     }
     return v;
   }
 
-  function fillTeam(v) {
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
+  // The schedule row for this date + match number (rows without a date match any day)
+  function schedRow(v) {
     var sch = V2.ui.get('schedule', {})[V2.CONFIG.event] || [];
-    var m = sch.filter(function (x) { return x.m === Number(v.m); })[0];
-    var key = { r1: 'R1', r2: 'R2', r3: 'R3', b1: 'B1', b2: 'B2', b3: 'B3' }[v.r];
+    return sch.filter(function (x) { return x.m === Number(v.m) && (!x.d || x.d === v.d); })[0];
+  }
+
+  function fillTeam(v) {
+    var m = schedRow(v);
+    var key = v.r && v.r.toUpperCase();
     if (m && key && m[key]) v.t = m[key];
   }
 
   var STATIONS = { r1: 'Red 1', r2: 'Red 2', r3: 'Red 3', b1: 'Blue 1', b2: 'Blue 2', b3: 'Blue 3' };
 
   // Station button label: the team playing there this match (from the schedule), else Red 1 etc.
-  function stationLabel(k, m) {
-    var sch = V2.ui.get('schedule', {})[V2.CONFIG.event] || [];
-    var row = sch.filter(function (x) { return x.m === Number(m); })[0];
+  function stationLabel(k, v) {
+    var row = schedRow(v);
     var t = row && row[k.toUpperCase()];
-    return t ? [h('b', null, t), h('small', null, STATIONS[k])] : STATIONS[k];
+    return t ? h('b', null, t) : STATIONS[k];
   }
-  function relabelStations(kind, m) {
+  function relabelStations(kind, v) {
     var g = document.getElementById(kind + '-r');
     if (!g) return;
     g.querySelectorAll('button[data-k]').forEach(function (b) {
       b.textContent = '';
-      [].concat(stationLabel(b.getAttribute('data-k'), m)).forEach(function (n) { b.append(n); });
+      b.append(stationLabel(b.getAttribute('data-k'), v));
     });
+    var t = document.getElementById(kind + '-t');
+    if (t) t.value = v.t || '';
   }
 
   function control(kind, f, v, rerender) {
@@ -60,6 +72,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var id = kind + '-' + f.code;
     function setv(x) { v[f.code] = x; }
     switch (f.type) {
+      case 'date':
+        return h('input', { id: id, type: 'date', value: val, onchange: function (e) { setv(e.target.value); fillTeam(v); relabelStations(kind, v); } });
       case 'text':
         return h('input', { id: id, value: val, maxlength: f.max || 40, oninput: function (e) { setv(e.target.value); } });
       case 'number':
@@ -67,7 +81,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       case 'team':
         return h('input', { id: id, type: 'number', inputmode: 'numeric', value: val, oninput: function (e) {
           setv(e.target.value === '' ? '' : Number(e.target.value));
-          if (f.type === 'match') { fillTeam(v); relabelStations(kind, v.m); var t = document.getElementById(kind + '-t'); if (t) t.value = v.t || ''; }
+          if (f.type === 'match') { fillTeam(v); relabelStations(kind, v); var t = document.getElementById(kind + '-t'); if (t) t.value = v.t || ''; }
         } });
       case 'textarea':
         return h('textarea', { id: id, rows: 3, maxlength: f.max || 200, value: val, oninput: function (e) { setv(e.target.value); } });
@@ -81,7 +95,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
             setv(val === k && !f.required ? '' : k);
             if (f.type === 'station') fillTeam(v);
             rerender();
-          } }, f.type === 'station' ? stationLabel(k, v.m) : choices[k]);
+          } }, f.type === 'station' ? stationLabel(k, v) : choices[k]);
         }));
       case 'multi':
         return h('div', { class: 'seg', id: id }, Object.keys(f.choices).map(function (k) {
@@ -155,7 +169,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       if (d > 0 && s.page === 0) {
         var miss = missing(kind);
         if (miss.length) return V2.ui.toast('Fill in: ' + miss.map(function (f) { return f.name; }).join(', '), 'err');
-        if (kind === 'match') V2.ui.set('scout', { s: s.values.s, r: s.values.r });
+        if (kind === 'match') V2.ui.set('scout', { r: s.values.r });
       }
       if (d > 0 && s.page === pages.length - 1) stopTimers(kind);
       s.page = Math.max(0, Math.min(pages.length, s.page + d));
@@ -180,7 +194,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         s.page === 0 ? h('p', { class: 'eventline' }, 'Event: ', h('b', null, V2.CONFIG.event)) : null,
         p.fields.filter(function (f) { return f.type !== 'event'; }).map(function (f) {
           return h('div', { class: 'item' + (f.type === 'field' ? ' wide' : '') },
-            h('label', { class: 'iname', for: kind + '-' + f.code }, f.name, f.required ? h('span', { class: 'req' }, ' *') : null),
+            h('label', { class: 'iname', for: kind + '-' + f.code, title: f.hint || null }, f.name, f.required ? h('span', { class: 'req' }, ' *') : null),
             tips && f.hint ? h('small', { class: 'hint' }, f.hint) : null,
             control(kind, f, s.values, rerender));
         }));
