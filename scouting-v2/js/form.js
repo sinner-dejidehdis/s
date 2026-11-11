@@ -31,15 +31,25 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     return v;
   }
 
+  V2.builtinSchedule = function () {
+    return (V2.CONFIG.schedule || []).map(function (l) {
+      var c = l.split(',');
+      return { d: c[0], m: Number(c[1]), R1: +c[2], R2: +c[3], R3: +c[4], B1: +c[5], B2: +c[6], B3: +c[7] };
+    });
+  };
+
   function today() {
     var d = new Date();
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
-  // The schedule row for this date + match number (rows without a date match any day)
+  // The schedule row for this date + match number
   function schedRow(v) {
-    var sch = V2.ui.get('schedule', {})[V2.CONFIG.event] || [];
-    return sch.filter(function (x) { return x.m === Number(v.m) && (!x.d || x.d === v.d); })[0];
+    var sch = V2.ui.get('schedule', {})[V2.CONFIG.event] || V2.builtinSchedule();
+    var same = sch.filter(function (x) { return x.m === Number(v.m); });
+    // Prefer the row for this date; if the schedule has nothing on this date, any day's row will do
+    return same.filter(function (x) { return !x.d || x.d === v.d; })[0] ||
+      (sch.some(function (x) { return x.d === v.d; }) ? undefined : same[0]);
   }
 
   function fillTeam(v) {
