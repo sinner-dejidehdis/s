@@ -1,4 +1,4 @@
-// Rank tab: teams split into offense and defense robots, each ranked; tap a team for its averages.
+// Rankings card on the Data tab (offense and defense robots), and the full page for one team.
 var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
@@ -22,12 +22,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     return v == null ? '–' : v + (unit || '');
   }
 
-  function listView(root, D, redraw) {
+  function listCard(redraw) {
+    h = V2.ui.h;
+    var D = data();
     var list = D.ranked[group];
     var isOff = group === 'offense';
     var R = V2.CONFIG.roles;
-    root.appendChild(h('div', { class: 'rankpage' },
-      h('h2', null, 'Rankings'),
+    return h('section', { class: 'card c-rank rankpage' },
+      h('h3', null, 'Rankings'),
       h('div', { class: 'seg roleswitch', role: 'tablist' },
         [['offense', 'Offense robots', D.ranked.offense.length], ['defense', 'Defense robots', D.ranked.defense.length]].map(function (o) {
           return h('button', { type: 'button', role: 'tab', 'aria-selected': group === o[0] ? 'true' : 'false', class: 'opt' + (group === o[0] ? ' on' : ''), onclick: function () { group = o[0]; redraw(); } }, o[1] + ' (' + o[2] + ')');
@@ -46,7 +48,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           h('span', { class: 'facts' }, isOff
             ? 'Teleop ' + fmt(s.teleFuel, '/10') + ' · climb ' + fmt(s.climbPts) + ' pts · acc ≈' + fmt(s.accuracy, '%')
             : 'rating ' + fmt(s.defRating, '/5') + ' · ' + fmt(s.defense, ' s') + ' · offense ' + fmt(s.offense))));
-      })) : h('p', { class: 'muted' }, 'No ' + group + ' robots yet. Import match data on the Data page.')));
+      })) : h('p', { class: 'muted' }, 'No ' + group + ' robots yet. Import match data below.'));
   }
 
   function tile(label, value, sub) {
@@ -77,7 +79,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
   function detailView(root, D, redraw) {
     var s = D.stats.filter(function (x) { return x.t === open; })[0];
-    if (!s) { open = null; return listView(root, D, redraw); }
+    if (!s) { open = null; return redraw(); }
     var list = D.ranked[s.role];
     var pos = list.indexOf(s) + 1;
     var rows = V2.stats.mergeDuplicates(s.rows).sort(function (a, b) { return a.m - b.m; });
@@ -87,7 +89,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var pitFields = V2.codec.fields('pit').filter(function (f) { return ['s', 'e', 't'].indexOf(f.code) < 0; });
 
     root.appendChild(h('div', { class: 'rankpage detail' },
-      h('button', { type: 'button', class: 'btn small back', onclick: function () { open = null; redraw(); } }, '← Rankings'),
+      h('button', { type: 'button', class: 'btn small back', onclick: function () { open = null; redraw(); } }, '← Back to data'),
       h('div', { class: 'teamhead' },
         h('h2', null, 'Team ' + s.t),
         h('span', { class: 'rolechip ' + s.role }, (s.role === 'offense' ? 'Offense' : 'Defense') + ' #' + pos + ' of ' + list.length)),
@@ -135,13 +137,11 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         h('ul', { class: 'notes' }, s.comments.map(function (c) { return h('li', null, h('b', null, 'Q' + c.m + ' '), c.text, h('small', { class: 'muted' }, ' — ' + c.s)); }))) : null));
   }
 
-  function render(root) {
+  // Team page; `back` redraws the Data tab
+  function render(root, back) {
     h = V2.ui.h;
-    var redraw = function () { root.textContent = ''; render(root); };
-    var D = data();
-    if (open != null) detailView(root, D, redraw);
-    else listView(root, D, redraw);
+    detailView(root, data(), back);
   }
 
-  V2.rank = { render: render, openTeam: function (t) { open = t; } };
+  V2.rank = { render: render, listCard: listCard, isOpen: function () { return open != null; }, openTeam: function (t) { open = t; } };
 })();

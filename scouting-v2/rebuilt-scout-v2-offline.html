@@ -4,38 +4,38 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Earthquakers Scout</title>
-  <meta name="theme-color" content="#17151a">
+  <meta name="theme-color" content="#1d2554">
   <style>
 /* Earthquakers Scout.
-   Layout: a basalt brand band with a live seismograph trace on top, then one form page at a time
-   on warm stone, each page marked by a phase stripe; magma orange is the single loud color. */
+   Colors come from the team logo: navy band and buttons, lime-green seismograph trace and highlights,
+   cool silver-gray background. Each form page is marked by a phase stripe. */
 :root {
   color-scheme: light;
-  --bg: #f2efea;
-  --surface: #fffdfa;
-  --surface-2: #ebe6df;
-  --ink: #17141a;
-  --ink-2: #5b544e;
-  --line: #dcd4ca;
-  --accent: #c2410c;          /* magma: buttons, selected options */
+  --bg: #eef0f5;
+  --surface: #ffffff;
+  --surface-2: #e2e6ee;
+  --ink: #141a2e;
+  --ink-2: #566078;
+  --line: #d3d9e5;
+  --accent: #2e3a78;          /* magma: buttons, selected options */
   --accent-ink: #ffffff;
-  --accent-soft: #fbe3d6;
-  --band: #17151a;            /* basalt brand band, same in both themes */
-  --band-ink: #f4eee8;
-  --band-ink-2: #a79f98;
-  --band-line: #2c2830;
-  --trace: #ff6b2c;
+  --accent-soft: #e0e5f5;
+  --band: #1d2554;            /* basalt brand band, same in both themes */
+  --band-ink: #eef2fb;
+  --band-ink-2: #a8b2d2;
+  --band-line: #323d7c;
+  --trace: #85cb7e;
   --danger: #b42318;
   --ok: #18794e;
   --red: #c8322f;
   --blue: #2563c9;
-  --ph-prematch: #6b625a;
+  --ph-prematch: #5a6380;
   --ph-auto: #b45309;
   --ph-teleop: #18794e;
   --ph-endgame: #6d4bb8;
   --ph-postmatch: #2f6596;
-  --ph-pit: #a1441f;
-  --ph-qr: #c2410c;
+  --ph-pit: #3f8a4c;
+  --ph-qr: #2e3a78;
   --zone-us: #e9e2d8;
   --zone-red: #f6dcd8;
   --zone-blue: #dce6f5;
@@ -46,7 +46,7 @@
   --bump: #bdb4aa;
   --trench: #a9b7c6;
   --s1: #2a78d6;
-  --s2: #eb6834;
+  --s2: #4fa84a;
   --radius: 14px;
   --font-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
   --font: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -55,76 +55,76 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #0f0e11;
-    --surface: #1a181d;
-    --surface-2: #26232a;
-    --ink: #f3eee9;
-    --ink-2: #b0a79f;
-    --line: #35303a;
-    --accent: #ff6b2c;
-    --accent-ink: #1a0d06;
-    --accent-soft: #3a1d10;
-    --band: #0b0a0d;
-    --band-line: #25212a;
+    --bg: #0c0f1e;
+    --surface: #151a2f;
+    --surface-2: #1f2540;
+    --ink: #eef1f8;
+    --ink-2: #a6aec6;
+    --line: #2a3254;
+    --accent: #85cb7e;
+    --accent-ink: #0b1a0c;
+    --accent-soft: #1b2c25;
+    --band: #0a0d1c;
+    --band-line: #222a4d;
     --danger: #f2554a;
     --ok: #3fbf7a;
     --red: #f06a66;
     --blue: #6aa2f2;
-    --ph-prematch: #a39a91;
+    --ph-prematch: #9aa3bd;
     --ph-auto: #f0a33a;
     --ph-teleop: #3fbf7a;
     --ph-endgame: #a58ae8;
     --ph-postmatch: #6aa6dc;
-    --ph-pit: #e2875f;
-    --ph-qr: #ff6b2c;
-    --zone-us: #2a2620;
+    --ph-pit: #7cc287;
+    --ph-qr: #85cb7e;
+    --zone-us: #1d2442;
     --zone-red: #45201f;
     --zone-blue: #1c2c45;
-    --zone-mid: #1f1d22;
-    --wall: #5f5750;
-    --fixture: #3d3832;
+    --zone-mid: #171c33;
+    --wall: #4b5470;
+    --fixture: #2c3456;
     --hub: #b88a2a;
-    --bump: #403a35;
+    --bump: #2f3756;
     --trench: #34495e;
     --s1: #3987e5;
-    --s2: #d95926;
+    --s2: #85cb7e;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0f0e11;
-  --surface: #1a181d;
-  --surface-2: #26232a;
-  --ink: #f3eee9;
-  --ink-2: #b0a79f;
-  --line: #35303a;
-  --accent: #ff6b2c;
-  --accent-ink: #1a0d06;
-  --accent-soft: #3a1d10;
-  --band: #0b0a0d;
-  --band-line: #25212a;
+  --bg: #0c0f1e;
+  --surface: #151a2f;
+  --surface-2: #1f2540;
+  --ink: #eef1f8;
+  --ink-2: #a6aec6;
+  --line: #2a3254;
+  --accent: #85cb7e;
+  --accent-ink: #0b1a0c;
+  --accent-soft: #1b2c25;
+  --band: #0a0d1c;
+  --band-line: #222a4d;
   --danger: #f2554a;
   --ok: #3fbf7a;
   --red: #f06a66;
   --blue: #6aa2f2;
-  --ph-prematch: #a39a91;
+  --ph-prematch: #9aa3bd;
   --ph-auto: #f0a33a;
   --ph-teleop: #3fbf7a;
   --ph-endgame: #a58ae8;
   --ph-postmatch: #6aa6dc;
-  --ph-pit: #e2875f;
-  --ph-qr: #ff6b2c;
-  --zone-us: #2a2620;
+  --ph-pit: #7cc287;
+  --ph-qr: #85cb7e;
+  --zone-us: #1d2442;
   --zone-red: #45201f;
   --zone-blue: #1c2c45;
-  --zone-mid: #1f1d22;
-  --wall: #5f5750;
-  --fixture: #3d3832;
+  --zone-mid: #171c33;
+  --wall: #4b5470;
+  --fixture: #2c3456;
   --hub: #b88a2a;
-  --bump: #403a35;
+  --bump: #2f3756;
   --trench: #34495e;
   --s1: #3987e5;
-  --s2: #d95926;
+  --s2: #85cb7e;
 }
 
 * { box-sizing: border-box; }
@@ -156,7 +156,7 @@ h4 { margin: 12px 0 6px; font-size: .95rem; }
 .brandrow { display: flex; align-items: center; gap: 10px; max-width: 760px; margin: 0 auto; }
 .mark { width: 38px; height: 38px; display: block; flex: none; }
 .teamlogo { width: 46px; height: 46px; display: block; flex: none; border-radius: 50%; box-shadow: 0 0 0 2px var(--band-line); }
-.mark-tile { fill: #26222b; }
+.mark-tile { fill: #2e3a78; }
 .mark-wave { fill: none; stroke: var(--trace); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
 .mark-fault { fill: none; stroke: var(--band-ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .wordmark { display: flex; flex-direction: column; min-width: 0; flex: 1; }
@@ -164,7 +164,7 @@ h4 { margin: 12px 0 6px; font-size: .95rem; }
 .sub { font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; color: var(--band-ink-2); margin-top: 3px; }
 .eventchip {
   font: 600 .78rem var(--font-num); letter-spacing: .06em; color: var(--band-ink);
-  border: 1px solid var(--band-line); background: #221f26; border-radius: 999px; padding: 4px 10px; white-space: nowrap;
+  border: 1px solid var(--band-line); background: rgba(255,255,255,.08); border-radius: 999px; padding: 4px 10px; white-space: nowrap;
 }
 #quake { max-width: 760px; margin: 6px auto 0; }
 .quake { display: block; width: 100%; height: 28px; }
@@ -441,28 +441,30 @@ dl.pit dd { margin: 0; }
   .pager { flex: none; margin-top: 10px; }
   .pager .btn { padding: 10px; }
 
-  /* Long pages: cards side by side, each scrolls on its own */
-  .datapage, .guidepage, .rankpage { flex: 1; min-height: 0; display: grid; gap: 12px; }
-  .datapage > *, .guidepage > *, .rankpage > * { margin: 0; min-height: 0; }
+  /* Data tab: every card on one screen, each scrolls on its own */
+  .datapage { flex: 1; min-height: 0; display: grid; gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: auto repeat(2, minmax(0, 1fr)); }
+  .datapage > * { margin: 0; min-height: 0; }
   .datapage > div, .datapage > div > div:not([class]) { display: contents; }
-  .datapage > h2, .guidepage > h2, .guidepage > p, .guidepage > .toc, .rankpage > h2, .rankpage > .seg, .rankpage > p, .rankpage > .back, .rankpage > .teamhead { grid-column: 1 / -1; }
-  .datapage { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); align-items: stretch; }
-  .guidepage { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: auto auto auto repeat(2, minmax(0, 1fr)); }
-  .guidepage > p { margin-top: -8px; }
-  .rankpage { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto minmax(0, 1fr); }
-  .rankpage > .ranklist, .rankpage > p:last-child { grid-column: 1 / -1; overflow: auto; columns: 2; column-gap: 16px; }
-  .rankpage > .ranklist > li { break-inside: avoid; }
-  .rankpage.detail { grid-template-rows: auto auto repeat(2, minmax(0, 1fr)); }
-  .rankpage.detail > p { grid-column: auto; display: none; }
-  .rankpage.detail > h3 { display: none; }
+  .datapage > h2 { grid-column: 1 / -1; }
+  .datapage .c-rank { grid-area: 2 / 1; }
+  .datapage .c-teams { grid-area: 2 / 2 / 3 / 4; }
+  .datapage .sendcard { grid-area: 2 / 4; }
+  .datapage .c-import { grid-area: 3 / 1; }
+  .datapage .c-export { grid-area: 3 / 2; }
+  .datapage .c-sched { grid-area: 3 / 3; }
+  .datapage .c-offline { grid-area: 3 / 4; }
+  .c-rank .ranklist { margin: 0; }
+
+  /* Team page */
+  .rankpage.detail { flex: 1; min-height: 0; display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto repeat(2, minmax(0, 1fr)); }
+  .rankpage.detail > * { margin: 0; min-height: 0; }
+  .rankpage.detail > .back, .rankpage.detail > .teamhead { grid-column: 1 / -1; }
+  .rankpage.detail > p, .rankpage.detail > h3 { display: none; }
   .rankpage.detail > .tiles { overflow: auto; align-content: start; }
   .card { overflow: auto; margin: 0; }
 }
-@media (min-width: 1000px) and (min-height: 560px) {
-  .settings { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; }
-  .settings > * { margin: 0; min-height: 0; max-height: 100%; }
-  .settings > h2, .settings > p { grid-column: 1 / -1; }
-}
+
 </style>
 </head>
 <body>
@@ -12960,7 +12962,7 @@ V2.CONFIG = {
     },
     {
       page: 'teleop', intro: 'Drivers take over for 2 minutes 20 seconds. Rate its Fuel for the whole period; start a timer when your robot breaks down or plays defense.', title: 'Teleop', fields: [
-        { code: 'tf', hint: 'How much Fuel it got into the Hub in Teleop, 1 = a few, 10 = a lot. See the scale on the Guide tab.', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
+        { code: 'tf', hint: 'How much Fuel it got into the Hub in Teleop, 1 = a few, 10 = a lot..', name: 'Fuel scored (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'tm', hint: 'How much it missed in Teleop, 1 = a few misses, 10 = a lot.', name: 'Fuel missed (1–10)', type: 'rating', max: 10, none: 'None' },
         { code: 'tp', hint: 'Fuel it pushed or shot from the middle back into its own zone for teammates. Not scoring.', name: 'Fuel ferried to our zone', type: 'counter', steps: [1, 5, 10] },
         { code: 'ts', hint: 'Tap the places it usually shoots from.', name: 'Shooting spots', type: 'field', mode: 'multi' },
@@ -12982,7 +12984,7 @@ V2.CONFIG = {
       ],
     },
     {
-      page: 'postmatch', intro: 'Right after the match, while it is fresh. Use the 1–5 scale on the Guide tab so everyone rates the same way.', title: 'Post-match', short: 'Post', fields: [
+      page: 'postmatch', intro: 'Right after the match, while it is fresh. 1 = poor, 3 = normal, 5 = excellent.', title: 'Post-match', short: 'Post', fields: [
         { code: 'ds', hint: '1 = crashes and hesitates, 3 = normal, 5 = fast, smooth, avoids traffic.', name: 'Driver skill', type: 'rating', max: 5 },
         { code: 'dr', hint: 'Only if it blocked opponents. 1 = barely slowed them, 3 = cost them a few shots, 5 = shut a robot down.', name: 'Defense they played', type: 'rating', max: 5, none: 'Did not play defense' },
         { code: 'dd', hint: 'Only if an opponent blocked it. 1 = stopped scoring, 3 = slowed down, 5 = kept scoring anyway.', name: 'Handled being defended', type: 'rating', max: 5, none: 'Was not defended' },
@@ -13958,6 +13960,9 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   function render(root) {
     h = V2.ui.h;
     var ev = V2.CONFIG.event;
+    var full = function () { root.textContent = ''; render(root); window.scrollTo(0, 0); };
+    if (V2.rank.isOpen()) { document.body.setAttribute('data-view', 'team'); return V2.rank.render(root, full); }
+    document.body.removeAttribute('data-view');
     // The import box is built once per visit and never replaced, so a scanner typing many rows
     // in a burst keeps its focus; only the parts around it are refreshed after each row.
     var top = h('div'), bottom = h('div');
@@ -13966,7 +13971,10 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       top.textContent = '';
       top.appendChild(sendCard(redraw, ev));
       bottom.textContent = '';
-      bottom.appendChild(analysis(redraw, ev));
+      bottom.appendChild(V2.rank.listCard(full));
+      bottom.appendChild(analysis(full, ev));
+      bottom.appendChild(V2.setup.scheduleCard(redraw));
+      bottom.appendChild(V2.setup.offlineCard());
       count.textContent = records().length + ' records on this device';
     }
 
@@ -14011,7 +14019,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     root.appendChild(h('div', { class: 'datapage' },
       h('h2', null, 'Data · ' + ev),
       top,
-      h('section', { class: 'card' }, h('h3', null, 'Import'), camBtn, video, camStatus, paste,
+      h('section', { class: 'card c-import' }, h('h3', null, 'Import'), camBtn, video, camStatus, paste,
         h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn primary', onclick: function () { importText(paste.value); paste.value = ''; redraw(); } }, 'Import'), count)),
       bottom));
     redraw();
@@ -14039,7 +14047,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
       }))),
       h('tbody', null, stats.map(function (s) {
         return h('tr', { class: heatTeam === s.t ? 'sel' : '' }, COLS.map(function (c) {
-          if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { V2.rank.openTeam(s.t); location.hash = '#rank'; } }, s.t));
+          if (c[0] === 't') return h('td', null, h('button', { type: 'button', class: 'link', onclick: function () { V2.rank.openTeam(s.t); redraw(); } }, s.t));
           var v = s[c[0]];
           if (c[0] === 'offense') {
             // Bar length = offense index out of 100, so strong teams stand out at a glance
@@ -14052,8 +14060,8 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
     var out = h('textarea', { class: 'raw', rows: 4, readonly: true, 'aria-label': 'Export' });
     return h('div', null,
-      h('section', { class: 'card' }, h('h3', null, 'Teams'), h('p', { class: 'muted' }, 'Tap a team number for its full page: a plain-language summary, shooting map, every match, pit info and comments.'), table),
-      h('section', { class: 'card' }, h('h3', null, 'Export'),
+      h('section', { class: 'card c-teams' }, h('h3', null, 'All teams'), h('p', { class: 'muted' }, 'Tap a team number for its full page: a plain-language summary, shooting map, every match, pit info and comments.'), table),
+      h('section', { class: 'card c-export' }, h('h3', null, 'Export'),
         h('p', { class: 'muted' }, 'Tab-separated with a header row. Paste into Google Sheets or Excel.'),
         h('div', { class: 'row wrap' },
           h('button', { type: 'button', class: 'btn', onclick: function () { out.value = tsv('match', ev); out.select(); V2.ui.copy(out.value); } }, 'Copy match data'),
@@ -14073,7 +14081,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 </script>
   <script>
-// Rank tab: teams split into offense and defense robots, each ranked; tap a team for its averages.
+// Rankings card on the Data tab (offense and defense robots), and the full page for one team.
 var V2 = (globalThis.V2 = globalThis.V2 || {});
 
 (function () {
@@ -14097,12 +14105,14 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     return v == null ? '–' : v + (unit || '');
   }
 
-  function listView(root, D, redraw) {
+  function listCard(redraw) {
+    h = V2.ui.h;
+    var D = data();
     var list = D.ranked[group];
     var isOff = group === 'offense';
     var R = V2.CONFIG.roles;
-    root.appendChild(h('div', { class: 'rankpage' },
-      h('h2', null, 'Rankings'),
+    return h('section', { class: 'card c-rank rankpage' },
+      h('h3', null, 'Rankings'),
       h('div', { class: 'seg roleswitch', role: 'tablist' },
         [['offense', 'Offense robots', D.ranked.offense.length], ['defense', 'Defense robots', D.ranked.defense.length]].map(function (o) {
           return h('button', { type: 'button', role: 'tab', 'aria-selected': group === o[0] ? 'true' : 'false', class: 'opt' + (group === o[0] ? ' on' : ''), onclick: function () { group = o[0]; redraw(); } }, o[1] + ' (' + o[2] + ')');
@@ -14121,7 +14131,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
           h('span', { class: 'facts' }, isOff
             ? 'Teleop ' + fmt(s.teleFuel, '/10') + ' · climb ' + fmt(s.climbPts) + ' pts · acc ≈' + fmt(s.accuracy, '%')
             : 'rating ' + fmt(s.defRating, '/5') + ' · ' + fmt(s.defense, ' s') + ' · offense ' + fmt(s.offense))));
-      })) : h('p', { class: 'muted' }, 'No ' + group + ' robots yet. Import match data on the Data page.')));
+      })) : h('p', { class: 'muted' }, 'No ' + group + ' robots yet. Import match data below.'));
   }
 
   function tile(label, value, sub) {
@@ -14152,7 +14162,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
 
   function detailView(root, D, redraw) {
     var s = D.stats.filter(function (x) { return x.t === open; })[0];
-    if (!s) { open = null; return listView(root, D, redraw); }
+    if (!s) { open = null; return redraw(); }
     var list = D.ranked[s.role];
     var pos = list.indexOf(s) + 1;
     var rows = V2.stats.mergeDuplicates(s.rows).sort(function (a, b) { return a.m - b.m; });
@@ -14162,7 +14172,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     var pitFields = V2.codec.fields('pit').filter(function (f) { return ['s', 'e', 't'].indexOf(f.code) < 0; });
 
     root.appendChild(h('div', { class: 'rankpage detail' },
-      h('button', { type: 'button', class: 'btn small back', onclick: function () { open = null; redraw(); } }, '← Rankings'),
+      h('button', { type: 'button', class: 'btn small back', onclick: function () { open = null; redraw(); } }, '← Back to data'),
       h('div', { class: 'teamhead' },
         h('h2', null, 'Team ' + s.t),
         h('span', { class: 'rolechip ' + s.role }, (s.role === 'offense' ? 'Offense' : 'Defense') + ' #' + pos + ' of ' + list.length)),
@@ -14210,165 +14220,13 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         h('ul', { class: 'notes' }, s.comments.map(function (c) { return h('li', null, h('b', null, 'Q' + c.m + ' '), c.text, h('small', { class: 'muted' }, ' — ' + c.s)); }))) : null));
   }
 
-  function render(root) {
+  // Team page; `back` redraws the Data tab
+  function render(root, back) {
     h = V2.ui.h;
-    var redraw = function () { root.textContent = ''; render(root); };
-    var D = data();
-    if (open != null) detailView(root, D, redraw);
-    else listView(root, D, redraw);
+    detailView(root, data(), back);
   }
 
-  V2.rank = { render: render, openTeam: function (t) { open = t; } };
-})();
-
-</script>
-  <script>
-// Guide tab: everything a first-time scout needs, in the order they will need it.
-var V2 = (globalThis.V2 = globalThis.V2 || {});
-
-(function () {
-  var h;
-
-  function steps(items) {
-    return h('ol', { class: 'gsteps' }, items.map(function (t) { return h('li', null, t); }));
-  }
-  function section(id, title, kids) {
-    return h('section', { class: 'card guide', id: 'g-' + id }, h('h3', null, title), kids);
-  }
-  function table(head, rows) {
-    return h('div', { class: 'scroll' }, h('table', { class: 'data gtable' },
-      h('thead', null, h('tr', null, head.map(function (c) { return h('th', null, c); }))),
-      h('tbody', null, rows.map(function (r) { return h('tr', null, r.map(function (c) { return h('td', null, c); })); }))));
-  }
-
-  function render(root) {
-    h = V2.ui.h;
-    var R = V2.CONFIG.roles, P = V2.CONFIG.points, O = V2.CONFIG.offense;
-    var toc = [
-      ['start', 'First time here'], ['match', 'Scouting a match'], ['send', 'Handing in your data'],
-      ['fuel', 'Fuel scale'], ['scale', 'Rating scale'], ['lead', 'For the data lead'], ['rank', 'How rankings work'], ['words', 'Game words'],
-    ];
-    root.appendChild(h('div', { class: 'guidepage' },
-      h('h2', null, 'Guide'),
-      h('p', { class: 'muted' }, 'Two minutes to read. Every question in the form also has a short tip under it.'),
-      h('nav', { class: 'toc' }, toc.map(function (t) {
-        return h('button', { type: 'button', class: 'opt', onclick: function () {
-          var el = document.getElementById('g-' + t[0]);
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } }, t[1]);
-      })),
-
-      section('start', 'First time here', [
-        h('p', null, 'You watch one robot for a whole match and record what it does. The app works with no internet; your records stay on this device until you hand them in.'),
-        steps([
-          'Open the Match tab.',
-          'Check the date (it fills in by itself), type the match number, and tap the team number you were told to watch. Red buttons are the red alliance, blue the blue alliance. Check the number against the robot\'s bumpers.',
-          'Tap Next to move through Auto, Teleop, Endgame and Post-match while the match plays.',
-          'At the end you get a QR code. Show it to the data lead, then tap Next match.',
-        ]),
-        h('p', { class: 'muted' }, 'Made a mistake? Tap ← Prev to go back to any page and fix it before you finish.'),
-      ]),
-
-      section('match', 'Scouting a match, page by page', [
-        table(['Page', 'When', 'What you do'], [
-          ['Pre-match', 'Before the start', 'Date, match number, the team you watch, starting spot on the map, preload. Mark No show if the robot never comes out.'],
-          ['Auto', 'First 20 s', 'Rate how much Fuel it scored and missed on the 1–10 scale below. Tap the map where it shoots. Climbed if it hangs on Tower Level 1.'],
-          ['Teleop', 'Next 2 min 20 s', 'Rate Fuel scored and missed for the whole Teleop period. Start the Incap timer when it breaks down, and the Defense timer when it blocks opponents; stop them when that ends.'],
-          ['Endgame', 'Last 30 s', 'Rate Fuel scored and missed in the last 30 s, then record the highest Tower level it was hanging on at the buzzer.'],
-          ['Post-match', 'Right after', 'Rate driver and defense with the 1–5 scale below, tick any problems, add a comment.'],
-        ]),
-        h('p', null, h('b', null, 'Rating tips: '), 'Watch only your robot and pick the number at the end of each phase. Compare it with the scale, not with the other robots in this match; a quick honest guess is far more useful than a blank.'),
-        h('p', null, h('b', null, 'The field map: '), 'it turns to match Red or Blue once you pick a station. If it looks mirrored from where you sit, turn on Flip the field map on the Setup tab.'),
-      ]),
-
-      section('send', 'Handing in your data', [
-        h('p', null, 'After each match: show the QR code on the last page to the data lead.'),
-        h('p', null, 'Several matches at once:'),
-        steps([
-          'Open the Data tab, find Send records by QR.',
-          'Choose Not sent yet (or a match range) and tap Show QR codes.',
-          'Hold your screen up for the lead. After each code is scanned, tap Next QR.',
-          'When the last one is scanned, tap Done, all scanned.',
-        ]),
-        h('p', { class: 'muted' }, 'Scanning the same code twice never creates duplicates, so if you are unsure whether one was scanned, just show it again.'),
-      ]),
-
-      section('fuel', 'Fuel scale (1–10)', [
-        h('p', null, 'Used for Fuel scored and Fuel missed in Auto, Teleop and Endgame. Pick None if it scored (or missed) nothing at all.'),
-        h('ol', { class: 'scalelist fuelscale' }, [
-          ['1–2', 'A handful: one or two shots the whole phase'],
-          ['3–4', 'Some: a few small bursts'],
-          ['5–6', 'Steady: scored throughout, an average robot'],
-          ['7–8', 'A lot: big loads, kept the Hub busy'],
-          ['9–10', 'Nonstop: one of the best shooters at the event'],
-        ].map(function (r) { return h('li', null, h('b', null, r[0]), h('span', null, r[1])); })),
-        h('p', { class: 'muted' }, 'Same idea for misses: 1 = barely missed, 10 = most of its shots missed.'),
-      ]),
-
-      section('scale', 'Rating scale (1–5)', [
-        h('p', null, 'Everyone uses the same scale so ratings can be compared. 3 is a normal robot; save 1 and 5 for the clearly worst and best.'),
-        h('div', { class: 'scales' },
-          [['Driver skill', ['Crashes, gets stuck, hesitates', 'Slow, wastes time', 'Normal, no big mistakes', 'Quick and confident', 'Fast, smooth, avoids traffic']],
-           ['Defense they played', ['Barely slowed anyone', 'Got in the way now and then', 'Cost opponents a few shots', 'Clearly reduced their scoring', 'Shut a robot down']],
-           ['Handled being defended', ['Stopped scoring', 'Lost a lot of shots', 'Slowed down', 'Lost only a little', 'Kept scoring anyway']]].map(function (sc) {
-            return h('div', { class: 'scale' }, h('h4', null, sc[0]),
-              h('ol', { class: 'scalelist' }, sc[1].map(function (t, i) { return h('li', null, h('b', null, i + 1), h('span', null, t)); })));
-          })),
-        h('p', { class: 'muted' }, 'Did not play defense / Was not defended are separate answers, not a 0. They do not pull a team\'s average down.'),
-      ]),
-
-      section('lead', 'For the data lead', [
-        steps([
-          'Before the event: put the event code in js/config.js and share the new offline file. Load the match schedule on the Setup tab so team numbers fill in.',
-          'During matches: on the Data tab tap Scan with phone camera (or click the Import box and use a USB scanner). Every code imports; batch codes import all their matches.',
-          'Check the Teams table on the Data tab, or open the Rank tab for offense and defense rankings.',
-          'To share or back up: Copy match data and paste it into Google Sheets.',
-        ]),
-      ]),
-
-      section('rank', 'How rankings work', [
-        h('p', null, 'Every number is an average over all of a team\'s matches. If two scouts watched the same robot in the same match, their two records are averaged first, so that match counts once.'),
-        table(['', 'How it is worked out'], [
-          ['Offense index (per match)', Math.round(O.scoring * 100) + '% Fuel scoring + ' + Math.round(O.climb * 100) + '% climbing, 0–100. Fuel scoring = the 1–10 ratings weighted Auto ' + Math.round(O.auto * 100) + '%, Teleop ' + Math.round(O.teleop * 100) + '%, Endgame ' + Math.round(O.endgame * 100) + '% (Teleop is the longest). Climbing = Auto Level 1 (' + P.autoL1 + ') + Tower level at the end (L1 ' + P.climb.L1 + ', L2 ' + P.climb.L2 + ', L3 ' + P.climb.L3 + '), out of ' + (P.autoL1 + P.climb.L3) + ' points.'],
-          ['Defense robot', 'Played defense in at least ' + Math.round(R.share * 100) + '% of its matches, or ' + R.seconds + ' s or more of defense per match. Everyone else is an offense robot.'],
-          ['Offense score', 'The team\'s average offense index over all its matches.'],
-          ['Defense score', '50% defense rating (5/5 = full) + 30% time defending (60 s per match = full) + 20% reliability (no breakdowns, no-shows).'],
-          ['Accuracy', 'Average of the scouts\' Shooting accuracy answers (< 50% counts as 35%, 50–80% as 65%, > 80% as 90%).'],
-          ['Reliability', 'Share of matches without tipping, dying, getting beached, or not showing up.'],
-        ]),
-        h('p', { class: 'muted' }, 'Tap any team in the Rank tab to see all of its averages, its shooting map and each match.'),
-      ]),
-
-      section('words', 'Game words', [
-        table(['Word', 'Meaning'], [
-          ['Fuel', 'The foam balls. The only thing robots score with.'],
-          ['Hub', 'The goal in front of each alliance zone. Fuel counts only while that alliance\'s Hub is lit (active).'],
-          ['Active / inactive', 'After Auto the two Hubs take turns being switched off. A robot whose Hub is off usually collects or ferries Fuel instead.'],
-          ['Ferry', 'Moving Fuel from the middle of the field back to your own zone for teammates.'],
-          ['Tower', 'The climbing structure. Levels L1, L2, L3 are worth ' + P.climb.L1 + ', ' + P.climb.L2 + ' and ' + P.climb.L3 + ' points at the end.'],
-          ['Bump / Trench', 'Two ways between zones: over the Bump, or under the low Trench.'],
-          ['Outpost / Depot', 'Where Fuel is fed in by the human player (Outpost) or stored on the floor (Depot).'],
-          ['Auto / Teleop / Endgame', 'First 20 s robots drive themselves; then drivers take over; the last 30 s is Endgame.'],
-          ['Incap', 'Incapacitated: the robot stopped working or got stuck.'],
-          ['No show', 'The robot was not on the field for that match.'],
-        ]),
-      ])
-    ));
-  }
-
-  // One-time welcome card at the top of the Match tab
-  function welcome() {
-    if (V2.ui.get('welcomed', false)) return null;
-    h = V2.ui.h;
-    var card = h('section', { class: 'welcome' },
-      h('div', null, h('b', null, 'New to scouting?'), h('p', null, 'Read the 2-minute Guide first. Every question also has a tip under it.')),
-      h('div', { class: 'row' },
-        h('a', { class: 'btn primary', href: '#guide', onclick: function () { V2.ui.set('welcomed', true); } }, 'Open the Guide'),
-        h('button', { type: 'button', class: 'btn', onclick: function () { V2.ui.set('welcomed', true); card.remove(); } }, 'Got it')));
-    return card;
-  }
-
-  V2.guide = { render: render, welcome: welcome };
+  V2.rank = { render: render, listCard: listCard, isOpen: function () { return open != null; }, openTeam: function (t) { open = t; } };
 })();
 
 </script>
@@ -14380,50 +14238,39 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   var h = V2.ui.h;
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 
-  var TABS = { scout: 'Match', pit: 'Pit', data: 'Data', rank: 'Rank', guide: 'Guide', settings: 'Setup' };
+  var TABS = { scout: 'Match', pit: 'Pit', data: 'Data' };
 
-  function settingsPage(root) {
+  // Schedule + field-map setting, shown on the Data tab for the scouting lead
+  function scheduleCard(redraw) {
     var s = V2.ui.get('settings', {});
-    function save() { V2.ui.set('settings', s); }
     var csv = h('textarea', { id: 'sched', rows: 4, placeholder: 'date,match,R1,R2,R3,B1,B2,B3\n2026-10-24,1,254,1678,971,118,148,2056\n(the date column is optional)' });
     var ev = V2.CONFIG.event;
     var sch = (V2.ui.get('schedule', {})[ev] || []).length;
-    root.appendChild(h('div', { class: 'settings' },
-      h('h2', null, 'Setup'),
-      h('section', { class: 'card' },
-        h('p', { class: 'eventline' }, 'Event: ', h('b', null, V2.CONFIG.event)),
-        h('small', { class: 'muted' }, 'Set by the scouting lead for every scout. To change it, edit event in js/config.js and update the app.'),
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'set-flip', checked: !!s.flip, onchange: function (e) { s.flip = e.target.checked; save(); } }),
-          ' Flip the field map (our alliance on the right, as seen from your seat)'),
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'set-tips', checked: s.tips !== false, onchange: function (e) { s.tips = e.target.checked; save(); } }),
-          ' Show tips under each question (turn off once you know the form)')),
-      h('section', { class: 'card' },
-        h('h3', null, 'Match schedule'),
-        h('p', { class: 'muted' }, sch ? sch + ' matches loaded for ' + ev + '. Team numbers fill in from the station.' : 'Paste the schedule so team numbers fill in automatically.'),
-        csv,
-        h('button', { type: 'button', class: 'btn', onclick: function () {
-          var rows = [];
-          csv.value.split(/\r?\n/).forEach(function (l) {
-            var c = l.split(/[,\t;]/).map(function (x) { return x.trim(); });
-            var d = '';
-            if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(c[0])) { // optional date column first: 2026-10-24
-              var p = c.shift().split('-');
-              d = p[0] + '-' + ('0' + p[1]).slice(-2) + '-' + ('0' + p[2]).slice(-2);
-            }
-            if (c.length < 7 || !/^\d+$/.test(c[0])) return;
-            rows.push({ d: d, m: Number(c[0]), R1: +c[1], R2: +c[2], R3: +c[3], B1: +c[4], B2: +c[5], B3: +c[6] });
-          });
-          if (!rows.length) return V2.ui.toast('No matches found. Format: date,match,R1,R2,R3,B1,B2,B3 (date optional)', 'err');
-          var all = V2.ui.get('schedule', {});
-          all[ev] = rows;
-          V2.ui.set('schedule', all);
-          V2.ui.toast(rows.length + ' matches loaded', 'ok');
-          root.textContent = '';
-          settingsPage(root);
-        } }, 'Load schedule')),
-      offlineCard(),
-      h('p', { class: 'muted small' }, V2.CONFIG.team.name + ' · FRC ' + V2.CONFIG.team.number + ' · REBUILT Scout v2 · fields are defined in js/config.js')
-    ));
+    return h('section', { class: 'card c-sched' },
+      h('h3', null, 'Match schedule'),
+      h('p', { class: 'muted' }, sch ? sch + ' matches loaded. Date + match number pick the teams on the Match tab.' : 'Paste the schedule so the Match tab shows each match\'s team numbers.'),
+      csv,
+      h('button', { type: 'button', class: 'btn', onclick: function () {
+        var rows = [];
+        csv.value.split(/\r?\n/).forEach(function (l) {
+          var c = l.split(/[,\t;]/).map(function (x) { return x.trim(); });
+          var d = '';
+          if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(c[0])) { // optional date column first: 2026-10-24
+            var p = c.shift().split('-');
+            d = p[0] + '-' + ('0' + p[1]).slice(-2) + '-' + ('0' + p[2]).slice(-2);
+          }
+          if (c.length < 7 || !/^\d+$/.test(c[0])) return;
+          rows.push({ d: d, m: Number(c[0]), R1: +c[1], R2: +c[2], R3: +c[3], B1: +c[4], B2: +c[5], B3: +c[6] });
+        });
+        if (!rows.length) return V2.ui.toast('No matches found. Format: date,match,R1,R2,R3,B1,B2,B3 (date optional)', 'err');
+        var all = V2.ui.get('schedule', {});
+        all[ev] = rows;
+        V2.ui.set('schedule', all);
+        V2.ui.toast(rows.length + ' matches loaded', 'ok');
+        redraw();
+      } }, 'Load schedule'),
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', id: 'set-flip', checked: !!s.flip, onchange: function (e) { s.flip = e.target.checked; V2.ui.set('settings', s); } }),
+        ' Flip the field map (our alliance on the right, as seen from your seat)'));
   }
 
   var OFFLINE_FILE = 'rebuilt-scout-v2-offline.html';
@@ -14431,7 +14278,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
   // One-file copy of the whole app that runs from the device's storage with no network
   function offlineCard() {
     if (V2.OFFLINE_BUILD) {
-      return h('section', { class: 'card' }, h('h3', null, 'Offline copy'),
+      return h('section', { class: 'card c-offline' }, h('h3', null, 'Offline copy'),
         h('p', { class: 'muted' }, 'You are using the offline file. It needs no internet. Keep it on this device and open it from the same place each time, so your records stay with it.'));
     }
     var status = h('small', { class: 'muted' });
@@ -14454,7 +14301,7 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
         status.textContent = 'Could not download: ' + e.message;
       });
     } }, 'Download offline file');
-    return h('section', { class: 'card' }, h('h3', null, 'Offline copy'),
+    return h('section', { class: 'card c-offline' }, h('h3', null, 'Offline copy'),
       h('p', { class: 'muted' }, 'One HTML file with the whole app. Save it to a phone, tablet or laptop and open it in a browser with no internet. ' +
         (navigator.serviceWorker && location.protocol.indexOf('http') === 0 ? 'This page also keeps working offline after you have opened it once.' : '')),
       h('div', { class: 'row wrap' }, btn, status));
@@ -14468,17 +14315,12 @@ var V2 = (globalThis.V2 = globalThis.V2 || {});
     document.body.setAttribute('data-tab', tab); // desktop layout differs per tab
     var root = document.getElementById('app');
     root.textContent = '';
-    if (tab === 'scout') {
-      var w = V2.guide.welcome();
-      if (w) root.appendChild(w);
-      V2.form.render(root, 'match');
-    }
+    if (tab === 'scout') V2.form.render(root, 'match');
     else if (tab === 'pit') V2.form.render(root, 'pit');
-    else if (tab === 'data') V2.data.render(root);
-    else if (tab === 'rank') V2.rank.render(root);
-    else if (tab === 'guide') V2.guide.render(root);
-    else settingsPage(root);
+    else V2.data.render(root);
   }
+
+  V2.setup = { scheduleCard: scheduleCard, offlineCard: offlineCard };
 
   var T = V2.CONFIG.team;
   document.getElementById('teamname').textContent = T.name;
